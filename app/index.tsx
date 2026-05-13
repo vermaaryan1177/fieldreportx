@@ -1,11 +1,12 @@
 import "./global.css";
 
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import LoginRegisterScreen from "./screens/LoginRegisterScreen";
 
 export default function Home() {
     return (
         <View>
-            <Text className="bg-primary">Testings</Text>
+            <LoginRegisterScreen />
         </View>
     );
 }
