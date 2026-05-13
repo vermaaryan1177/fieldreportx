@@ -1,12 +1,12 @@
 import "./global.css";
 
 import { View } from "react-native";
-import LoginRegisterScreen from "./screens/LoginRegisterScreen";
+import PermissionsScreen from "./screens/PermissionsScreen";
 
 export default function Home() {
     return (
         <View>
-            <LoginRegisterScreen />
+            <PermissionsScreen />
         </View>
     );
 }
