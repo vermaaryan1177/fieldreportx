@@ -110,6 +110,7 @@ export default function HomeScreen({ onNavigate }: Props) {
             {/* New Report CTA */}
             <TouchableOpacity
                 activeOpacity={0.8}
+                onPress={() => onNavigate("reportSetup")}
                 className="bg-primary mx-5 rounded-2xl py-4 items-center mb-6"
             >
                 <Text className="text-white font-bold text-base">

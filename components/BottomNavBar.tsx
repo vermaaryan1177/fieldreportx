@@ -6,6 +6,10 @@ export type AppScreen =
     | "reports"
     | "templateLibrary"
     | "templateBuilder"
+    | "reportSetup"
+    | "reportEditor"
+    | "mediaHandler"
+    | "mapsRoutes"
     | "settings";
 
 type NavItem = {
