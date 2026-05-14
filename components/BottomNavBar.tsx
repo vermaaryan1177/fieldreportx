@@ -10,6 +10,10 @@ export type AppScreen =
     | "reportEditor"
     | "mediaHandler"
     | "mapsRoutes"
+    | "reportPreview"
+    | "score"
+    | "signature"
+    | "reportComparison"
     | "settings";
 
 type NavItem = {

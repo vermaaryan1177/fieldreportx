@@ -263,6 +263,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                 </TouchableOpacity>
                 <TouchableOpacity
                     activeOpacity={0.8}
+                    onPress={() => onNavigate("reportPreview")}
                     className="flex-1 bg-primary rounded-2xl py-4 items-center"
                 >
                     <Text className="text-white font-bold text-sm">

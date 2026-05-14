@@ -135,6 +135,7 @@ export default function HomeScreen({ onNavigate }: Props) {
                             <TouchableOpacity
                                 key={report.id}
                                 activeOpacity={0.7}
+                                onPress={() => onNavigate("reportPreview")}
                                 className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                             >
                                 {/* Left color strip */}
