@@ -1,9 +1,11 @@
 import "./global.css";
 
-import { useState } from "react";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
+import { useAuth } from "@/hooks/useAuth";
+import LoginRegisterScreen from "./screens/LoginRegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
 import MediaHandlerScreen from "./screens/MediaHandlerScreen";
 import MapsRoutesScreen from "./screens/MapsRoutesScreen";
@@ -18,7 +20,25 @@ import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
 export default function App() {
+    const { user, loading } = useAuth();
     const [screen, setScreen] = useState<AppScreen>("home");
+
+    // Reset to home screen whenever a new session starts
+    useEffect(() => {
+        if (user) setScreen("home");
+    }, [user]);
+
+    if (loading) {
+        return (
+            <View className="flex-1 bg-background items-center justify-center">
+                <ActivityIndicator color="#f2a72f" size="large" />
+            </View>
+        );
+    }
+
+    if (!user) {
+        return <LoginRegisterScreen />;
+    }
 
     if (screen === "reports") {
         return <ReportListScreen onNavigate={setScreen} />;

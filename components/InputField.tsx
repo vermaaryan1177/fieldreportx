@@ -8,6 +8,8 @@ interface InputFieldProps {
     keyboardType?: "default" | "email-address" | "numeric";
     icon: string;
     rightAction?: React.ReactNode;
+    secureTextEntry?: boolean;
+    autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }
 
 export default function InputField({
@@ -18,6 +20,8 @@ export default function InputField({
     keyboardType = "default",
     icon,
     rightAction,
+    secureTextEntry = false,
+    autoCapitalize,
 }: InputFieldProps) {
     return (
         <View>
@@ -35,6 +39,11 @@ export default function InputField({
                     value={value}
                     onChangeText={onChangeText}
                     keyboardType={keyboardType}
+                    secureTextEntry={secureTextEntry}
+                    autoCapitalize={
+                        autoCapitalize ?? (keyboardType === "email-address" ? "none" : "sentences")
+                    }
+                    autoCorrect={false}
                 />
                 {rightAction && <View className="ml-2">{rightAction}</View>}
             </View>
