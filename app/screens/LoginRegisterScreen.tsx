@@ -177,7 +177,7 @@ export default function LoginRegisterScreen() {
                                     }
                                 />
 
-                                <ForgotPasswordButton />
+                                <ForgotPasswordButton email={loginEmail} />
 
                                 <SubmitFormButton
                                     text="Sign In"

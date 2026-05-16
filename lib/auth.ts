@@ -1,6 +1,7 @@
 import { FirebaseError } from "firebase/app";
 import {
     createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut as firebaseSignOut,
     updateProfile,
@@ -23,6 +24,10 @@ export async function signUp(
         password,
     );
     await updateProfile(credential.user, { displayName: name.trim() });
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+    await sendPasswordResetEmail(auth, email.trim());
 }
 
 export async function signOut(): Promise<void> {
