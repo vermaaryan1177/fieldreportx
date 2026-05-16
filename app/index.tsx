@@ -19,6 +19,12 @@ import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
+
+import SettingScreen from "./screens/SettingScreen";
+
+
+
+
 export default function App() {
     const { user, loading } = useAuth();
     const [screen, setScreen] = useState<AppScreen>("home");
@@ -73,6 +79,10 @@ export default function App() {
     if (screen === "reportComparison") {
         return <ReportComparisonScreen onNavigate={setScreen} />;
     }
+    if (screen === "settings") {
+        return <SettingScreen onNavigate={setScreen} />;
+    }
+
 
     return (
         <View className="flex-1">
