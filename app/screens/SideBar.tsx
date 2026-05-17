@@ -126,6 +126,7 @@ export type AppScreen =
   | "signature"
   | "reportComparison"
   | "settings"
+  | "notifications"
   | "organisation";
 
 type SidebarItem = {
@@ -242,9 +243,14 @@ export default function Sidebar({
         ))}
 
         {/* Notifications */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           activeOpacity={0.7}
           className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
+        > */}
+        <TouchableOpacity
+        activeOpacity={0.7}
+        className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
+        onPress={() => onNavigate("notification")}
         >
           <View className="flex-row items-center">
             <Ionicons
