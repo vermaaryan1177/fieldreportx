@@ -17,13 +17,8 @@ import ReportSetupScreen from "./screens/ReportSetupScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
+import SettingsScreen from "./screens/SettingsScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
-
-
-import SettingScreen from "./screens/SettingScreen";
-
-
-
 
 export default function App() {
     const { user, loading } = useAuth();
@@ -80,9 +75,8 @@ export default function App() {
         return <ReportComparisonScreen onNavigate={setScreen} />;
     }
     if (screen === "settings") {
-        return <SettingScreen onNavigate={setScreen} />;
+        return <SettingsScreen onNavigate={setScreen} />;
     }
-
 
     return (
         <View className="flex-1">

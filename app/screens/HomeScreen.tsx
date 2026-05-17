@@ -85,9 +85,13 @@ export default function HomeScreen({ onNavigate }: Props) {
                             color="#f2a72f"
                         />
                     </TouchableOpacity>
-                    <View className="w-10 h-10 rounded-full bg-primary items-center justify-center">
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => onNavigate("settings")}
+                        className="w-10 h-10 rounded-full bg-primary items-center justify-center"
+                    >
                         <Text className="text-white font-bold text-sm">AK</Text>
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 
