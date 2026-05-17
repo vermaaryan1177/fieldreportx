@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from "./firebase";
+import { createUserProfile } from "./db/users";
 
 export async function signIn(email: string, password: string): Promise<void> {
     await signInWithEmailAndPassword(auth, email.trim(), password);
@@ -24,6 +25,7 @@ export async function signUp(
         password,
     );
     await updateProfile(credential.user, { displayName: name.trim() });
+    await createUserProfile(credential.user.uid, name.trim(), email.trim());
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {
