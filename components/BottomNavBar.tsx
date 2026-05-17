@@ -14,7 +14,9 @@ export type AppScreen =
     | "score"
     | "signature"
     | "reportComparison"
-    | "settings";
+    | "settings"
+    | "notification"
+    | "organisation";
 
 type NavItem = {
     id: AppScreen;

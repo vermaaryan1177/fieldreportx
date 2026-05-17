@@ -1,660 +1,192 @@
-// // SettingsScreen.tsx
-
-// import React, { useState } from "react";
-// import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
-// import {
-//   SafeAreaView,
-//   View,
-//   Text,
-//   Switch,
-//   TouchableOpacity,
-// } from "react-native";
-
-// interface Props {
-//     onNavigate: (screen: AppScreen) => void;
-// }
-
-// // const SettingsScreen = () => {
-// const SettingsScreen = ({ onNavigate }: Props) => {
-//   // Permissions
-//   const [cameraEnabled, setCameraEnabled] =
-//     useState(true);
-
-//   const [locationEnabled, setLocationEnabled] =
-//     useState(true);
-
-//   const [microphoneEnabled, setMicrophoneEnabled] =
-//     useState(true);
-
-//   const [motionEnabled, setMotionEnabled] =
-//     useState(false);
-
-//   // Notifications
-//   const [reportReminderEnabled, setReportReminderEnabled] =
-//     useState(true);
-
-//   const [templateUpdatesEnabled, setTemplateUpdatesEnabled] =
-//     useState(true);
-
-//   // Storage
-//   const [cloudSyncEnabled, setCloudSyncEnabled] =
-//     useState(true);
-
-//   return (
-//     <SafeAreaView className="flex-1 bg-your color">
-      
-//       {/* Header */}
-//       <View className="border-b border-your color px-5 py-4">
-//         <Text className="text-3xl font-bold text-your color">
-//           Settings
-//         </Text>
-//       </View>
-
-//       {/* Permissions */}
-//       <View className="px-5 pt-5">
-//         <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//           Permissions
-//         </Text>
-
-//         {/* Camera */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Camera
-//           </Text>
-
-//           <Switch
-//             value={cameraEnabled}
-//             onValueChange={setCameraEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-
-//         {/* Location */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Location (GPS)
-//           </Text>
-
-//           <Switch
-//             value={locationEnabled}
-//             onValueChange={setLocationEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-
-//         {/* Microphone */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Microphone
-//           </Text>
-
-//           <Switch
-//             value={microphoneEnabled}
-//             onValueChange={setMicrophoneEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-
-//         {/* Motion Sensors */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Motion sensors
-//           </Text>
-
-//           <Switch
-//             value={motionEnabled}
-//             onValueChange={setMotionEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-//       </View>
-
-//       {/* Notifications */}
-//       <View className="px-5 pt-5">
-//         <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//           Notifications
-//         </Text>
-
-//         {/* Report Reminders */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Report reminders
-//           </Text>
-
-//           <Switch
-//             value={reportReminderEnabled}
-//             onValueChange={setReportReminderEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-
-//         {/* Template Updates */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Template updates
-//           </Text>
-
-//           <Switch
-//             value={templateUpdatesEnabled}
-//             onValueChange={setTemplateUpdatesEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-//       </View>
-
-//       {/* Storage & Data */}
-//       <View className="px-5 pt-5">
-//         <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//           Storage & Data
-//         </Text>
-
-//         {/* Cloud Sync */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Cloud sync
-//           </Text>
-
-//           <Switch
-//             value={cloudSyncEnabled}
-//             onValueChange={setCloudSyncEnabled}
-//             trackColor={{
-//               false: "#d1d5db",
-//               true: "#f59e0b",
-//             }}
-//             thumbColor="#ffffff"
-//           />
-//         </View>
-
-//         {/* Local Storage */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             Local storage used
-//           </Text>
-
-//           <Text className="text-your color">
-//             1.2 GB
-//           </Text>
-//         </View>
-
-//         {/* Export */}
-//         <TouchableOpacity className="border-b border-your color py-4">
-//           <Text className="font-medium text-your color">
-//             Export & backup data
-//           </Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* About */}
-//       <View className="px-5 pt-5">
-//         <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//           About
-//         </Text>
-
-//         {/* Version */}
-//         <View className="flex-row items-center justify-between border-b border-your color py-4">
-//           <Text className="text-base text-your color">
-//             App version
-//           </Text>
-
-//           <Text className="text-your color">
-//             2.1.0 (441)
-//           </Text>
-//         </View>
-
-//         {/* Terms */}
-//         <TouchableOpacity className="flex-row items-center justify-between py-4">
-//           <Text className="text-base text-your color">
-//             Terms & privacy policy
-//           </Text>
-
-//           <Text className="text-lg text-your color">
-//             ›
-//           </Text>
-//         </TouchableOpacity>
-//         <BottomNavBar active="home" onNavigate={onNavigate} />
-//       </View>
-//     </SafeAreaView>
-//   );
-// };
-
-// export default SettingsScreen;
-
-
-
-
-
-
-
-
-
-
-// SettingsScreen.tsx
-
-// import React, { useState } from "react";
-// import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
-// import {
-//   SafeAreaView,
-//   ScrollView,  // <-- import ScrollView
-//   View,
-//   Text,
-//   Switch,
-//   TouchableOpacity,
-// } from "react-native";
-
-// interface Props {
-//     onNavigate: (screen: AppScreen) => void;
-// }
-
-// const SettingsScreen = ({ onNavigate }: Props) => {
-//   // Permissions
-//   const [cameraEnabled, setCameraEnabled] = useState(true);
-//   const [locationEnabled, setLocationEnabled] = useState(true);
-//   const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
-//   const [motionEnabled, setMotionEnabled] = useState(false);
-
-//   // Notifications
-//   const [reportReminderEnabled, setReportReminderEnabled] = useState(true);
-//   const [templateUpdatesEnabled, setTemplateUpdatesEnabled] = useState(true);
-
-//   // Storage
-//   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
-
-//   return (
-//     <SafeAreaView className="flex-1 bg-your color">
-      
-//       {/* Header */}
-//       <View className="border-b border-your color px-5 py-4">
-//         <Text className="text-3xl font-bold text-your color">
-//           Settings
-//         </Text>
-//       </View>
-
-//       {/* Scrollable content */}
-//       <ScrollView className="flex-1 px-5">
-//         {/* Permissions */}
-//         <View className="pt-5">
-//           <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//             Permissions
-//           </Text>
-
-//           {/* Camera */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Camera</Text>
-//             <Switch
-//               value={cameraEnabled}
-//               onValueChange={setCameraEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-
-//           {/* Location */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Location (GPS)</Text>
-//             <Switch
-//               value={locationEnabled}
-//               onValueChange={setLocationEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-
-//           {/* Microphone */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Microphone</Text>
-//             <Switch
-//               value={microphoneEnabled}
-//               onValueChange={setMicrophoneEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-
-//           {/* Motion Sensors */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Motion sensors</Text>
-//             <Switch
-//               value={motionEnabled}
-//               onValueChange={setMotionEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-//         </View>
-
-//         {/* Notifications */}
-//         <View className="pt-5">
-//           <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//             Notifications
-//           </Text>
-
-//           {/* Report Reminders */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Report reminders</Text>
-//             <Switch
-//               value={reportReminderEnabled}
-//               onValueChange={setReportReminderEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-
-//           {/* Template Updates */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Template updates</Text>
-//             <Switch
-//               value={templateUpdatesEnabled}
-//               onValueChange={setTemplateUpdatesEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-//         </View>
-
-//         {/* Storage & Data */}
-//         <View className="pt-5">
-//           <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//             Storage & Data
-//           </Text>
-
-//           {/* Cloud Sync */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Cloud sync</Text>
-//             <Switch
-//               value={cloudSyncEnabled}
-//               onValueChange={setCloudSyncEnabled}
-//               trackColor={{ false: "#d1d5db", true: "#f59e0b" }}
-//               thumbColor="#ffffff"
-//             />
-//           </View>
-
-//           {/* Local Storage */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">Local storage used</Text>
-//             <Text className="text-your color">1.2 GB</Text>
-//           </View>
-
-//           {/* Export */}
-//           <TouchableOpacity className="border-b border-your color py-4">
-//             <Text className="font-medium text-your color">Export & backup data</Text>
-//           </TouchableOpacity>
-//         </View>
-
-//         {/* About */}
-//         <View className="pt-5 pb-20">
-//           <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-your color">
-//             About
-//           </Text>
-
-//           {/* Version */}
-//           <View className="flex-row items-center justify-between border-b border-your color py-4">
-//             <Text className="text-base text-your color">App version</Text>
-//             <Text className="text-your color">2.1.0 (441)</Text>
-//           </View>
-
-//           {/* Terms */}
-//           <TouchableOpacity className="flex-row items-center justify-between py-4">
-//             <Text className="text-base text-your color">Terms & privacy policy</Text>
-//             <Text className="text-lg text-your color">›</Text>
-//           </TouchableOpacity>
-
-//           {/* Bottom Nav */}
-//         </View>
-//       </ScrollView>
-//       <BottomNavBar active="settings" onNavigate={onNavigate} />
-//     </SafeAreaView>
-//   );
-// };
-
-// export default SettingsScreen;
-
-
-
-
-
-
-
-import React, { useState } from "react";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+import React, { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
-  onNavigate: (screen: AppScreen) => void;
+    onNavigate: (screen: AppScreen) => void;
 }
 
-/* ✅ Reusable Toggle (same style as Permissions page) */
+/* Reusable Toggle (same style as Permissions page) */
 const Toggle = ({
-  value,
-  onPress,
+    value,
+    onPress,
 }: {
-  value: boolean;
-  onPress: () => void;
+    value: boolean;
+    onPress: () => void;
 }) => {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className={`w-12 h-6 rounded-full items-center justify-center ${
-        value ? "bg-primary" : "bg-slate-700"
-      }`}
-    >
-      <View
-        className={`w-4 h-4 rounded-full bg-white absolute ${
-          value ? "right-1" : "left-1"
-        }`}
-      />
-    </TouchableOpacity>
-  );
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            className={`w-12 h-6 rounded-full items-center justify-center ${
+                value ? "bg-primary" : "bg-slate-700"
+            }`}
+        >
+            <View
+                className={`w-4 h-4 rounded-full bg-white absolute ${
+                    value ? "right-1" : "left-1"
+                }`}
+            />
+        </TouchableOpacity>
+    );
 };
 
 const SettingsScreen = ({ onNavigate }: Props) => {
-  // Permissions
-  const [cameraEnabled, setCameraEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
-  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
-  const [motionEnabled, setMotionEnabled] = useState(false);
+    // Permissions
+    const [cameraEnabled, setCameraEnabled] = useState(true);
+    const [locationEnabled, setLocationEnabled] = useState(true);
+    const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+    const [motionEnabled, setMotionEnabled] = useState(false);
 
-  // Notifications
-  const [reportReminderEnabled, setReportReminderEnabled] =
-    useState(true);
-  const [templateUpdatesEnabled, setTemplateUpdatesEnabled] =
-    useState(true);
+    // Notifications
+    const [reportReminderEnabled, setReportReminderEnabled] = useState(true);
+    const [templateUpdatesEnabled, setTemplateUpdatesEnabled] = useState(true);
 
-  // Storage
-  const [cloudSyncEnabled, setCloudSyncEnabled] =
-    useState(true);
+    // Storage
+    const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
 
-  return (
-    <SafeAreaView className="flex-1 pt-10 bg-slate-900">
-      {/* Header */}
-      <View className="border-b border-zinc-800 px-5 py-4">
-        <Text className="text-3xl font-bold text-white">
-          Settings
-        </Text>
-      </View>
+    return (
+        <View className="flex-1 pt-10 bg-slate-900">
+            {/* Header */}
+            <View className="border-b border-zinc-800 px-5 py-4">
+                <Text className="text-3xl font-bold text-white">Settings</Text>
+            </View>
 
-      {/* Scrollable content */}
-      <ScrollView className="flex-1 px-5">
-        {/* Permissions */}
-        <View className="pt-5">
-          <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-            Permissions
-          </Text>
+            {/* Scrollable content */}
+            <ScrollView className="flex-1 px-5">
+                {/* Permissions */}
+                <View className="pt-5">
+                    <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        Permissions
+                    </Text>
 
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">Camera</Text>
-            <Toggle
-              value={cameraEnabled}
-              onPress={() =>
-                setCameraEnabled(!cameraEnabled)
-              }
-            />
-          </View>
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">Camera</Text>
+                        <Toggle
+                            value={cameraEnabled}
+                            onPress={() => setCameraEnabled(!cameraEnabled)}
+                        />
+                    </View>
 
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Location (GPS)
-            </Text>
-            <Toggle
-              value={locationEnabled}
-              onPress={() =>
-                setLocationEnabled(!locationEnabled)
-              }
-            />
-          </View>
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            Location (GPS)
+                        </Text>
+                        <Toggle
+                            value={locationEnabled}
+                            onPress={() => setLocationEnabled(!locationEnabled)}
+                        />
+                    </View>
 
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Microphone
-            </Text>
-            <Toggle
-              value={microphoneEnabled}
-              onPress={() =>
-                setMicrophoneEnabled(!microphoneEnabled)
-              }
-            />
-          </View>
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">Microphone</Text>
+                        <Toggle
+                            value={microphoneEnabled}
+                            onPress={() =>
+                                setMicrophoneEnabled(!microphoneEnabled)
+                            }
+                        />
+                    </View>
 
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Motion sensors
-            </Text>
-            <Toggle
-              value={motionEnabled}
-              onPress={() =>
-                setMotionEnabled(!motionEnabled)
-              }
-            />
-          </View>
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            Motion sensors
+                        </Text>
+                        <Toggle
+                            value={motionEnabled}
+                            onPress={() => setMotionEnabled(!motionEnabled)}
+                        />
+                    </View>
+                </View>
+
+                {/* Notifications */}
+                <View className="pt-5">
+                    <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        Notifications
+                    </Text>
+
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            Report reminders
+                        </Text>
+                        <Toggle
+                            value={reportReminderEnabled}
+                            onPress={() =>
+                                setReportReminderEnabled(!reportReminderEnabled)
+                            }
+                        />
+                    </View>
+
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            Template updates
+                        </Text>
+                        <Toggle
+                            value={templateUpdatesEnabled}
+                            onPress={() =>
+                                setTemplateUpdatesEnabled(
+                                    !templateUpdatesEnabled,
+                                )
+                            }
+                        />
+                    </View>
+                </View>
+
+                {/* Storage */}
+                <View className="pt-5 pb-20">
+                    <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        Storage & Data
+                    </Text>
+
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">Cloud sync</Text>
+                        <Toggle
+                            value={cloudSyncEnabled}
+                            onPress={() =>
+                                setCloudSyncEnabled(!cloudSyncEnabled)
+                            }
+                        />
+                    </View>
+
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            Local storage used
+                        </Text>
+                        <Text className="text-zinc-400">1.2 GB</Text>
+                    </View>
+
+                    <TouchableOpacity className="border-b border-zinc-800 py-4">
+                        <Text className="font-medium text-white">
+                            Export & backup data
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* About */}
+                <View className="pt-5 pb-24">
+                    <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        About
+                    </Text>
+
+                    <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
+                        <Text className="text-base text-white">
+                            App version
+                        </Text>
+                        <Text className="text-zinc-400">2.1.0 (441)</Text>
+                    </View>
+
+                    <TouchableOpacity className="flex-row items-center justify-between py-4">
+                        <Text className="text-base text-white">
+                            Terms & privacy policy
+                        </Text>
+                        <Text className="text-zinc-400">›</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+
+            {/* Bottom Nav */}
+            <BottomNavBar active="settings" onNavigate={onNavigate} />
         </View>
-
-        {/* Notifications */}
-        <View className="pt-5">
-          <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-            Notifications
-          </Text>
-
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Report reminders
-            </Text>
-            <Toggle
-              value={reportReminderEnabled}
-              onPress={() =>
-                setReportReminderEnabled(
-                  !reportReminderEnabled
-                )
-              }
-            />
-          </View>
-
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Template updates
-            </Text>
-            <Toggle
-              value={templateUpdatesEnabled}
-              onPress={() =>
-                setTemplateUpdatesEnabled(
-                  !templateUpdatesEnabled
-                )
-              }
-            />
-          </View>
-        </View>
-
-        {/* Storage */}
-        <View className="pt-5 pb-20">
-          <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-            Storage & Data
-          </Text>
-
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Cloud sync
-            </Text>
-            <Toggle
-              value={cloudSyncEnabled}
-              onPress={() =>
-                setCloudSyncEnabled(!cloudSyncEnabled)
-              }
-            />
-          </View>
-
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              Local storage used
-            </Text>
-            <Text className="text-zinc-400">1.2 GB</Text>
-          </View>
-
-          <TouchableOpacity className="border-b border-zinc-800 py-4">
-            <Text className="font-medium text-white">
-              Export & backup data
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* About */}
-        <View className="pt-5 pb-24">
-          <Text className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-            About
-          </Text>
-
-          <View className="flex-row items-center justify-between border-b border-zinc-800 py-4">
-            <Text className="text-base text-white">
-              App version
-            </Text>
-            <Text className="text-zinc-400">
-              2.1.0 (441)
-            </Text>
-          </View>
-
-          <TouchableOpacity className="flex-row items-center justify-between py-4">
-            <Text className="text-base text-white">
-              Terms & privacy policy
-            </Text>
-            <Text className="text-zinc-400">›</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Bottom Nav */}
-      <BottomNavBar
-        active="settings"
-        onNavigate={onNavigate}
-      />
-    </SafeAreaView>
-  );
+    );
 };
 
 export default SettingsScreen;

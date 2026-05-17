@@ -5,9 +5,12 @@ import { ActivityIndicator, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { useAuth } from "@/hooks/useAuth";
+import HomeScreen from "./screens/HomeScreen";
 import LoginRegisterScreen from "./screens/LoginRegisterScreen";
 import MapsRoutesScreen from "./screens/MapsRoutesScreen";
 import MediaHandlerScreen from "./screens/MediaHandlerScreen";
+import NotificationScreen from "./screens/NotificationScreen";
+import OrganisationScreen from "./screens/OrganisationScreen";
 import ReportComparisonScreen from "./screens/ReportComparisonScreen";
 import ReportEditorScreen from "./screens/ReportEditorScreen";
 import ReportListScreen from "./screens/ReportListScreen";
@@ -19,32 +22,11 @@ import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
-import NotificationScreen from "./screens/NotificationScreen";
-import OrganisationScreen from "./screens/OrganisationScreen";
-import SideBar from "./screens/SideBar";
-
-// imports for signout
-import { router } from "expo-router";
-import { signOut } from "firebase/auth";
-import { auth } from "../lib/firebase";
-
 export default function App() {
     const { user, loading } = useAuth();
     const [screen, setScreen] = useState<AppScreen>("home");
 
-    // handling signout
-
-    const handleSignOut = async () => {
-        try {
-            await signOut(auth);
-
-            router.replace("");
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    // Reset to home screen whenever a new session starts
+    // Reset to home whenever a new session starts
     useEffect(() => {
         if (user) setScreen("home");
     }, [user]);
@@ -106,14 +88,7 @@ export default function App() {
 
     return (
         <View className="flex-1">
-            {/* <HomeScreen onNavigate={setScreen} /> */}
-            {/* <SideBar onNavigate={setScreen} /> */}
-            <SideBar
-                active={screen}
-                onNavigate={setScreen}
-                onSignOut={handleSignOut}
-            />
-            {/* <NotificationScreen onNavigate={setScreen} /> */}
+            <HomeScreen onNavigate={setScreen} />
         </View>
     );
 }
