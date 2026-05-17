@@ -21,7 +21,8 @@ import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
 
 import SettingScreen from "./screens/SettingScreen";
-
+import OrganisationScreen from "./screens/OrganisationScreen";
+import SideBar from "./screens/SideBar";
 
 
 
@@ -82,11 +83,15 @@ export default function App() {
     if (screen === "settings") {
         return <SettingScreen onNavigate={setScreen} />;
     }
+    if (screen === "organisation") {
+    return <OrganisationScreen onNavigate={setScreen} />;
+    }
 
 
     return (
         <View className="flex-1">
-            <HomeScreen onNavigate={setScreen} />
+            {/* <HomeScreen onNavigate={setScreen} /> */}
+            <SideBar onNavigate={setScreen} />
         </View>
     );
 }
