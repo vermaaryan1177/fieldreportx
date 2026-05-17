@@ -21,13 +21,32 @@ import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
 
 import SettingScreen from "./screens/SettingScreen";
+import OrganisationScreen from "./screens/OrganisationScreen";
+import SideBar from "./screens/SideBar";
+import NotificationScreen from "./screens/NotificationScreen";
 
+// imports for signout
+import { signOut } from "firebase/auth";
+import { auth } from "../lib/firebase";
+import { router } from "expo-router";
 
 
 
 export default function App() {
     const { user, loading } = useAuth();
     const [screen, setScreen] = useState<AppScreen>("home");
+
+    // handling signout
+
+    const handleSignOut = async () => {
+    try {
+        await signOut(auth);
+
+        router.replace("");
+    } catch (error) {
+        console.log(error);
+    }
+    };
 
     // Reset to home screen whenever a new session starts
     useEffect(() => {
@@ -82,11 +101,20 @@ export default function App() {
     if (screen === "settings") {
         return <SettingScreen onNavigate={setScreen} />;
     }
+    if (screen === "organisation") {
+    return <OrganisationScreen onNavigate={setScreen} />;
+    }
+    if (screen === "notification") {
+    return <NotificationScreen onNavigate={setScreen} />;
+    }
 
 
     return (
         <View className="flex-1">
-            <HomeScreen onNavigate={setScreen} />
+            {/* <HomeScreen onNavigate={setScreen} /> */}
+            {/* <SideBar onNavigate={setScreen} /> */}
+            <SideBar active={screen} onNavigate={setScreen} onSignOut={handleSignOut}/>
+            {/* <NotificationScreen onNavigate={setScreen} /> */}
         </View>
     );
 }
