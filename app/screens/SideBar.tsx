@@ -135,6 +135,9 @@ type SidebarItem = {
   icon: keyof typeof Ionicons.glyphMap;
 };
 
+
+
+
 const MAIN_ITEMS: SidebarItem[] = [
   {
     id: "home",
