@@ -16,7 +16,8 @@ export type AppScreen =
     | "reportComparison"
     | "settings"
     | "notification"
-    | "organisation";
+    | "organisation"
+    | "permissions";
 
 type NavItem = {
     id: AppScreen;

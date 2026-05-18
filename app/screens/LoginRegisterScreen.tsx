@@ -8,7 +8,11 @@ import { getAuthErrorMessage, signIn, signUp } from "@/lib/auth";
 
 type Tab = "login" | "register";
 
-export default function LoginRegisterScreen() {
+interface Props {
+    onStartRegister?: () => void;
+}
+
+export default function LoginRegisterScreen({ onStartRegister }: Props) {
     const [activeTab, setActiveTab] = useState<Tab>("login");
 
     // Login fields
@@ -62,6 +66,8 @@ export default function LoginRegisterScreen() {
         }
         setError(null);
         setLoading(true);
+        // Signal BEFORE signUp so the flag is set when onAuthStateChanged fires
+        onStartRegister?.();
         try {
             await signUp(name, email, password);
         } catch (e) {

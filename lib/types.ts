@@ -8,6 +8,7 @@ export interface UserProfile {
     email: string;
     organisationId: string | null;
     role: "admin" | "inspector" | "viewer";
+    onboardingComplete: boolean;
     createdAt: Timestamp;
 }
 

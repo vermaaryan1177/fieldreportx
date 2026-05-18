@@ -1,6 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Camera } from "expo-camera";
+import * as Location from "expo-location";
+import { DeviceMotion } from "expo-sensors";
+import { Audio } from "expo-av";
+import React, { useEffect, useState } from "react";
+import {
+    Alert,
+    Linking,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { signOut } from "@/lib/auth";
@@ -13,14 +25,11 @@ interface Props {
 const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
     <TouchableOpacity
         onPress={onPress}
-        className={`w-12 h-6 rounded-full items-center justify-center ${
-            value ? "bg-primary" : "bg-slate-700"
-        }`}
+        className={`w-12 h-6 rounded-full ${value ? "bg-primary" : "bg-slate-700"}`}
     >
         <View
-            className={`w-4 h-4 rounded-full bg-white absolute ${
-                value ? "right-1" : "left-1"
-            }`}
+            style={{ left: value ? 28 : 4 }}
+            className="w-4 h-4 rounded-full bg-white absolute top-1"
         />
     </TouchableOpacity>
 );
@@ -28,11 +37,31 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
 export default function SettingsScreen({ onNavigate }: Props) {
     const user = auth.currentUser;
 
-    // Permissions
-    const [cameraEnabled, setCameraEnabled] = useState(true);
-    const [locationEnabled, setLocationEnabled] = useState(true);
-    const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+    // Real permission status (granted / not-granted)
+    const [cameraEnabled, setCameraEnabled] = useState(false);
+    const [locationEnabled, setLocationEnabled] = useState(false);
+    const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
     const [motionEnabled, setMotionEnabled] = useState(false);
+
+    useEffect(() => {
+        Camera.getCameraPermissionsAsync().then(({ status }) =>
+            setCameraEnabled(status === "granted"),
+        );
+        Location.getForegroundPermissionsAsync().then(({ status }) =>
+            setLocationEnabled(status === "granted"),
+        );
+        Audio.getPermissionsAsync().then(({ status }) =>
+            setMicrophoneEnabled(status === "granted"),
+        );
+        if (Platform.OS === "ios") {
+            DeviceMotion.getPermissionsAsync().then(({ status }) =>
+                setMotionEnabled(status === "granted"),
+            );
+        }
+    }, []);
+
+    // Permissions can't be revoked programmatically — open system settings instead
+    const openPermissionSettings = () => Linking.openSettings();
 
     // Notifications
     const [reportReminderEnabled, setReportReminderEnabled] = useState(true);
@@ -116,10 +145,10 @@ export default function SettingsScreen({ onNavigate }: Props) {
                 </Text>
                 <View className="mx-5 bg-slate-900 rounded-2xl px-4">
                     {[
-                        { label: "Camera", value: cameraEnabled, onPress: () => setCameraEnabled((v) => !v) },
-                        { label: "Location (GPS)", value: locationEnabled, onPress: () => setLocationEnabled((v) => !v) },
-                        { label: "Microphone", value: microphoneEnabled, onPress: () => setMicrophoneEnabled((v) => !v) },
-                        { label: "Motion sensors", value: motionEnabled, onPress: () => setMotionEnabled((v) => !v) },
+                        { label: "Camera", value: cameraEnabled, onPress: openPermissionSettings },
+                        { label: "Location (GPS)", value: locationEnabled, onPress: openPermissionSettings },
+                        { label: "Microphone", value: microphoneEnabled, onPress: openPermissionSettings },
+                        { label: "Motion sensors", value: motionEnabled, onPress: openPermissionSettings },
                     ].map((item, i, arr) => (
                         <View
                             key={item.label}

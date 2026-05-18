@@ -23,6 +23,7 @@ export async function createUserProfile(
         email,
         organisationId: null,
         role: "inspector",
+        onboardingComplete: false,
         createdAt: serverTimestamp(),
     });
 }
@@ -34,7 +35,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 
 export async function updateUserProfile(
     uid: string,
-    data: Partial<Pick<UserProfile, "displayName" | "organisationId" | "role">>,
+    data: Partial<Pick<UserProfile, "displayName" | "organisationId" | "role" | "onboardingComplete">>,
 ): Promise<void> {
     await updateDoc(doc(db, col, uid), data);
 }

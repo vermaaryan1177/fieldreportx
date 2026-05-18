@@ -1,194 +1,187 @@
-import SubmitFormButton from "@/components/SubmitFormButton";
+import { Ionicons } from "@expo/vector-icons";
+import { Camera } from "expo-camera";
+import * as Location from "expo-location";
+import { DeviceMotion } from "expo-sensors";
+import { Audio } from "expo-av";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+    ActivityIndicator,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
-interface Permission {
-    id: string;
-    icon: string;
-    title: string;
-    description: string;
-    reason: string;
-    required: boolean;
+import { AppScreen } from "@/components/BottomNavBar";
+import { updateUserProfile } from "@/lib/db/users";
+import { auth } from "@/lib/firebase";
+
+interface Props {
+    onNavigate: (screen: AppScreen) => void;
 }
 
-const PERMISSIONS: Permission[] = [
+type PermKey = "camera" | "location" | "microphone" | "motion";
+
+interface PermItem {
+    key: PermKey;
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    description: string;
+    reason: string;
+    defaultOn: boolean;
+}
+
+const PERMS: PermItem[] = [
     {
-        id: "camera",
-        icon: "📷",
-        title: "Camera",
-        description: "Take photos and record video",
-        reason: "Required to capture site evidence, annotate photos, and attach visual media directly to your reports.",
-        required: true,
+        key: "camera",
+        icon: "camera-outline",
+        label: "Camera",
+        description: "Capture photos for reports and evidence",
+        reason: "Required to attach site photos, annotate images, and build visual inspection records.",
+        defaultOn: true,
     },
     {
-        id: "location",
-        icon: "📍",
-        title: "Location & GPS",
-        description: "Access precise device location",
-        reason: "Used to geotag reports, record GPS routes, and automatically attach coordinates to each captured media item.",
-        required: true,
+        key: "location",
+        icon: "location-outline",
+        label: "Location & GPS",
+        description: "Geotag reports and track inspection routes",
+        reason: "Used to attach GPS coordinates to reports and photos, and to record route data during inspections.",
+        defaultOn: true,
     },
     {
-        id: "microphone",
-        icon: "🎙️",
-        title: "Microphone",
-        description: "Record audio and voice notes",
-        reason: "Enables voice-to-text note-taking in the Media Handler so you can dictate notes hands-free in the field.",
-        required: false,
+        key: "microphone",
+        icon: "mic-outline",
+        label: "Microphone",
+        description: "Record voice notes during inspections",
+        reason: "Lets you dictate notes hands-free in the field instead of typing.",
+        defaultOn: true,
     },
     {
-        id: "storage",
-        icon: "💾",
-        title: "Storage",
-        description: "Read and write files on device",
-        reason: "Needed to save drafts locally, store exported PDFs, and manage offline report data when no network is available.",
-        required: true,
-    },
-    {
-        id: "notifications",
-        icon: "🔔",
-        title: "Notifications",
-        description: "Send push notifications",
-        reason: "Keeps you informed about report signature requests, team updates, and due-date reminders.",
-        required: false,
-    },
-    {
-        id: "motion",
-        icon: "📡",
-        title: "Motion & Sensors",
-        description: "Access accelerometer & gyroscope",
-        reason: "Captures tilt, orientation, and speed data via the built-in sensor suite to enrich your inspection reports.",
-        required: false,
+        key: "motion",
+        icon: "pulse-outline",
+        label: "Motion sensors",
+        description: "Detect device orientation for better photos",
+        reason: "Reads accelerometer and gyroscope data to enrich inspection reports with sensor readings.",
+        defaultOn: false,
     },
 ];
 
-export default function PermissionsScreen() {
-    const [granted, setGranted] = useState<Record<string, boolean>>({});
-    const [expanded, setExpanded] = useState<string | null>(null);
+const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
+    <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        className={`w-12 h-6 rounded-full ${value ? "bg-primary" : "bg-slate-700"}`}
+    >
+        <View
+            style={{ left: value ? 28 : 4 }}
+            className="w-4 h-4 rounded-full bg-white absolute top-1"
+        />
+    </TouchableOpacity>
+);
 
-    const toggleGranted = (id: string) => {
-        setGranted((prev) => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const toggleExpand = (id: string) => {
-        setExpanded((prev) => (prev === id ? null : id));
-    };
-
-    const requiredAll = PERMISSIONS.filter((p) => p.required).every(
-        (p) => granted[p.id],
+export default function PermissionsScreen({ onNavigate }: Props) {
+    const [enabled, setEnabled] = useState<Record<PermKey, boolean>>(
+        () => Object.fromEntries(PERMS.map((p) => [p.key, p.defaultOn])) as Record<PermKey, boolean>,
     );
+    const [expanded, setExpanded] = useState<PermKey | null>(null);
+    const [loading, setLoading] = useState(false);
 
-    const grantAll = () => {
-        const all: Record<string, boolean> = {};
-        PERMISSIONS.forEach((permission) => (all[permission.id] = true));
-        setGranted(all);
+    const toggle = (key: PermKey) =>
+        setEnabled((prev) => ({ ...prev, [key]: !prev[key] }));
+
+    const toggleExpanded = (key: PermKey) =>
+        setExpanded((prev) => (prev === key ? null : key));
+
+    const handleGetStarted = async () => {
+        setLoading(true);
+
+        // Each request gets its own .catch so a single failure or hang
+        // doesn't block the others or prevent navigation.
+        await Promise.all([
+            enabled.camera
+                ? Camera.requestCameraPermissionsAsync().catch(() => null)
+                : null,
+            enabled.location
+                ? Location.requestForegroundPermissionsAsync().catch(() => null)
+                : null,
+            enabled.microphone
+                ? Audio.requestPermissionsAsync().catch(() => null)
+                : null,
+            enabled.motion && Platform.OS === "ios"
+                ? DeviceMotion.requestPermissionsAsync().catch(() => null)
+                : null,
+        ]);
+
+        // Fire-and-forget — don't let a Firestore write block navigation.
+        const uid = auth.currentUser?.uid;
+        if (uid) {
+            updateUserProfile(uid, { onboardingComplete: true }).catch(() => null);
+        }
+
+        setLoading(false);
+        onNavigate("home");
     };
-
-    const grantedCount = Object.values(granted).filter(Boolean).length;
 
     return (
-        <ScrollView className="bg-background">
-            {/* Header */}
-            <View className="mt-20 px-5 pt-5 pb-4">
-                <Text className="text-primary text-4xl font-bold tracking-tight">
-                    App Permissions
-                </Text>
-                <Text className="text-white text-sm mt-1 leading-5">
-                    FieldReportX needs these permissions to work in the field.
-                    Tap any permission to learn why it's needed.
-                </Text>
-            </View>
-
-            {/* Grant All */}
-            <View className="mx-5 mb-4">
-                <TouchableOpacity
-                    onPress={grantAll}
-                    className="flex-row items-center justify-between bg-slate-900 rounded-2xl px-4 py-3"
-                >
-                    <View>
-                        <Text className="text-white font-semibold text-sm">
-                            Allow All Permissions
-                        </Text>
-                        <Text className="text-slate-500 text-xs mt-0.5">
-                            {grantedCount}/{PERMISSIONS.length} granted
-                        </Text>
-                    </View>
-                    <View className="w-12 h-6 rounded-full bg-slate-600 items-center justify-center">
-                        <Text className="text-primary text-xs font-bold">
-                            All
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
-
-            {/* Permission List */}
+        <View className="flex-1 bg-background">
             <ScrollView
-                contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 32,
-                }}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 32 }}
             >
-                <View className="gap-3">
-                    {PERMISSIONS.map((perm) => {
-                        const isGranted = !!granted[perm.id];
-                        const isOpen = expanded === perm.id;
+                {/* Header */}
+                <View className="px-6 pt-20 pb-6">
+                    <View className="w-14 h-14 rounded-2xl bg-primary/20 items-center justify-center mb-5">
+                        <Ionicons name="shield-checkmark-outline" size={28} color="#f2a72f" />
+                    </View>
+                    <Text className="text-white text-3xl font-bold mb-2">
+                        App permissions
+                    </Text>
+                    <Text className="text-zinc-400 text-sm leading-relaxed">
+                        FieldReportX needs the following permissions to work in
+                        the field. Toggle off anything you'd prefer to skip —
+                        you can always change these in Settings later.
+                    </Text>
+                </View>
 
+                {/* Permission cards */}
+                <View className="mx-5 gap-3">
+                    {PERMS.map((perm) => {
+                        const isOpen = expanded === perm.key;
+                        const isOn = enabled[perm.key];
                         return (
                             <View
-                                key={perm.id}
-                                className={
-                                    "rounded-2xl border overflow-hidden bg-slate-900"
-                                }
+                                key={perm.key}
+                                className="bg-slate-900 rounded-2xl overflow-hidden"
                             >
                                 {/* Main row */}
-                                <View className="flex-row items-center px-4 py-3.5">
-                                    {/* Icon */}
+                                <View className="flex-row items-center px-4 py-4">
                                     <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center mr-3">
-                                        <Text className="text-xl">
-                                            {perm.icon}
-                                        </Text>
+                                        <Ionicons
+                                            name={perm.icon}
+                                            size={20}
+                                            color={isOn ? "#f2a72f" : "#52525b"}
+                                        />
                                     </View>
-
-                                    {/* Text */}
                                     <TouchableOpacity
                                         className="flex-1"
-                                        onPress={() => toggleExpand(perm.id)}
+                                        activeOpacity={0.7}
+                                        onPress={() => toggleExpanded(perm.key)}
                                     >
-                                        <View className="flex-row items-center gap-2">
-                                            <Text className="text-white font-semibold text-sm">
-                                                {perm.title}
-                                            </Text>
-                                            {perm.required && (
-                                                <View className="bg-primary/20 rounded-full px-2 py-0.5">
-                                                    <Text className="text-primary text-xs">
-                                                        Required
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <Text className="text-slate-500 text-xs mt-0.5">
+                                        <Text className="text-white font-semibold text-sm">
+                                            {perm.label}
+                                        </Text>
+                                        <Text className="text-zinc-500 text-xs mt-0.5">
                                             {perm.description}
                                         </Text>
                                     </TouchableOpacity>
-
-                                    {/* Toggle */}
-                                    <TouchableOpacity
-                                        onPress={() => toggleGranted(perm.id)}
-                                        className={`w-12 h-6 rounded-full ml-3 items-center justify-center transition-all ${
-                                            isGranted
-                                                ? "bg-primary"
-                                                : "bg-slate-700"
-                                        }`}
-                                    >
-                                        <View
-                                            className={`w-4 h-4 rounded-full bg-white absolute ${
-                                                isGranted ? "right-1" : "left-1"
-                                            }`}
-                                        />
-                                    </TouchableOpacity>
+                                    <Toggle
+                                        value={isOn}
+                                        onPress={() => toggle(perm.key)}
+                                    />
                                 </View>
 
-                                {/* Expand reason */}
+                                {/* Expandable reason */}
                                 {isOpen && (
                                     <View className="bg-zinc-950 border-t border-zinc-800 px-4 py-3">
                                         <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">
@@ -200,29 +193,49 @@ export default function PermissionsScreen() {
                                     </View>
                                 )}
 
-                                {/* Expand toggle hint */}
+                                {/* Expand hint */}
                                 <TouchableOpacity
-                                    onPress={() => toggleExpand(perm.id)}
-                                    className="flex-row items-center justify-center py-1.5 border-t border-zinc-800/60"
+                                    onPress={() => toggleExpanded(perm.key)}
+                                    activeOpacity={0.6}
+                                    className="items-center justify-center py-1.5 border-t border-zinc-800/60"
                                 >
-                                    <Text className="text-zinc-600 text-xs">
-                                        {isOpen ? "▲ Close" : "▼ Why?"}
-                                    </Text>
+                                    <Ionicons
+                                        name={isOpen ? "chevron-up" : "chevron-down"}
+                                        size={14}
+                                        color="#52525b"
+                                    />
                                 </TouchableOpacity>
                             </View>
                         );
                     })}
                 </View>
+
+                <Text className="text-zinc-600 text-xs text-center mx-10 mt-5 leading-relaxed">
+                    You can update any permission at any time in{" "}
+                    <Text className="text-zinc-400">Settings → Permissions</Text>
+                </Text>
             </ScrollView>
 
-            {/* Next */}
-            <SubmitFormButton text="Next" />
-
-            {/* Skip */}
-            <Text className="text-white text-xs text-center mt-5 leading-5 px-4">
-                You can update permissions at any time from{" "}
-                <Text className="text-primary">Settings → Permissions</Text>
-            </Text>
-        </ScrollView>
+            {/* Get started button */}
+            <View className="px-5 pb-12 pt-4">
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleGetStarted}
+                    disabled={loading}
+                    className="bg-primary rounded-2xl py-4 items-center justify-center flex-row gap-2"
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <>
+                            <Text className="text-white font-bold text-base">
+                                Get started
+                            </Text>
+                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 }

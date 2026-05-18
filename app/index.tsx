@@ -1,6 +1,6 @@
 import "./global.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -11,6 +11,7 @@ import MapsRoutesScreen from "./screens/MapsRoutesScreen";
 import MediaHandlerScreen from "./screens/MediaHandlerScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import OrganisationScreen from "./screens/OrganisationScreen";
+import PermissionsScreen from "./screens/PermissionsScreen";
 import ReportComparisonScreen from "./screens/ReportComparisonScreen";
 import ReportEditorScreen from "./screens/ReportEditorScreen";
 import ReportListScreen from "./screens/ReportListScreen";
@@ -25,11 +26,22 @@ import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 export default function App() {
     const { user, loading } = useAuth();
     const [screen, setScreen] = useState<AppScreen>("home");
+    // Set to true BEFORE signUp starts so the useEffect sees it when
+    // onAuthStateChanged fires mid-signup (before signUp resolves).
+    const pendingPermissions = useRef(false);
 
-    // Reset to home whenever a new session starts
     useEffect(() => {
-        if (user) setScreen("home");
-    }, [user]);
+        if (!user) {
+            pendingPermissions.current = false;
+            return;
+        }
+        if (pendingPermissions.current) {
+            pendingPermissions.current = false;
+            setScreen("permissions");
+        } else {
+            setScreen("home");
+        }
+    }, [user?.uid]);
 
     if (loading) {
         return (
@@ -40,9 +52,18 @@ export default function App() {
     }
 
     if (!user) {
-        return <LoginRegisterScreen />;
+        return (
+            <LoginRegisterScreen
+                onStartRegister={() => {
+                    pendingPermissions.current = true;
+                }}
+            />
+        );
     }
 
+    if (screen === "permissions") {
+        return <PermissionsScreen onNavigate={setScreen} />;
+    }
     if (screen === "reports") {
         return <ReportListScreen onNavigate={setScreen} />;
     }
