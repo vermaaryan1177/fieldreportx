@@ -1,7 +1,14 @@
 import "./global.css";
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, View } from "react-native";
+import Animated, {
+    Easing,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,23 +30,118 @@ import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const TIMING = {
+    duration: 420,
+    easing: Easing.out(Easing.cubic),
+};
+
+function ScreenContent({
+    screen,
+    navigate,
+}: {
+    screen: AppScreen;
+    navigate: (s: AppScreen) => void;
+}) {
+    switch (screen) {
+        case "permissions":
+            return <PermissionsScreen onNavigate={navigate} />;
+        case "reports":
+            return <ReportListScreen onNavigate={navigate} />;
+        case "templateLibrary":
+            return <TemplateLibraryScreen onNavigate={navigate} />;
+        case "templateBuilder":
+            return <TemplateBuilderScreen onNavigate={navigate} />;
+        case "reportSetup":
+            return <ReportSetupScreen onNavigate={navigate} />;
+        case "reportEditor":
+            return <ReportEditorScreen onNavigate={navigate} />;
+        case "mediaHandler":
+            return <MediaHandlerScreen onNavigate={navigate} />;
+        case "mapsRoutes":
+            return <MapsRoutesScreen onNavigate={navigate} />;
+        case "reportPreview":
+            return <ReportPreviewScreen onNavigate={navigate} />;
+        case "score":
+            return <ScoreScreen onNavigate={navigate} />;
+        case "signature":
+            return <SignatureScreen onNavigate={navigate} />;
+        case "reportComparison":
+            return <ReportComparisonScreen onNavigate={navigate} />;
+        case "settings":
+            return <SettingsScreen onNavigate={navigate} />;
+        case "organisation":
+            return <OrganisationScreen onNavigate={navigate} />;
+        case "notification":
+            return <NotificationScreen onNavigate={navigate} />;
+        default:
+            return <HomeScreen onNavigate={navigate} />;
+    }
+}
+
 export default function App() {
     const { user, loading } = useAuth();
-    const [screen, setScreen] = useState<AppScreen>("home");
-    // Set to true BEFORE signUp starts so the useEffect sees it when
-    // onAuthStateChanged fires mid-signup (before signUp resolves).
+
+    // currentScreen is always visible underneath.
+    // incomingScreen slides in on top, then becomes current when done.
+    const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
+    const [incomingScreen, setIncomingScreen] = useState<AppScreen | null>(
+        null,
+    );
     const pendingPermissions = useRef(false);
+    const historyRef = useRef<AppScreen[]>(["home"]);
+
+    // Incoming layer starts off-screen; we animate it to 0.
+    const incomingX = useSharedValue(SCREEN_WIDTH);
+
+    const incomingStyle = useAnimatedStyle(() => ({
+        ...StyleSheet.absoluteFillObject,
+        transform: [{ translateX: incomingX.value }],
+    }));
+
+    const finishTransition = (target: AppScreen) => {
+        // Promote incoming to current and unmount the transition layer.
+        // Do NOT touch incomingX here — moving it while the layer is still
+        // mounted causes the old base screen to flash before React re-renders.
+        setCurrentScreen(target);
+        setIncomingScreen(null);
+    };
+
+    const navigate = (target: AppScreen) => {
+        const history = historyRef.current;
+        const existingIdx = history.lastIndexOf(target);
+        const isBack = existingIdx !== -1 && existingIdx < history.length - 1;
+
+        if (isBack) {
+            historyRef.current = history.slice(0, existingIdx + 1);
+        } else {
+            historyRef.current = [...history, target];
+        }
+
+        // Reset incomingX to the start position NOW (incoming layer is unmounted
+        // at this point), then mount the layer and animate it in.
+        incomingX.value = isBack ? -SCREEN_WIDTH : SCREEN_WIDTH;
+        setIncomingScreen(target);
+        incomingX.value = withTiming(0, TIMING, (finished) => {
+            if (finished) runOnJS(finishTransition)(target);
+        });
+    };
 
     useEffect(() => {
         if (!user) {
             pendingPermissions.current = false;
             return;
         }
+        // Auth-triggered switches have no animation.
+        setIncomingScreen(null);
         if (pendingPermissions.current) {
             pendingPermissions.current = false;
-            setScreen("permissions");
+            historyRef.current = ["permissions"];
+            setCurrentScreen("permissions");
         } else {
-            setScreen("home");
+            historyRef.current = ["home"];
+            setCurrentScreen("home");
         }
     }, [user?.uid]);
 
@@ -61,55 +163,22 @@ export default function App() {
         );
     }
 
-    if (screen === "permissions") {
-        return <PermissionsScreen onNavigate={setScreen} />;
-    }
-    if (screen === "reports") {
-        return <ReportListScreen onNavigate={setScreen} />;
-    }
-    if (screen === "templateLibrary") {
-        return <TemplateLibraryScreen onNavigate={setScreen} />;
-    }
-    if (screen === "templateBuilder") {
-        return <TemplateBuilderScreen onNavigate={setScreen} />;
-    }
-    if (screen === "reportSetup") {
-        return <ReportSetupScreen onNavigate={setScreen} />;
-    }
-    if (screen === "reportEditor") {
-        return <ReportEditorScreen onNavigate={setScreen} />;
-    }
-    if (screen === "mediaHandler") {
-        return <MediaHandlerScreen onNavigate={setScreen} />;
-    }
-    if (screen === "mapsRoutes") {
-        return <MapsRoutesScreen onNavigate={setScreen} />;
-    }
-    if (screen === "reportPreview") {
-        return <ReportPreviewScreen onNavigate={setScreen} />;
-    }
-    if (screen === "score") {
-        return <ScoreScreen onNavigate={setScreen} />;
-    }
-    if (screen === "signature") {
-        return <SignatureScreen onNavigate={setScreen} />;
-    }
-    if (screen === "reportComparison") {
-        return <ReportComparisonScreen onNavigate={setScreen} />;
-    }
-    if (screen === "settings") {
-        return <SettingsScreen onNavigate={setScreen} />;
-    }
-    if (screen === "organisation") {
-        return <OrganisationScreen onNavigate={setScreen} />;
-    }
-    if (screen === "notification") {
-        return <NotificationScreen onNavigate={setScreen} />;
-    }
-
     return (
-        <View className="flex-1">
-            <HomeScreen onNavigate={setScreen} />
+        <View style={{ flex: 1 }}>
+            {/* Base layer — always visible, never moves */}
+            <View style={{ flex: 1 }}>
+                <ScreenContent screen={currentScreen} navigate={navigate} />
+            </View>
+
+            {/* Transition layer — slides in over the top, then unmounts */}
+            {incomingScreen !== null && (
+                <Animated.View style={incomingStyle}>
+                    <ScreenContent
+                        screen={incomingScreen}
+                        navigate={navigate}
+                    />
+                </Animated.View>
+            )}
         </View>
     );
 }
