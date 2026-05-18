@@ -175,44 +175,7 @@ export default function App() {
         );
     }
 
-//     return (
-//         <View style={{ flex: 1, flexDirection: "row" }}>
-//             {/* Sidebar */}
-//             {sidebarOpen && (
-//                 <Sidebar 
-//                     active={currentScreen}
-//                     onNavigate={(screen) => {
-//                         setSidebarOpen(false);
-//                         navigate(screen);
-//                     }}
-//                     onSignOut={() => {
-//                         setSidebarOpen(false);
-//                     }}
-//                 />
-//             )}
 
-//             {/* Main Content */}
-//             <View style={{ flex: 1 }}>
-//                 {/* Base layer */}
-//                 <View style={{ flex: 1 }}>
-//                     <ScreenContent
-//                     screen={currentScreen}
-//                     navigate={navigate}
-//                     openSidebar={() => setSidebarOpen(prev => !prev)} />
-//                 </View>
-
-//                 {/* Transition layer */}
-//                 {incomingScreen !== null && (
-//                     <Animated.View style={incomingStyle}>
-//                         <ScreenContent
-//                         screen={incomingScreen}
-//                         navigate={navigate}
-//                         openSidebar={() => setSidebarOpen(prev => !prev)} />
-//                     </Animated.View>
-//                 )}
-//             </View>
-//         </View>
-// );
 
     return (
     <View style={{ flex: 1 }}>
