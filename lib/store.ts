@@ -1,0 +1,53 @@
+// Lightweight module-level store for passing ephemeral state between screens.
+
+import { SectionStatus } from "@/lib/types";
+
+export interface ReportSetup {
+    title: string;
+    description: string;
+    inspectorName: string;
+    date: string;
+    gpsEnabled: boolean;
+}
+
+let _selectedTemplateId: string | null = null;
+let _reportSetup: ReportSetup | null = null;
+let _fieldValues: Record<string, Record<string, string | boolean | number>> = {};
+let _sectionStatuses: Record<string, SectionStatus> = {};
+
+export const store = {
+    get selectedTemplateId() {
+        return _selectedTemplateId;
+    },
+    setSelectedTemplate(id: string | null) {
+        _selectedTemplateId = id;
+    },
+
+    get reportSetup() {
+        return _reportSetup;
+    },
+    setReportSetup(setup: ReportSetup) {
+        _reportSetup = setup;
+    },
+
+    getFieldValues(sectionId: string): Record<string, string | boolean | number> {
+        return _fieldValues[sectionId] ?? {};
+    },
+    setFieldValues(sectionId: string, values: Record<string, string | boolean | number>) {
+        _fieldValues[sectionId] = values;
+    },
+
+    getSectionStatus(sectionId: string): SectionStatus {
+        return _sectionStatuses[sectionId] ?? "notstarted";
+    },
+    setSectionStatus(sectionId: string, status: SectionStatus) {
+        _sectionStatuses[sectionId] = status;
+    },
+
+    clearReport() {
+        _selectedTemplateId = null;
+        _reportSetup = null;
+        _fieldValues = {};
+        _sectionStatuses = {};
+    },
+};

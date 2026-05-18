@@ -9,6 +9,9 @@ import {
 } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
+import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
+import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -16,24 +19,38 @@ interface Props {
 
 type Association = "organisation" | "individual";
 
-const ORGANISATIONS = [
-    "Field Inspectors Co",
-    "Metro Property Group",
-    "AusBuilt Services",
-];
-
-const INSPECTORS = ["Arn Khatri", "Jane Smith", "Tom Mitchell"];
+function todayLabel() {
+    return new Date().toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
+}
 
 export default function ReportSetupScreen({ onNavigate }: Props) {
+    const template = SYSTEM_TEMPLATES.find(
+        (t) => t.id === store.selectedTemplateId,
+    );
+
     const [reportTitle, setReportTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [association, setAssociation] = useState<Association>("organisation");
-    const [org, setOrg] = useState("Field Inspectors Co");
-    const [showOrgPicker, setShowOrgPicker] = useState(false);
-    const [reportDate, setReportDate] = useState("28 Mar 2026");
-    const [inspector, setInspector] = useState("Arn Khatri");
-    const [showInspectorPicker, setShowInspectorPicker] = useState(false);
-    const [autoGps, setAutoGps] = useState(true);
+    const [association, setAssociation] = useState<Association>("individual");
+    const [reportDate, setReportDate] = useState(todayLabel);
+    const [inspectorName, setInspectorName] = useState(
+        auth.currentUser?.displayName ?? "",
+    );
+    const [autoGps, setAutoGps] = useState(template?.gpsValidation ?? false);
+
+    const handleBegin = () => {
+        store.setReportSetup({
+            title: reportTitle.trim() || (template?.name ?? "Untitled report"),
+            description: description.trim(),
+            inspectorName: inspectorName.trim(),
+            date: reportDate,
+            gpsEnabled: autoGps,
+        });
+        onNavigate("reportEditor");
+    };
 
     return (
         <View className="flex-1 bg-background">
@@ -41,7 +58,7 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
             <View className="flex-row items-center gap-3 px-5 pt-16 pb-4">
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => onNavigate("home")}
+                    onPress={() => onNavigate("templateLibrary")}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
                 >
                     <Ionicons name="arrow-back" size={18} color="#ffffff" />
@@ -57,33 +74,70 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
             >
                 {/* Template Card */}
-                <View className="bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center mb-5">
-                    <View className="w-10 h-10 rounded-xl bg-primary/20 items-center justify-center mr-3">
-                        <Ionicons name="layers" size={18} color="#f2a72f" />
+                {template ? (
+                    <View
+                        className="rounded-2xl px-4 py-3.5 flex-row items-center mb-5"
+                        style={{ backgroundColor: template.color + "18" }}
+                    >
+                        <View
+                            className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                            style={{ backgroundColor: template.color + "30" }}
+                        >
+                            <Ionicons
+                                name={template.icon as any}
+                                size={18}
+                                color={template.color}
+                            />
+                        </View>
+                        <View className="flex-1">
+                            <Text
+                                className="font-bold text-sm"
+                                style={{ color: template.color }}
+                            >
+                                {template.name}
+                            </Text>
+                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                {template.sections.length} sections ·{" "}
+                                {template.category}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => onNavigate("templateLibrary")}
+                        >
+                            <Text
+                                className="font-semibold text-sm"
+                                style={{ color: template.color }}
+                            >
+                                Change
+                            </Text>
+                        </TouchableOpacity>
                     </View>
-                    <View className="flex-1">
-                        <Text className="text-primary font-bold text-sm">
-                            Rental inspection v1.0
-                        </Text>
-                        <Text className="text-zinc-500 text-xs mt-0.5">
-                            8 sections
-                        </Text>
-                    </View>
-                    <TouchableOpacity activeOpacity={0.7}>
-                        <Text className="text-primary font-semibold text-sm">
-                            Change
+                ) : (
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => onNavigate("templateLibrary")}
+                        className="bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center mb-5 border border-dashed border-zinc-700"
+                    >
+                        <Ionicons name="add-circle-outline" size={20} color="#52525b" />
+                        <Text className="text-zinc-500 text-sm ml-3">
+                            Select a template
                         </Text>
                     </TouchableOpacity>
-                </View>
+                )}
 
                 {/* Report Title */}
                 <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Report Title
+                    Report title
                 </Text>
                 <View className="bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
                     <TextInput
                         className="text-white text-sm"
-                        placeholder="e.g. 42 Maple Ave — Outbound"
+                        placeholder={
+                            template
+                                ? `e.g. ${template.name} — Site A`
+                                : "e.g. Site inspection — Batch 4"
+                        }
                         placeholderTextColor="#52525b"
                         value={reportTitle}
                         onChangeText={setReportTitle}
@@ -113,10 +167,10 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
 
                 {/* Associate With */}
                 <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Associate With
+                    Associate with
                 </Text>
-                <View className="flex-row bg-slate-900 rounded-2xl p-1 mb-3">
-                    {(["organisation", "individual"] as Association[]).map(
+                <View className="flex-row bg-slate-900 rounded-2xl p-1 mb-5">
+                    {(["individual", "organisation"] as Association[]).map(
                         (opt) => (
                             <TouchableOpacity
                                 key={opt}
@@ -142,52 +196,23 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     )}
                 </View>
 
-                {/* Organisation Dropdown */}
-                {association === "organisation" && (
-                    <View className="mb-5">
-                        <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => setShowOrgPicker((v) => !v)}
-                            className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between"
-                        >
-                            <Text className="text-white text-sm">{org}</Text>
-                            <Ionicons
-                                name={
-                                    showOrgPicker
-                                        ? "chevron-up"
-                                        : "chevron-down"
-                                }
-                                size={16}
-                                color="#52525b"
-                            />
-                        </TouchableOpacity>
-                        {showOrgPicker && (
-                            <View className="bg-slate-900 rounded-2xl overflow-hidden mt-1 border border-zinc-800">
-                                {ORGANISATIONS.map((o, i) => (
-                                    <TouchableOpacity
-                                        key={o}
-                                        activeOpacity={0.7}
-                                        onPress={() => {
-                                            setOrg(o);
-                                            setShowOrgPicker(false);
-                                        }}
-                                        className={`px-4 py-3 ${i < ORGANISATIONS.length - 1 ? "border-b border-zinc-800" : ""}`}
-                                    >
-                                        <Text
-                                            className={`text-sm ${o === org ? "text-primary font-semibold" : "text-white"}`}
-                                        >
-                                            {o}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        )}
-                    </View>
-                )}
+                {/* Inspector Name */}
+                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                    Inspector name
+                </Text>
+                <View className="bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
+                    <TextInput
+                        className="text-white text-sm"
+                        placeholder="Your name"
+                        placeholderTextColor="#52525b"
+                        value={inspectorName}
+                        onChangeText={setInspectorName}
+                    />
+                </View>
 
                 {/* Report Date */}
                 <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Report Date
+                    Report date
                 </Text>
                 <View className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-5">
                     <TextInput
@@ -203,53 +228,11 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     />
                 </View>
 
-                {/* Assigned Inspector */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Assigned Inspector
-                </Text>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => setShowInspectorPicker((v) => !v)}
-                    className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-2"
-                >
-                    <Text className="text-primary text-sm font-medium">
-                        {inspector}
-                    </Text>
-                    <Ionicons
-                        name={
-                            showInspectorPicker ? "chevron-up" : "chevron-down"
-                        }
-                        size={16}
-                        color="#52525b"
-                    />
-                </TouchableOpacity>
-                {showInspectorPicker && (
-                    <View className="bg-slate-900 rounded-2xl overflow-hidden mb-4 border border-zinc-800">
-                        {INSPECTORS.map((name, i) => (
-                            <TouchableOpacity
-                                key={name}
-                                activeOpacity={0.7}
-                                onPress={() => {
-                                    setInspector(name);
-                                    setShowInspectorPicker(false);
-                                }}
-                                className={`px-4 py-3 ${i < INSPECTORS.length - 1 ? "border-b border-zinc-800" : ""}`}
-                            >
-                                <Text
-                                    className={`text-sm ${name === inspector ? "text-primary font-semibold" : "text-white"}`}
-                                >
-                                    {name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-
-                {/* Auto-capture GPS */}
+                {/* Auto GPS */}
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => setAutoGps((v) => !v)}
-                    className="flex-row items-center gap-3 mb-8 mt-3"
+                    className="flex-row items-center gap-3 mb-8"
                 >
                     <View
                         className={`w-5 h-5 rounded-md border-2 items-center justify-center ${
@@ -271,11 +254,14 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     </Text>
                 </TouchableOpacity>
 
-                {/* Begin Report */}
+                {/* Begin */}
                 <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => onNavigate("reportEditor")}
-                    className="bg-primary rounded-2xl py-4 items-center"
+                    onPress={handleBegin}
+                    disabled={!template}
+                    className={`rounded-2xl py-4 items-center ${
+                        template ? "bg-primary" : "bg-slate-700"
+                    }`}
                 >
                     <Text className="text-white font-bold text-base">
                         Begin report

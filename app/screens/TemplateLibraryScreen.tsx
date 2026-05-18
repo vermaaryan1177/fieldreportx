@@ -9,121 +9,52 @@ import {
 } from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { store } from "@/lib/store";
+import {
+    CATEGORIES,
+    SYSTEM_TEMPLATES,
+    SystemTemplate,
+} from "@/lib/templates/systemTemplates";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
 }
 
-const CATEGORIES = ["All", "Rental", "Trades", "Legal", "Driving", "Rehab"];
-
-type BadgeType = "update" | "version";
-
-const TEMPLATES: {
-    id: string;
-    name: string;
-    category: string;
-    sections: number;
-    version: string;
-    badge: string;
-    badgeType: BadgeType;
-    color: string;
-}[] = [
-    {
-        id: "1",
-        name: "Rental inspection",
-        category: "Rental",
-        sections: 8,
-        version: "v2.1",
-        badge: "Updated",
-        badgeType: "update",
-        color: "#8b5cf6",
-    },
-    {
-        id: "2",
-        name: "Trades — electrician",
-        category: "Trades",
-        sections: 6,
-        version: "v1.2",
-        badge: "v1.2",
-        badgeType: "version",
-        color: "#22c55e",
-    },
-    {
-        id: "3",
-        name: "Forensics report",
-        category: "Legal",
-        sections: 9,
-        version: "v2.0",
-        badge: "v2.0",
-        badgeType: "version",
-        color: "#ec4899",
-    },
-    {
-        id: "4",
-        name: "Driving assessment",
-        category: "Driving",
-        sections: 5,
-        version: "v1.0",
-        badge: "Update",
-        badgeType: "update",
-        color: "#f59e0b",
-    },
-    {
-        id: "5",
-        name: "Patient rehab",
-        category: "Rehab",
-        sections: 7,
-        version: "v1.0",
-        badge: "v1.0",
-        badgeType: "version",
-        color: "#3b82f6",
-    },
-];
-
 export default function TemplateLibraryScreen({ onNavigate }: Props) {
     const [search, setSearch] = useState("");
-    const [activeCategory, setActiveCategory] = useState("All");
+    const [activeCategory, setActiveCategory] = useState<string>("All");
 
-    const filtered = TEMPLATES.filter((t) => {
-        const matchesSearch = t.name
-            .toLowerCase()
-            .includes(search.toLowerCase());
+    const filtered = SYSTEM_TEMPLATES.filter((t) => {
+        const matchesSearch =
+            t.name.toLowerCase().includes(search.toLowerCase()) ||
+            t.description.toLowerCase().includes(search.toLowerCase());
         const matchesCategory =
             activeCategory === "All" || t.category === activeCategory;
         return matchesSearch && matchesCategory;
     });
 
+    const handleSelect = (template: SystemTemplate) => {
+        store.setSelectedTemplate(template.id);
+        onNavigate("reportSetup");
+    };
+
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-5 pt-16 pb-5">
-                <View>
-                    <Text className="text-white text-2xl font-bold">
-                        Templates
-                    </Text>
-                    <Text className="text-zinc-400 text-sm mt-0.5">
-                        7 available · 2 updates
-                    </Text>
-                </View>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                >
-                    <Ionicons
-                        name="ellipsis-horizontal"
-                        size={20}
-                        color="#f2a72f"
-                    />
-                </TouchableOpacity>
+            <View className="px-5 pt-16 pb-4">
+                <Text className="text-white text-2xl font-bold">Templates</Text>
+                <Text className="text-zinc-400 text-sm mt-0.5">
+                    {SYSTEM_TEMPLATES.length} available
+                </Text>
             </View>
 
-            {/* Search Bar */}
+            {/* Search */}
             <View className="mx-5 mb-4">
                 <View className="flex-row items-center bg-slate-900 rounded-2xl px-4 h-11 gap-2">
                     <Ionicons name="search-outline" size={18} color="#52525b" />
                     <TextInput
                         className="flex-1 text-white text-sm"
-                        placeholder="Search templates..."
+                        placeholder="Search templates…"
                         placeholderTextColor="#52525b"
                         value={search}
                         onChangeText={setSearch}
@@ -143,11 +74,11 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                 </View>
             </View>
 
-            {/* Category Filter Pills */}
+            {/* Category Pills */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 14 }}
             >
                 <View className="flex-row gap-2">
                     {CATEGORIES.map((cat) => (
@@ -175,83 +106,101 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                 </View>
             </ScrollView>
 
-            {/* Template List */}
+            {/* Template Cards */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
             >
-                <View className="gap-3">
-                    {filtered.length === 0 ? (
-                        <View className="items-center py-12">
-                            <Ionicons
-                                name="search-outline"
-                                size={40}
-                                color="#52525b"
-                            />
-                            <Text className="text-zinc-500 text-sm mt-3">
-                                No templates found
-                            </Text>
-                        </View>
-                    ) : (
-                        filtered.map((template) => (
+                {filtered.length === 0 ? (
+                    <View className="items-center py-16">
+                        <Ionicons name="search-outline" size={40} color="#52525b" />
+                        <Text className="text-zinc-500 text-sm mt-3">
+                            No templates match "{search}"
+                        </Text>
+                    </View>
+                ) : (
+                    <View className="gap-3">
+                        {filtered.map((template) => (
                             <TouchableOpacity
                                 key={template.id}
-                                activeOpacity={0.7}
-                                onPress={() => onNavigate("templateBuilder")}
-                                className="flex-row items-center bg-slate-900 rounded-2xl px-4 py-3"
+                                activeOpacity={0.75}
+                                onPress={() => handleSelect(template)}
+                                className="bg-slate-900 rounded-2xl p-4"
                             >
-                                {/* Icon */}
-                                <View
-                                    className="w-10 h-10 rounded-xl items-center justify-center mr-3"
-                                    style={{
-                                        backgroundColor: template.color + "33",
-                                    }}
-                                >
+                                {/* Top row */}
+                                <View className="flex-row items-center mb-3">
+                                    <View
+                                        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+                                        style={{ backgroundColor: template.color + "28" }}
+                                    >
+                                        <Ionicons
+                                            name={template.icon as any}
+                                            size={22}
+                                            color={template.color}
+                                        />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-white font-semibold text-sm">
+                                            {template.name}
+                                        </Text>
+                                        <View className="flex-row items-center gap-2 mt-0.5">
+                                            <View
+                                                className="px-2 py-0.5 rounded-full"
+                                                style={{ backgroundColor: template.color + "28" }}
+                                            >
+                                                <Text
+                                                    className="text-xs font-medium"
+                                                    style={{ color: template.color }}
+                                                >
+                                                    {template.category}
+                                                </Text>
+                                            </View>
+                                            <Text className="text-zinc-600 text-xs">
+                                                {template.sections.length} sections
+                                            </Text>
+                                            {template.gpsValidation && (
+                                                <View className="flex-row items-center gap-1">
+                                                    <Ionicons
+                                                        name="location"
+                                                        size={10}
+                                                        color="#52525b"
+                                                    />
+                                                    <Text className="text-zinc-600 text-xs">
+                                                        GPS
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
                                     <Ionicons
-                                        name="document-text"
-                                        size={18}
-                                        color={template.color}
+                                        name="chevron-forward"
+                                        size={16}
+                                        color="#3f3f46"
                                     />
                                 </View>
 
-                                {/* Info */}
-                                <View className="flex-1">
-                                    <Text className="text-white font-semibold text-sm">
-                                        {template.name}
-                                    </Text>
-                                    <Text className="text-zinc-500 text-xs mt-0.5">
-                                        {template.category} ·{" "}
-                                        {template.sections} sections ·{" "}
-                                        {template.version}
-                                    </Text>
-                                </View>
+                                {/* Description */}
+                                <Text className="text-zinc-400 text-xs leading-relaxed mb-3">
+                                    {template.description}
+                                </Text>
 
-                                {/* Badge */}
-                                <View
-                                    className="px-2.5 py-1 rounded-full ml-2"
-                                    style={{
-                                        backgroundColor:
-                                            template.badgeType === "update"
-                                                ? "#f2a72f25"
-                                                : "#ffffff10",
-                                    }}
-                                >
-                                    <Text
-                                        className="text-xs font-semibold"
-                                        style={{
-                                            color:
-                                                template.badgeType === "update"
-                                                    ? "#f2a72f"
-                                                    : "#71717a",
-                                        }}
-                                    >
-                                        {template.badge}
-                                    </Text>
+                                {/* Feature tags */}
+                                <View className="flex-row flex-wrap gap-1.5">
+                                    {template.features.map((feat) => (
+                                        <View
+                                            key={feat}
+                                            className="bg-slate-800 px-2.5 py-1 rounded-full"
+                                        >
+                                            <Text className="text-zinc-400 text-xs">
+                                                {feat}
+                                            </Text>
+                                        </View>
+                                    ))}
                                 </View>
                             </TouchableOpacity>
-                        ))
-                    )}
-                </View>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
 
             <BottomNavBar active="templateLibrary" onNavigate={onNavigate} />
