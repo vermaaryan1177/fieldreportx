@@ -81,7 +81,7 @@ function ScreenContent({
         case "organisation":
             return <OrganisationScreen onNavigate={navigate} />;
         case "notifications":
-            return <NotificationScreen onNavigate={navigate} />;
+            return <NotificationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         default:
             
             return (

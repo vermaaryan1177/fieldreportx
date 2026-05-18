@@ -1,3 +1,4 @@
+// import AppHeader from "@/components/header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -110,3 +111,5 @@ const NotificationsScreen = ({ onNavigate }: Props) => {
 };
 
 export default NotificationsScreen;
+
+

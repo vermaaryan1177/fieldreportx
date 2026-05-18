@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Constants from "expo-constants";
+import React, { useState } from "react";
+import { Alert } from "react-native";
+import { signOut } from "@/lib/auth";
 
 export type AppScreen =
     | "home"
@@ -26,42 +29,23 @@ type SidebarItem = {
 };
 
 const MAIN_ITEMS: SidebarItem[] = [
-    {
-        id: "home",
-        label: "Home",
-        icon: "home-outline",
-    },
-    {
-        id: "reports",
-        label: "My Reports",
-        icon: "document-text-outline",
-    },
-    {
-        id: "templateLibrary",
-        label: "Templates",
-        icon: "layers-outline",
-    },
+    { id: "home", label: "Home", icon: "home-outline" },
+    { id: "reports", label: "My Reports", icon: "document-text-outline" },
+    { id: "templateLibrary", label: "Templates", icon: "layers-outline" },
 ];
 
 const OTHER_ITEMS: SidebarItem[] = [
-    {
-        id: "settings",
-        label: "Settings",
-        icon: "settings-outline",
-    },
+    { id: "settings", label: "Settings", icon: "settings-outline" },
 ];
 
 const expoConfig = Constants.manifest ?? Constants.expoConfig ?? {};
 const version = expoConfig.version ?? "1.0.0";
 const build =
-    expoConfig.ios?.buildNumber ??
-    expoConfig.android?.versionCode ??
-    "1";
+    expoConfig.ios?.buildNumber ?? expoConfig.android?.versionCode ?? "1";
 
 interface SidebarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
-    onSignOut: () => void;
 }
 
 function SidebarButton({
@@ -88,7 +72,6 @@ function SidebarButton({
                 size={22}
                 color={isActive ? "#f2a72f" : "#71717a"}
             />
-
             <Text
                 className={`ml-3 text-base ${
                     isActive ? "text-primary font-semibold" : "text-zinc-400"
@@ -100,27 +83,46 @@ function SidebarButton({
     );
 }
 
-export default function Sidebar({
-    active,
-    onNavigate,
-    onSignOut,
-}: SidebarProps) {
+export default function Sidebar({ active, onNavigate }: SidebarProps) {
+    const [signingOut, setSigningOut] = useState(false);
+
+    const handleSignOut = () => {
+        Alert.alert("Sign out", "Are you sure you want to sign out?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Sign out",
+                style: "destructive",
+                onPress: async () => {
+                    setSigningOut(true);
+                    try {
+                        await signOut();
+                    } catch {
+                        setSigningOut(false);
+                        Alert.alert(
+                            "Error",
+                            "Failed to sign out. Please try again."
+                        );
+                    }
+                },
+            },
+        ]);
+    };
+
     return (
-        <View className="flex-1 pt-10 w-80 bg-slate-900 border-r border-zinc-800" style={{zIndex: 1000}}>
+        <View
+            className="flex-1 pt-10 w-80 bg-slate-900 border-r border-zinc-800"
+            style={{ zIndex: 1000 }}
+        >
             {/* Top User */}
             <View className="flex-row items-center border-b border-zinc-800 p-5">
                 <View className="h-14 w-14 rounded-full bg-primary items-center justify-center">
                     <Text className="text-black font-bold text-lg">AK</Text>
                 </View>
-
                 <View className="ml-3">
                     <Text className="text-white font-semibold text-base">
                         Alex King
                     </Text>
-
-                    <Text className="text-zinc-500 text-sm">
-                        Senior Inspector
-                    </Text>
+                    <Text className="text-zinc-500 text-sm">Senior Inspector</Text>
                 </View>
             </View>
 
@@ -136,10 +138,6 @@ export default function Sidebar({
                 ))}
 
                 {/* Notifications */}
-                {/* <TouchableOpacity
-          activeOpacity={0.7}
-          className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
-        > */}
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
@@ -151,12 +149,10 @@ export default function Sidebar({
                             size={22}
                             color="#71717a"
                         />
-
                         <Text className="ml-3 text-base text-zinc-400">
                             Notifications
                         </Text>
                     </View>
-
                     <View className="h-6 w-6 rounded-full bg-red-500 items-center justify-center">
                         <Text className="text-white text-xs font-bold">3</Text>
                     </View>
@@ -176,24 +172,13 @@ export default function Sidebar({
                 ))}
 
                 {/* Organisation */}
-                {/* <TouchableOpacity
-          activeOpacity={0.7}
-          className="mb-4 flex-row items-center rounded-xl px-3 py-4"
-        > */}
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mb-4 flex-row items-center rounded-xl px-3 py-4"
                     onPress={() => onNavigate("organisation")}
                 >
-                    <Ionicons
-                        name="business-outline"
-                        size={22}
-                        color="#71717a"
-                    />
-
-                    <Text className="ml-3 text-base text-zinc-400">
-                        Organisation
-                    </Text>
+                    <Ionicons name="business-outline" size={22} color="#71717a" />
+                    <Text className="ml-3 text-base text-zinc-400">Organisation</Text>
                 </TouchableOpacity>
 
                 {/* Divider */}
@@ -210,27 +195,15 @@ export default function Sidebar({
                 >
                     <View className="flex-row items-center">
                         <Ionicons name="business" size={18} color="#f2a72f" />
-
-                        <Text className="text-white ml-2">
-                            Field Inspectors Co
-                        </Text>
+                        <Text className="text-white ml-2">Field Inspectors Co</Text>
                     </View>
-
-                    <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color="#71717a"
-                    />
+                    <Ionicons name="chevron-forward" size={18} color="#71717a" />
                 </TouchableOpacity>
             </ScrollView>
 
             {/* Footer */}
-            
-
-
             <View className="border-t border-zinc-800 p-4">
                 <Text className="text-white font-semibold">FieldReportX</Text>
-
                 <Text className="text-zinc-500 text-sm mt-1">
                     Version {version} · Build {build}
                 </Text>
@@ -238,20 +211,15 @@ export default function Sidebar({
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mt-3 flex-row items-center"
-                    onPress={onSignOut}
+                    onPress={handleSignOut}
+                    disabled={signingOut}
                 >
-                    <Ionicons
-                        name="log-out-outline"
-                        size={18}
-                        color="#ef4444"
-                    />
+                    <Ionicons name="log-out-outline" size={18} color="#ef4444" />
                     <Text className="text-red-500 font-medium ml-2">
-                        Sign out
+                        {signingOut ? "Signing out…" : "Sign out"}
                     </Text>
                 </TouchableOpacity>
             </View>
-
-
         </View>
     );
 }
