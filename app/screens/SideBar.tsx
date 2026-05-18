@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import Constants from "expo-constants";
 
 export type AppScreen =
     | "home"
@@ -49,6 +50,13 @@ const OTHER_ITEMS: SidebarItem[] = [
         icon: "settings-outline",
     },
 ];
+
+const expoConfig = Constants.manifest ?? Constants.expoConfig ?? {};
+const version = expoConfig.version ?? "1.0.0";
+const build =
+    expoConfig.ios?.buildNumber ??
+    expoConfig.android?.versionCode ??
+    "1";
 
 interface SidebarProps {
     active: AppScreen;
@@ -217,11 +225,14 @@ export default function Sidebar({
             </ScrollView>
 
             {/* Footer */}
+            
+
+
             <View className="border-t border-zinc-800 p-4">
                 <Text className="text-white font-semibold">FieldReportX</Text>
 
                 <Text className="text-zinc-500 text-sm mt-1">
-                    Version 2.1.0 · Build 441
+                    Version {version} · Build {build}
                 </Text>
 
                 <TouchableOpacity
@@ -234,12 +245,13 @@ export default function Sidebar({
                         size={18}
                         color="#ef4444"
                     />
-
                     <Text className="text-red-500 font-medium ml-2">
                         Sign out
                     </Text>
                 </TouchableOpacity>
             </View>
+
+
         </View>
     );
 }
