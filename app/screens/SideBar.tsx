@@ -98,7 +98,7 @@ export default function Sidebar({
     onSignOut,
 }: SidebarProps) {
     return (
-        <View className="flex-1 w-80 bg-slate-900 border-r border-zinc-800">
+        <View className="flex-1 pt-10 w-80 bg-slate-900 border-r border-zinc-800" style={{zIndex: 1000}}>
             {/* Top User */}
             <View className="flex-row items-center border-b border-zinc-800 p-5">
                 <View className="h-14 w-14 rounded-full bg-primary items-center justify-center">

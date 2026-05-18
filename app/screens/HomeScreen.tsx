@@ -6,6 +6,7 @@ import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    onOpenSidebar: () => void;
 }
 
 type ReportStatus = "Draft" | "Done" | "In Progress";
@@ -61,19 +62,42 @@ const STATUS_STYLE: Record<
     "In Progress": { bg: "#44d2f925", text: "#44d2f9" },
 };
 
-export default function HomeScreen({ onNavigate }: Props) {
+export default function HomeScreen({
+    onNavigate,
+    onOpenSidebar,
+}: Props) {
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
             <View className="flex-row items-center justify-between px-5 pt-16 pb-5">
-                <View>
-                    <Text className="text-white text-2xl font-bold">
-                        Hello, Arn
-                    </Text>
-                    <Text className="text-zinc-400 text-sm mt-0.5">
-                        3 reports due this week
-                    </Text>
+                {/* Left Side */}
+                <View className="flex-row items-center">
+                    {/* Sidebar Button */}
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={onOpenSidebar}
+                        className="w-10 h-10 rounded-full bg-slate-800 items-center justify-center mr-3"
+                    >
+                        <Ionicons
+                            name="menu"
+                            size={22}
+                            color="#ffffff"
+                        />
+                    </TouchableOpacity>
+
+                    {/* Greeting */}
+                    <View>
+                        <Text className="text-white text-2xl font-bold">
+                            Hello, Arn
+                        </Text>
+
+                        <Text className="text-zinc-400 text-sm mt-0.5">
+                            3 reports due this week
+                        </Text>
+                    </View>
                 </View>
+
+                {/* Right Side */}
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity
                         activeOpacity={0.7}
@@ -85,12 +109,15 @@ export default function HomeScreen({ onNavigate }: Props) {
                             color="#f2a72f"
                         />
                     </TouchableOpacity>
+
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => onNavigate("settings")}
                         className="w-10 h-10 rounded-full bg-primary items-center justify-center"
                     >
-                        <Text className="text-white font-bold text-sm">AK</Text>
+                        <Text className="text-white font-bold text-sm">
+                            AK
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -98,13 +125,20 @@ export default function HomeScreen({ onNavigate }: Props) {
             {/* Stats Row */}
             <View className="flex-row mx-5 gap-3 mb-4">
                 <View className="flex-1 bg-slate-900 rounded-2xl p-4">
-                    <Text className="text-white text-2xl font-bold">12</Text>
+                    <Text className="text-white text-2xl font-bold">
+                        12
+                    </Text>
+
                     <Text className="text-zinc-500 text-xs mt-0.5">
                         Reports this month
                     </Text>
                 </View>
+
                 <View className="flex-1 bg-slate-900 rounded-2xl p-4">
-                    <Text className="text-white text-2xl font-bold">3</Text>
+                    <Text className="text-white text-2xl font-bold">
+                        3
+                    </Text>
+
                     <Text className="text-zinc-500 text-xs mt-0.5">
                         In progress
                     </Text>
@@ -130,16 +164,22 @@ export default function HomeScreen({ onNavigate }: Props) {
             {/* Report List */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 16,
+                }}
             >
                 <View className="gap-3">
                     {RECENT_REPORTS.map((report) => {
                         const style = STATUS_STYLE[report.status];
+
                         return (
                             <TouchableOpacity
                                 key={report.id}
                                 activeOpacity={0.7}
-                                onPress={() => onNavigate("reportPreview")}
+                                onPress={() =>
+                                    onNavigate("reportPreview")
+                                }
                                 className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                             >
                                 {/* Left color strip */}
@@ -150,18 +190,24 @@ export default function HomeScreen({ onNavigate }: Props) {
                                         backgroundColor: report.color,
                                     }}
                                 />
+
                                 {/* Thumbnail */}
                                 <View
                                     className="w-10 h-10 rounded-xl m-3 items-center justify-center"
                                     style={{
-                                        backgroundColor: report.color + "33",
+                                        backgroundColor:
+                                            report.color + "33",
                                     }}
                                 >
                                     <View
                                         className="w-5 h-5 rounded"
-                                        style={{ backgroundColor: report.color }}
+                                        style={{
+                                            backgroundColor:
+                                                report.color,
+                                        }}
                                     />
                                 </View>
+
                                 {/* Text */}
                                 <View className="flex-1 py-3 pr-2">
                                     <Text
@@ -170,18 +216,24 @@ export default function HomeScreen({ onNavigate }: Props) {
                                     >
                                         {report.title}
                                     </Text>
+
                                     <Text className="text-zinc-500 text-xs mt-0.5">
                                         {report.type} · {report.time}
                                     </Text>
                                 </View>
+
                                 {/* Status Badge */}
                                 <View
                                     className="mx-3 px-2.5 py-1 rounded-full"
-                                    style={{ backgroundColor: style.bg }}
+                                    style={{
+                                        backgroundColor: style.bg,
+                                    }}
                                 >
                                     <Text
                                         className="text-xs font-semibold"
-                                        style={{ color: style.text }}
+                                        style={{
+                                            color: style.text,
+                                        }}
                                     >
                                         {report.status}
                                     </Text>
@@ -192,7 +244,10 @@ export default function HomeScreen({ onNavigate }: Props) {
                 </View>
             </ScrollView>
 
-            <BottomNavBar active="home" onNavigate={onNavigate} />
+            <BottomNavBar
+                active="home"
+                onNavigate={onNavigate}
+            />
         </View>
     );
 }
