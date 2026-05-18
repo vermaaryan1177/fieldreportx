@@ -52,7 +52,11 @@ export async function listTemplates(
     if (organisationId) {
         conditions.push(where("organisationId", "==", organisationId));
     }
-    const q = query(collection(db, col), or(...conditions));
+    // or() requires ≥2 conditions; fall back to a plain where when there's only one
+    const q =
+        conditions.length === 1
+            ? query(collection(db, col), conditions[0])
+            : query(collection(db, col), or(...conditions));
     const snap = await getDocs(q);
     return snap.docs.map((d) => d.data() as Template);
 }

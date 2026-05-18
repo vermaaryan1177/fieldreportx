@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ScrollView,
     Text,
@@ -9,12 +9,15 @@ import {
 } from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { listTemplates } from "@/lib/db/templates";
+import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
 import {
     CATEGORIES,
     SYSTEM_TEMPLATES,
     SystemTemplate,
 } from "@/lib/templates/systemTemplates";
+import { Template } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -23,29 +26,74 @@ interface Props {
 export default function TemplateLibraryScreen({ onNavigate }: Props) {
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState<string>("All");
+    const [userTemplates, setUserTemplates] = useState<Template[]>([]);
 
-    const filtered = SYSTEM_TEMPLATES.filter((t) => {
-        const matchesSearch =
-            t.name.toLowerCase().includes(search.toLowerCase()) ||
-            t.description.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory =
-            activeCategory === "All" || t.category === activeCategory;
-        return matchesSearch && matchesCategory;
-    });
+    // Load user-created templates from Firestore
+    useEffect(() => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+        listTemplates(uid, null)
+            .then(setUserTemplates)
+            .catch(() => {}); // silently ignore — system templates still show
+    }, []);
 
-    const handleSelect = (template: SystemTemplate) => {
+    const handleSelectSystem = (template: SystemTemplate) => {
         store.setSelectedTemplate(template.id);
         onNavigate("reportSetup");
     };
 
+    const handleSelectUser = (template: Template) => {
+        // User templates use a special prefix so the report editor
+        // can distinguish them from system templates
+        store.setSelectedTemplate(`user_${template.id}`);
+        onNavigate("reportSetup");
+    };
+
+    // Filter system templates
+    const filteredSystem = SYSTEM_TEMPLATES.filter((t) => {
+        const matchSearch =
+            t.name.toLowerCase().includes(search.toLowerCase()) ||
+            t.description.toLowerCase().includes(search.toLowerCase());
+        const matchCat =
+            activeCategory === "All" || t.category === activeCategory;
+        return matchSearch && matchCat;
+    });
+
+    // Filter user templates
+    const filteredUser = userTemplates.filter((t) => {
+        const matchSearch = t.name.toLowerCase().includes(search.toLowerCase());
+        const matchCat =
+            activeCategory === "All" || t.category === activeCategory;
+        return matchSearch && matchCat;
+    });
+
+    const hasResults = filteredSystem.length > 0 || filteredUser.length > 0;
+
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
-            <View className="px-5 pt-16 pb-4">
-                <Text className="text-white text-2xl font-bold">Templates</Text>
-                <Text className="text-zinc-400 text-sm mt-0.5">
-                    {SYSTEM_TEMPLATES.length} available
-                </Text>
+            <View className="flex-row items-center justify-between px-5 pt-16 pb-4">
+                <View>
+                    <Text className="text-white text-2xl font-bold">
+                        Templates
+                    </Text>
+                    <Text className="text-zinc-400 text-sm mt-0.5">
+                        {SYSTEM_TEMPLATES.length} system
+                        {userTemplates.length > 0
+                            ? ` · ${userTemplates.length} custom`
+                            : ""}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => onNavigate("templateBuilder")}
+                    className="flex-row items-center gap-2 bg-primary/15 border border-primary/30 px-3 py-2 rounded-xl"
+                >
+                    <Ionicons name="add" size={16} color="#f2a72f" />
+                    <Text className="text-primary text-sm font-semibold">
+                        Create
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             {/* Search */}
@@ -74,7 +122,7 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                 </View>
             </View>
 
-            {/* Category Pills */}
+            {/* Category pills */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -106,37 +154,140 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                 </View>
             </ScrollView>
 
-            {/* Template Cards */}
+            {/* Template lists */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
             >
-                {filtered.length === 0 ? (
+                {!hasResults && (
                     <View className="items-center py-16">
-                        <Ionicons name="search-outline" size={40} color="#52525b" />
+                        <Ionicons
+                            name="search-outline"
+                            size={40}
+                            color="#52525b"
+                        />
                         <Text className="text-zinc-500 text-sm mt-3">
                             No templates match "{search}"
                         </Text>
                     </View>
-                ) : (
-                    <View className="gap-3">
-                        {filtered.map((template) => (
-                            <TouchableOpacity
-                                key={template.id}
-                                activeOpacity={0.75}
-                                onPress={() => handleSelect(template)}
-                                className="bg-slate-900 rounded-2xl p-4"
-                            >
-                                {/* Top row */}
-                                <View className="flex-row items-center mb-3">
-                                    <View
-                                        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
-                                        style={{ backgroundColor: template.color + "28" }}
-                                    >
+                )}
+
+                {/* ── System templates ───────────────────────── */}
+                {filteredSystem.length > 0 && (
+                    <View className="mb-5">
+                        {(filteredUser.length > 0 || userTemplates.length > 0) && (
+                            <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
+                                System templates
+                            </Text>
+                        )}
+                        <View className="gap-3">
+                            {filteredSystem.map((template) => (
+                                <TouchableOpacity
+                                    key={template.id}
+                                    activeOpacity={0.75}
+                                    onPress={() => handleSelectSystem(template)}
+                                    className="bg-slate-900 rounded-2xl p-4"
+                                >
+                                    <View className="flex-row items-center mb-3">
+                                        <View
+                                            className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+                                            style={{
+                                                backgroundColor:
+                                                    template.color + "28",
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name={template.icon as any}
+                                                size={22}
+                                                color={template.color}
+                                            />
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-white font-semibold text-sm">
+                                                {template.name}
+                                            </Text>
+                                            <View className="flex-row items-center gap-2 mt-0.5">
+                                                <View
+                                                    className="px-2 py-0.5 rounded-full"
+                                                    style={{
+                                                        backgroundColor:
+                                                            template.color +
+                                                            "28",
+                                                    }}
+                                                >
+                                                    <Text
+                                                        className="text-xs font-medium"
+                                                        style={{
+                                                            color: template.color,
+                                                        }}
+                                                    >
+                                                        {template.category}
+                                                    </Text>
+                                                </View>
+                                                <Text className="text-zinc-600 text-xs">
+                                                    {template.sections.length}{" "}
+                                                    sections
+                                                </Text>
+                                                {template.gpsValidation && (
+                                                    <View className="flex-row items-center gap-0.5">
+                                                        <Ionicons
+                                                            name="location"
+                                                            size={10}
+                                                            color="#52525b"
+                                                        />
+                                                        <Text className="text-zinc-600 text-xs">
+                                                            GPS
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
                                         <Ionicons
-                                            name={template.icon as any}
-                                            size={22}
-                                            color={template.color}
+                                            name="chevron-forward"
+                                            size={16}
+                                            color="#3f3f46"
+                                        />
+                                    </View>
+                                    <Text className="text-zinc-400 text-xs leading-relaxed mb-3">
+                                        {template.description}
+                                    </Text>
+                                    <View className="flex-row flex-wrap gap-1.5">
+                                        {template.features.map((feat) => (
+                                            <View
+                                                key={feat}
+                                                className="bg-slate-800 px-2.5 py-1 rounded-full"
+                                            >
+                                                <Text className="text-zinc-400 text-xs">
+                                                    {feat}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                {/* ── User templates ─────────────────────────── */}
+                {filteredUser.length > 0 && (
+                    <View>
+                        <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
+                            My templates
+                        </Text>
+                        <View className="gap-3">
+                            {filteredUser.map((template) => (
+                                <TouchableOpacity
+                                    key={template.id}
+                                    activeOpacity={0.75}
+                                    onPress={() => handleSelectUser(template)}
+                                    className="bg-slate-900 rounded-2xl p-4 flex-row items-center"
+                                >
+                                    <View className="w-11 h-11 rounded-xl bg-slate-800 items-center justify-center mr-3">
+                                        <Ionicons
+                                            name="document-outline"
+                                            size={20}
+                                            color="#94a3b8"
                                         />
                                     </View>
                                     <View className="flex-1">
@@ -144,32 +295,20 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                                             {template.name}
                                         </Text>
                                         <View className="flex-row items-center gap-2 mt-0.5">
-                                            <View
-                                                className="px-2 py-0.5 rounded-full"
-                                                style={{ backgroundColor: template.color + "28" }}
-                                            >
-                                                <Text
-                                                    className="text-xs font-medium"
-                                                    style={{ color: template.color }}
-                                                >
+                                            <View className="bg-zinc-800 px-2 py-0.5 rounded-full">
+                                                <Text className="text-zinc-400 text-xs">
                                                     {template.category}
                                                 </Text>
                                             </View>
                                             <Text className="text-zinc-600 text-xs">
-                                                {template.sections.length} sections
+                                                {template.sections.length}{" "}
+                                                sections
                                             </Text>
-                                            {template.gpsValidation && (
-                                                <View className="flex-row items-center gap-1">
-                                                    <Ionicons
-                                                        name="location"
-                                                        size={10}
-                                                        color="#52525b"
-                                                    />
-                                                    <Text className="text-zinc-600 text-xs">
-                                                        GPS
-                                                    </Text>
-                                                </View>
-                                            )}
+                                            <View className="bg-primary/15 px-2 py-0.5 rounded-full">
+                                                <Text className="text-primary text-xs font-medium">
+                                                    Custom
+                                                </Text>
+                                            </View>
                                         </View>
                                     </View>
                                     <Ionicons
@@ -177,29 +316,28 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                                         size={16}
                                         color="#3f3f46"
                                     />
-                                </View>
-
-                                {/* Description */}
-                                <Text className="text-zinc-400 text-xs leading-relaxed mb-3">
-                                    {template.description}
-                                </Text>
-
-                                {/* Feature tags */}
-                                <View className="flex-row flex-wrap gap-1.5">
-                                    {template.features.map((feat) => (
-                                        <View
-                                            key={feat}
-                                            className="bg-slate-800 px-2.5 py-1 rounded-full"
-                                        >
-                                            <Text className="text-zinc-400 text-xs">
-                                                {feat}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </TouchableOpacity>
-                        ))}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     </View>
+                )}
+
+                {/* Create CTA when no user templates yet */}
+                {userTemplates.length === 0 && filteredSystem.length > 0 && (
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => onNavigate("templateBuilder")}
+                        className="mt-4 border border-dashed border-zinc-700 rounded-2xl py-4 items-center flex-row justify-center gap-2"
+                    >
+                        <Ionicons
+                            name="add-circle-outline"
+                            size={18}
+                            color="#52525b"
+                        />
+                        <Text className="text-zinc-500 text-sm">
+                            Create a custom template
+                        </Text>
+                    </TouchableOpacity>
                 )}
             </ScrollView>
 
