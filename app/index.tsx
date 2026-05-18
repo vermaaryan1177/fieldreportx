@@ -80,7 +80,7 @@ function ScreenContent({
             return <SettingsScreen onNavigate={navigate} />;
         case "organisation":
             return <OrganisationScreen onNavigate={navigate} />;
-        case "notification":
+        case "notifications":
             return <NotificationScreen onNavigate={navigate} />;
         default:
             
