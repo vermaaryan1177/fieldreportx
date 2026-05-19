@@ -1,7 +1,8 @@
 import "./global.css";
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, View,TouchableOpacity } from "react-native";
+
 import Animated, {
     Easing,
     runOnJS,
@@ -30,6 +31,10 @@ import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
+
+import Sidebar from "./screens/SideBar";
+
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const TIMING = {
@@ -40,9 +45,11 @@ const TIMING = {
 function ScreenContent({
     screen,
     navigate,
+    openSidebar,
 }: {
     screen: AppScreen;
     navigate: (s: AppScreen) => void;
+    openSidebar: () => void;
 }) {
     switch (screen) {
         case "permissions":
@@ -73,10 +80,12 @@ function ScreenContent({
             return <SettingsScreen onNavigate={navigate} />;
         case "organisation":
             return <OrganisationScreen onNavigate={navigate} />;
-        case "notification":
-            return <NotificationScreen onNavigate={navigate} />;
+        case "notifications":
+            return <NotificationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         default:
-            return <HomeScreen onNavigate={navigate} />;
+            
+            return (
+                    <HomeScreen onNavigate={navigate} onOpenSidebar={openSidebar} />);
     }
 }
 
@@ -89,6 +98,9 @@ export default function App() {
     const [incomingScreen, setIncomingScreen] = useState<AppScreen | null>(
         null,
     );
+
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     const pendingPermissions = useRef(false);
     const historyRef = useRef<AppScreen[]>(["home"]);
 
@@ -163,22 +175,72 @@ export default function App() {
         );
     }
 
-    return (
-        <View style={{ flex: 1 }}>
-            {/* Base layer — always visible, never moves */}
-            <View style={{ flex: 1 }}>
-                <ScreenContent screen={currentScreen} navigate={navigate} />
-            </View>
 
-            {/* Transition layer — slides in over the top, then unmounts */}
-            {incomingScreen !== null && (
-                <Animated.View style={incomingStyle}>
-                    <ScreenContent
-                        screen={incomingScreen}
-                        navigate={navigate}
+
+    return (
+    <View style={{ flex: 1 }}>
+        {/* Main Content */}
+        <ScreenContent
+            screen={currentScreen}
+            navigate={navigate}
+            openSidebar={() => setSidebarOpen(true)}
+        />
+
+        {/* Transition layer */}
+        {incomingScreen !== null && (
+            <Animated.View style={incomingStyle}>
+                <ScreenContent
+                    screen={incomingScreen}
+                    navigate={navigate}
+                    openSidebar={() => setSidebarOpen(true)}
+                />
+            </Animated.View>
+        )}
+
+        {/* Only render overlay and sidebar if open */}
+        {sidebarOpen && (
+            <>
+                {/* Dark semi-transparent overlay */}
+                <TouchableOpacity
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0,0,0,0.3)",
+                        zIndex: 998,
+                    }}
+                    activeOpacity={1}
+                    onPress={() => setSidebarOpen(false)}
+                />
+
+                {/* Sidebar */}
+                <View
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        width: 300, // sidebar width
+                        zIndex: 999,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.3,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowRadius: 10,
+                    }}
+                >
+                    <Sidebar
+                        active={currentScreen}
+                        onNavigate={(screen) => {
+                            setSidebarOpen(false);
+                            navigate(screen);
+                        }}
+                        onSignOut={() => setSidebarOpen(false)}
                     />
-                </Animated.View>
-            )}
-        </View>
-    );
+                </View>
+            </>
+        )}
+    </View>
+);
 }
