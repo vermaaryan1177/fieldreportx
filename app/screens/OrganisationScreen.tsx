@@ -9,7 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 import {
@@ -22,6 +22,7 @@ import { auth } from "@/lib/firebase";
 
 interface Props {
   onNavigate: (screen: AppScreen) => void;
+  onOpenSidebar: () => void;
 }
 
 interface Member {
@@ -31,7 +32,7 @@ interface Member {
   role: "Admin" | "Member";
 }
 
-export default function OrganisationScreen({ onNavigate }: Props) {
+export default function OrganisationScreen({ onNavigate, onOpenSidebar }: Props) {
   const user = auth.currentUser;
 
   const [organisation, setOrganisation] = useState<any>(null);
@@ -267,6 +268,8 @@ export default function OrganisationScreen({ onNavigate }: Props) {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+      
       <ScrollView className="flex-1 px-4 pt-6">
         <View className="mb-6 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-white">
