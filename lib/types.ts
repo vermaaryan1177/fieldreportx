@@ -9,7 +9,7 @@ export interface UserProfile {
     organisationId: string | null;
     role: "admin" | "inspector" | "viewer";
     onboardingComplete: boolean;
-    createdAt: Timestamp;
+    createdAt: number; // Unix ms — stored in SQLite, written to Firestore as a number
 }
 
 // ─── Organisation ─────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ export interface Organisation {
     address: string;
     adminUid: string;
     memberUids: string[];
-    createdAt: Timestamp;
+    createdAt: number; // Unix ms
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────
