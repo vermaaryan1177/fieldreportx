@@ -68,7 +68,7 @@ const NotificationsScreen = ({ onNavigate }: Props) => {
 
     // Clear all notifications
     const handleClearAll = () => {
-        setUnreadNotifications([]);
+        // setUnreadNotifications([]);
         setEarlierNotifications([]);
     };
 
