@@ -126,7 +126,12 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 14 }}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 14,
+                    alignItems: "flex-start",
+                }}
             >
                 <View className="flex-row gap-2">
                     {CATEGORIES.map((cat) => (
@@ -134,11 +139,12 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                             key={cat}
                             activeOpacity={0.7}
                             onPress={() => setActiveCategory(cat)}
-                            className={`px-4 py-2 rounded-full border ${
+                            className={`py-2 rounded-xl items-center border ${
                                 activeCategory === cat
                                     ? "bg-primary border-primary"
                                     : "bg-slate-900 border-zinc-700"
                             }`}
+                            style={{ minWidth: 82 }}
                         >
                             <Text
                                 className={`text-sm font-medium ${
@@ -157,7 +163,11 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
             {/* Template lists */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 20,
+                }}
             >
                 {!hasResults && (
                     <View className="items-center py-16">
@@ -175,7 +185,8 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
                 {/* ── System templates ───────────────────────── */}
                 {filteredSystem.length > 0 && (
                     <View className="mb-5">
-                        {(filteredUser.length > 0 || userTemplates.length > 0) && (
+                        {(filteredUser.length > 0 ||
+                            userTemplates.length > 0) && (
                             <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
                                 System templates
                             </Text>

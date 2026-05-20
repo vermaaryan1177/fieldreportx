@@ -26,12 +26,60 @@ const ALL_REPORTS: {
     color: string;
     score: number | null;
 }[] = [
-    { id: "1", title: "42 Maple Ave — Outbound", type: "Rental Inspection", date: "Today", status: "In Progress", color: "#f2a72f", score: null },
-    { id: "2", title: "12 Oak St — Inbound", type: "Rental Inspection", date: "Yesterday", status: "Draft", color: "#8b5cf6", score: null },
-    { id: "3", title: "Elec. compliance #441", type: "Trades", date: "12 May", status: "Done", color: "#22c55e", score: 91 },
-    { id: "4", title: "Driver eval — Sam K.", type: "Driving", date: "10 May", status: "Done", color: "#f59e0b", score: 87 },
-    { id: "5", title: "Patient rehab — J. Torres", type: "Rehabilitation", date: "9 May", status: "In Progress", color: "#3b82f6", score: null },
-    { id: "6", title: "Site safety #88", type: "Safety", date: "7 May", status: "Done", color: "#ef4444", score: 74 },
+    {
+        id: "1",
+        title: "42 Maple Ave — Outbound",
+        type: "Rental Inspection",
+        date: "Today",
+        status: "In Progress",
+        color: "#f2a72f",
+        score: null,
+    },
+    {
+        id: "2",
+        title: "12 Oak St — Inbound",
+        type: "Rental Inspection",
+        date: "Yesterday",
+        status: "Draft",
+        color: "#8b5cf6",
+        score: null,
+    },
+    {
+        id: "3",
+        title: "Elec. compliance #441",
+        type: "Trades",
+        date: "12 May",
+        status: "Done",
+        color: "#22c55e",
+        score: 91,
+    },
+    {
+        id: "4",
+        title: "Driver eval — Sam K.",
+        type: "Driving",
+        date: "10 May",
+        status: "Done",
+        color: "#f59e0b",
+        score: 87,
+    },
+    {
+        id: "5",
+        title: "Patient rehab — J. Torres",
+        type: "Rehabilitation",
+        date: "9 May",
+        status: "In Progress",
+        color: "#3b82f6",
+        score: null,
+    },
+    {
+        id: "6",
+        title: "Site safety #88",
+        type: "Safety",
+        date: "7 May",
+        status: "Done",
+        color: "#ef4444",
+        score: 74,
+    },
 ];
 
 const STATUS_STYLE: Record<ReportStatus, { bg: string; text: string }> = {
@@ -60,8 +108,8 @@ export default function ReportListScreen({ onNavigate }: Props) {
             prev.includes(id)
                 ? prev.filter((x) => x !== id)
                 : prev.length < 2
-                ? [...prev, id]
-                : prev,
+                  ? [...prev, id]
+                  : prev,
         );
     };
 
@@ -70,13 +118,17 @@ export default function ReportListScreen({ onNavigate }: Props) {
             {/* Header */}
             <View className="px-5 pt-16 pb-4">
                 <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-white text-2xl font-bold">Reports</Text>
+                    <Text className="text-white text-2xl font-bold">
+                        Reports
+                    </Text>
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => onNavigate("reportSetup")}
                         className="bg-primary rounded-2xl px-4 py-2"
                     >
-                        <Text className="text-white font-bold text-sm">+ New</Text>
+                        <Text className="text-white font-bold text-sm">
+                            + New
+                        </Text>
                     </TouchableOpacity>
                 </View>
 
@@ -92,7 +144,11 @@ export default function ReportListScreen({ onNavigate }: Props) {
                     />
                     {search.length > 0 && (
                         <TouchableOpacity onPress={() => setSearch("")}>
-                            <Ionicons name="close-circle" size={16} color="#52525b" />
+                            <Ionicons
+                                name="close-circle"
+                                size={16}
+                                color="#52525b"
+                            />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -102,14 +158,21 @@ export default function ReportListScreen({ onNavigate }: Props) {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    gap: 8,
+                    paddingBottom: 12,
+                    alignItems: "center",
+                }}
             >
                 {FILTERS.map((f) => (
                     <TouchableOpacity
                         key={f}
                         activeOpacity={0.7}
                         onPress={() => setActiveFilter(f)}
-                        className={`px-4 py-1.5 rounded-full ${activeFilter === f ? "bg-primary" : "bg-slate-900"}`}
+                        className={`py-1.5 rounded-xl items-center ${activeFilter === f ? "bg-primary" : "bg-slate-900"}`}
+                        style={{ minWidth: 82 }}
                     >
                         <Text
                             className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}
@@ -120,32 +183,13 @@ export default function ReportListScreen({ onNavigate }: Props) {
                 ))}
             </ScrollView>
 
-            {/* Compare Banner */}
-            {comparing.length > 0 && (
-                <View className="mx-5 mb-3 bg-primary/15 border border-primary/30 rounded-2xl px-4 py-3 flex-row items-center justify-between">
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() =>
-                            comparing.length === 2 && onNavigate("reportComparison")
-                        }
-                        className="flex-1"
-                    >
-                        <Text className="text-primary font-semibold text-sm">
-                            {comparing.length === 2
-                                ? "Compare selected reports →"
-                                : `Select ${2 - comparing.length} more to compare`}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setComparing([])}>
-                        <Ionicons name="close" size={16} color="#f2a72f" />
-                    </TouchableOpacity>
-                </View>
-            )}
-
             {/* Report List */}
             <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 16,
+                }}
             >
                 {filtered.length === 0 ? (
                     <View className="items-center mt-16 gap-3">
@@ -154,7 +198,9 @@ export default function ReportListScreen({ onNavigate }: Props) {
                             size={48}
                             color="#3f3f46"
                         />
-                        <Text className="text-zinc-500 text-sm">No reports found</Text>
+                        <Text className="text-zinc-500 text-sm">
+                            No reports found
+                        </Text>
                     </View>
                 ) : (
                     <View className="gap-3">
@@ -184,7 +230,10 @@ export default function ReportListScreen({ onNavigate }: Props) {
                                     {/* Icon */}
                                     <View
                                         className="w-10 h-10 rounded-xl m-3 items-center justify-center"
-                                        style={{ backgroundColor: report.color + "33" }}
+                                        style={{
+                                            backgroundColor:
+                                                report.color + "33",
+                                        }}
                                     >
                                         <Ionicons
                                             name="document-text"
