@@ -1,6 +1,13 @@
-
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+  Modal,
+  TextInput,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
@@ -48,6 +55,9 @@ export default function OrganisationScreen({ onNavigate }: Props) {
     },
   ]);
 
+  const [showModal, setShowModal] = useState(false);
+  const [email, setEmail] = useState("");
+
   const revokeInvite = (id: string) => {
     Alert.alert(
       "Revoke Invite",
@@ -76,36 +86,33 @@ export default function OrganisationScreen({ onNavigate }: Props) {
   };
 
   const handleInvite = () => {
-    Alert.prompt(
-      "Invite Member",
-      "Enter member's email:",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Send",
-          onPress: (email) => {
-            if (!email) return;
-            const newMember: Member = {
-              id: Date.now().toString(),
-              name: email.split("@")[0],
-              email,
-              role: "Pending",
-              initials: email
-                .split("@")[0]
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase(),
-            };
-            setMembers((prev) => [...prev, newMember]);
-          },
-        },
-      ],
-      "plain-text"
-    );
+    setShowModal(true);
+  };
+
+  const sendInvite = () => {
+    if (!email.trim()) {
+      Alert.alert("Please enter an email");
+      return;
+    }
+
+    const username = email.split("@")[0];
+
+    const newMember: Member = {
+      id: Date.now().toString(),
+      name: username,
+      email: email,
+      role: "Pending",
+      initials: username
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase(),
+    };
+
+    setMembers((prev) => [...prev, newMember]);
+
+    setEmail("");
+    setShowModal(false);
   };
 
   return (
@@ -113,7 +120,10 @@ export default function OrganisationScreen({ onNavigate }: Props) {
       <ScrollView className="flex-1 px-4 pt-6">
         {/* Top Header */}
         <View className="mb-6 flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-white">Organisation</Text>
+          <Text className="text-2xl font-bold text-white">
+            Organisation
+          </Text>
+
           <TouchableOpacity onPress={handleInvite}>
             <Text className="text-primary text-base">+ Invite</Text>
           </TouchableOpacity>
@@ -125,10 +135,12 @@ export default function OrganisationScreen({ onNavigate }: Props) {
             <View className="h-14 w-14 rounded-full bg-primary items-center justify-center mr-4">
               <Text className="text-white font-bold">FI</Text>
             </View>
+
             <View>
               <Text className="text-white text-lg font-semibold">
                 Field Inspectors Co
               </Text>
+
               <Text className="text-zinc-400 text-sm mt-1">
                 {members.filter((m) => m.role !== "Pending").length} members
               </Text>
@@ -153,15 +165,24 @@ export default function OrganisationScreen({ onNavigate }: Props) {
                     <View className="h-12 w-12 rounded-full border border-slate-600 items-center justify-center mr-3">
                       <Text className="text-zinc-400 text-lg">?</Text>
                     </View>
+
                     <View>
                       <Text className="text-white font-semibold">
                         {member.name}
                       </Text>
-                      <Text className="text-zinc-400 text-sm">Invite pending</Text>
+
+                      <Text className="text-zinc-400 text-sm">
+                        Invite pending
+                      </Text>
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => revokeInvite(member.id)}>
-                    <Text className="text-red-500 font-medium">Revoke</Text>
+
+                  <TouchableOpacity
+                    onPress={() => revokeInvite(member.id)}
+                  >
+                    <Text className="text-red-500 font-medium">
+                      Revoke
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -176,24 +197,39 @@ export default function OrganisationScreen({ onNavigate }: Props) {
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center">
                   <View className="h-12 w-12 rounded-full bg-primary items-center justify-center mr-3">
-                    <Text className="text-white font-bold">{member.initials}</Text>
+                    <Text className="text-white font-bold">
+                      {member.initials}
+                    </Text>
                   </View>
+
                   <View>
-                    <Text className="text-white font-semibold">{member.name}</Text>
-                    <Text className="text-zinc-400 text-sm">{member.email}</Text>
+                    <Text className="text-white font-semibold">
+                      {member.name}
+                    </Text>
+
+                    <Text className="text-zinc-400 text-sm">
+                      {member.email}
+                    </Text>
                   </View>
                 </View>
+
                 <View className="flex-row items-center">
                   <TouchableOpacity
                     className="bg-primary px-3 py-1 rounded-full"
                     onPress={() => changeRole(member.id)}
                   >
-                    <Text className="text-white text-xs">{member.role}</Text>
+                    <Text className="text-white text-xs">
+                      {member.role}
+                    </Text>
                   </TouchableOpacity>
+
                   <TouchableOpacity
                     className="ml-2"
                     onPress={() =>
-                      Alert.alert("Member Options", "Edit or Remove member")
+                      Alert.alert(
+                        "Member Options",
+                        "Edit or Remove member"
+                      )
                     }
                   >
                     <Text className="text-zinc-400 text-lg">⋮</Text>
@@ -213,7 +249,10 @@ export default function OrganisationScreen({ onNavigate }: Props) {
           className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-3 flex-row items-center justify-between"
           onPress={() => onNavigate("reports")}
         >
-          <Text className="text-white">View all organisation reports</Text>
+          <Text className="text-white">
+            View all organisation reports
+          </Text>
+
           <Text className="text-zinc-400">{">"}</Text>
         </TouchableOpacity>
 
@@ -223,11 +262,65 @@ export default function OrganisationScreen({ onNavigate }: Props) {
         >
           <View className="flex-row items-center">
             <Text className="text-white">Shared templates</Text>
-            <Text className="text-zinc-400 text-sm ml-3">4 templates</Text>
+
+            <Text className="text-zinc-400 text-sm ml-3">
+              4 templates
+            </Text>
           </View>
+
           <Text className="text-zinc-400">{">"}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Invite Modal */}
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View
+          className="flex-1 items-center justify-center px-6"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+        >
+          <View className="w-full rounded-2xl bg-slate-900 p-5">
+            <Text className="mb-4 text-xl font-bold text-white">
+              Invite Member
+            </Text>
+
+            <TextInput
+              placeholder="Enter email"
+              placeholderTextColor="#71717a"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+            />
+
+            <View className="mt-5 flex-row justify-end">
+              <TouchableOpacity
+                onPress={() => {
+                  setShowModal(false);
+                  setEmail("");
+                }}
+                className="mr-3 px-4 py-2"
+              >
+                <Text className="text-zinc-400">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={sendInvite}
+                className="rounded-xl bg-primary px-4 py-2"
+              >
+                <Text className="font-semibold text-white">
+                  Send Invite
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <BottomNavBar active="settings" onNavigate={onNavigate} />
     </SafeAreaView>
