@@ -7,11 +7,12 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
+import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    onOpenSidebar: () => void;
 }
 
 type ReportStatus = "Draft" | "Done" | "In Progress";
@@ -90,7 +91,7 @@ const STATUS_STYLE: Record<ReportStatus, { bg: string; text: string }> = {
 
 const FILTERS: FilterTab[] = ["All", "In Progress", "Draft", "Done"];
 
-export default function ReportListScreen({ onNavigate }: Props) {
+export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
     const [search, setSearch] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
@@ -116,7 +117,8 @@ export default function ReportListScreen({ onNavigate }: Props) {
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
-            <View className="px-5 pt-16 pb-4">
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+            <View className="px-5 pt-5 pb-4">
                 <View className="flex-row items-center justify-between mb-4">
                     <Text className="text-white text-2xl font-bold">
                         Reports

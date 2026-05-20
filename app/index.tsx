@@ -55,7 +55,7 @@ function ScreenContent({
         case "permissions":
             return <PermissionsScreen onNavigate={navigate} />;
         case "reports":
-            return <ReportListScreen onNavigate={navigate} />;
+            return <ReportListScreen onNavigate={navigate} onOpenSidebar={openSidebar}/>;
         case "templateLibrary":
             return <TemplateLibraryScreen onNavigate={navigate} />;
         case "templateBuilder":
