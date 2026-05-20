@@ -111,7 +111,7 @@ export default function NotificationsScreen({
     };
 
     return (
-        <View className="flex-1  bg-slate-950">
+        <View className="flex-1  bg-background">
             {/* HEADER (FIXED) */}
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
 
@@ -130,12 +130,12 @@ export default function NotificationsScreen({
             <ScrollView showsVerticalScrollIndicator={false}>
                 {unreadNotifications.length > 0 && (
                     <>
-                        <Text className="mb-3 ml-5 mt-5 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        <Text className="mb-3 ml-5 mt-5 text-xs color-white font-bold uppercase tracking-widest text-zinc-500">
                             Unread · {unreadNotifications.length}
                         </Text>
 
                         {unreadNotifications.map((item) => (
-                            <NotificationCard
+                            <NotificationCard 
                                 key={item.id}
                                 item={item}
                                 onPress={handlePress}
@@ -151,7 +151,7 @@ export default function NotificationsScreen({
                         </Text>
 
                         {earlierNotifications.map((item) => (
-                            <NotificationCard
+                            <NotificationCard 
                                 key={item.id}
                                 item={item}
                                 onPress={handlePress}

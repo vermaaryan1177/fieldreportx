@@ -57,7 +57,7 @@ function ScreenContent({
         case "reports":
             return <ReportListScreen onNavigate={navigate} onOpenSidebar={openSidebar}/>;
         case "templateLibrary":
-            return <TemplateLibraryScreen onNavigate={navigate} />;
+            return <TemplateLibraryScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         case "templateBuilder":
             return <TemplateBuilderScreen onNavigate={navigate} />;
         case "reportSetup":

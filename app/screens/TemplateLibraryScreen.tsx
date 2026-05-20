@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-
+import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { listTemplates } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
@@ -21,9 +21,10 @@ import { Template } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    onOpenSidebar: () => void;
 }
 
-export default function TemplateLibraryScreen({ onNavigate }: Props) {
+export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar }: Props) {
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState<string>("All");
     const [userTemplates, setUserTemplates] = useState<Template[]>([]);
@@ -72,7 +73,8 @@ export default function TemplateLibraryScreen({ onNavigate }: Props) {
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-5 pt-16 pb-4">
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+            <View className="flex-row items-center justify-between px-5 pt-5 pb-4">
                 <View>
                     <Text className="text-white text-2xl font-bold">
                         Templates
