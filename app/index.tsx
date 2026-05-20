@@ -77,7 +77,7 @@ function ScreenContent({
         case "reportComparison":
             return <ReportComparisonScreen onNavigate={navigate} />;
         case "settings":
-            return <SettingsScreen onNavigate={navigate} />;
+            return <SettingsScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         case "organisation":
             return <OrganisationScreen onNavigate={navigate} />;
         case "notifications":

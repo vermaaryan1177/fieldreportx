@@ -83,7 +83,7 @@ export default function AppHeader({
     profileInitials = "AK",
 }: HeaderProps) {
     return (
-        <View className="flex-row items-center justify-between px-5 pt-5 pb-5 bg-slate-900">
+        <View className="flex-row items-center justify-between px-5 pt-12 pb-5 bg-slate-900">
             {/* Left: Sidebar */}
             <TouchableOpacity
                 activeOpacity={0.7}

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-
+import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 interface Props {
@@ -69,22 +69,12 @@ export default function HomeScreen({
     return (
         <View className="flex-1 bg-background">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-5 pt-16 pb-5">
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+            <View className="flex-row items-center justify-between px-5 pt-5 pb-5">
                 {/* Left Side */}
                 <View className="flex-row items-center">
-                    {/* Sidebar Button */}
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={onOpenSidebar}
-                        className="w-10 h-10 rounded-full bg-slate-800 items-center justify-center mr-3"
-                    >
-                        <Ionicons
-                            name="menu"
-                            size={22}
-                            color="#ffffff"
-                        />
-                    </TouchableOpacity>
-
+                    
+                    
                     {/* Greeting */}
                     <View>
                         <Text className="text-white text-2xl font-bold">
@@ -97,29 +87,7 @@ export default function HomeScreen({
                     </View>
                 </View>
 
-                {/* Right Side */}
-                <View className="flex-row items-center gap-3">
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                    >
-                        <Ionicons
-                            name="notifications-outline"
-                            size={20}
-                            color="#f2a72f"
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => onNavigate("settings")}
-                        className="w-10 h-10 rounded-full bg-primary items-center justify-center"
-                    >
-                        <Text className="text-white font-bold text-sm">
-                            AK
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                
             </View>
 
             {/* Stats Row */}
