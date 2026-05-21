@@ -34,7 +34,10 @@ export type FieldType =
     | "photo"
     | "signature"
     | "route"
-    | "accelerometer";
+    | "accelerometer"
+    | "timer"
+    | "stopwatch"
+    | "joint_angle";
 
 export interface TemplateField {
     id: string;

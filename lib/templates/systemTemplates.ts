@@ -17,7 +17,7 @@ export interface SystemTemplate {
 function field(
     id: string,
     label: string,
-    type: "text" | "number" | "checkbox" | "select" | "photo" | "signature" | "route" | "accelerometer",
+    type: "text" | "number" | "checkbox" | "select" | "photo" | "signature" | "route" | "accelerometer" | "timer" | "stopwatch" | "joint_angle",
     required = false,
     options?: string[],
     gyroCapture = false,
@@ -236,47 +236,82 @@ const drivingSections: TemplateSection[] = [
 
 // ─── Template 5 — Patient Rehabilitation ──────────────────────────────────────
 
+const JOINT_LIST = ["Knee", "Shoulder", "Elbow", "Hip", "Ankle", "Wrist", "Neck", "Lumbar"];
+const MOVEMENT_TYPE = ["Flexion", "Extension", "Abduction", "Adduction", "Internal Rotation", "External Rotation", "Lateral Flexion"];
+const REP_QUALITY = ["Full range", "Partial range", "Compensated", "Assisted"];
+const REFLEX_RESPONSE = ["Normal", "Reduced", "Absent", "Hyperreflexic"];
+const REFLEX_TESTS = ["Patellar (knee jerk)", "Bicep", "Tricep", "Achilles", "Brachioradialis", "Custom"];
+const PROGRESS_SCALE = ["Significantly improved", "Improved", "Same", "Declined", "Significantly declined"];
+const EFFORT_SCALE = ["Excellent", "Good", "Fair", "Poor"];
+const SYMMETRY = ["Symmetric", "Mild asymmetry", "Marked asymmetry"];
+
 const rehabSections: TemplateSection[] = [
-    section("s1", "Patient Information", [
+    section("s1", "Patient & Session", [
         field("f1", "Patient name", "text", true),
         field("f2", "Patient ID", "text", true),
         field("f3", "Date of birth", "text"),
-        field("f4", "Condition / diagnosis", "text", true),
+        field("f4", "Diagnosis / condition", "text", true),
         field("f5", "Clinician name", "text", true),
-        field("f6", "Session date", "text", true),
-    ]),
-    section("s2", "Session Details", [
-        field("f7", "Session number", "number", true),
-        field("f8", "Session duration (min)", "number"),
-        field("f9", "Session type", "select", true, ["Physiotherapy", "Occupational Therapy", "Exercise Rehab", "Other"]),
+        field("f6", "Session number", "number", true),
+        field("f7", "Session date", "text", true),
+        field("f8", "Session type", "select", true, ["Physiotherapy", "Occupational Therapy", "Exercise Rehab", "Neurological", "Sports Rehab"]),
+        field("f9", "Session duration", "timer"),
         field("f10", "Pain level (0–10)", "select", false, ["0","1","2","3","4","5","6","7","8","9","10"]),
     ]),
-    section("s3", "Range of Motion", [
-        field("f11", "Joint assessed", "select", true, ["Knee", "Shoulder", "Elbow", "Hip", "Ankle", "Wrist"]),
-        field("f12", "Starting angle (°)", "number"),
-        field("f13", "End angle (°)", "number"),
-        field("f14", "Movement photos / video", "photo"),
-        field("f15", "ROM notes", "text"),
+    section("s2", "Joint Movement Capture", [
+        field("f1", "Joint assessed", "select", true, JOINT_LIST),
+        field("f2", "Movement type", "select", true, MOVEMENT_TYPE),
+        field("f3", "Start position — AI angle capture", "joint_angle"),
+        field("f4", "End / max position — AI angle capture", "joint_angle"),
+        field("f5", "Additional movement photos", "photo"),
+        field("f6", "Capture notes", "text"),
     ]),
-    section("s4", "Strength & Repetitions", [
-        field("f16", "Exercise name", "text"),
-        field("f17", "Target reps", "number"),
-        field("f18", "Completed reps", "number"),
-        field("f19", "Sets completed", "number"),
-        field("f20", "Resistance level", "text"),
+    section("s3", "Angle Measurements", [
+        field("f1", "Baseline ROM from last session (°)", "number"),
+        field("f2", "Current ROM — start angle (°)", "number"),
+        field("f3", "Current ROM — end angle (°)", "number"),
+        field("f4", "ROM improvement vs last session (°)", "number"),
+        field("f5", "Symmetry assessment", "select", false, SYMMETRY),
+        field("f6", "Measurement notes", "text"),
     ]),
-    section("s5", "Reflex & Timing", [
-        field("f21", "Test performed", "text"),
-        field("f22", "Reaction time (ms)", "number"),
-        field("f23", "Response quality", "select", false, ["Normal", "Reduced", "Absent", "Hyperreflexic"]),
-        field("f24", "Notes", "text"),
+    section("s4", "Repetition Performance", [
+        field("f1", "Exercise name", "text", true),
+        field("f2", "Target repetitions", "number"),
+        field("f3", "Completed repetitions", "number"),
+        field("f4", "Sets completed", "number"),
+        field("f5", "Average rep duration (sec)", "number"),
+        field("f6", "Rep quality", "select", false, REP_QUALITY),
+        field("f7", "Resistance / load", "text"),
+        field("f8", "Performance notes", "text"),
     ]),
-    section("s6", "Progress & Sign-off", [
-        field("f25", "Progress vs last session", "select", true, ["Improved", "Same", "Declined"]),
-        field("f26", "Patient feedback", "text"),
-        field("f27", "Clinician observations", "text"),
-        field("f28", "Next session goals", "text"),
-        field("f29", "Clinician signature", "signature", true),
+    section("s5", "Reflex & Timing Analysis", [
+        field("f1", "Reflex test type", "select", true, REFLEX_TESTS),
+        field("f2", "Reaction time — trial 1 (ms)", "number"),
+        field("f3", "Reaction time — trial 2 (ms)", "number"),
+        field("f4", "Reaction time — trial 3 (ms)", "number"),
+        field("f5", "Average reaction time (ms)", "number"),
+        field("f6", "Reflex response", "select", false, REFLEX_RESPONSE),
+        field("f7", "Reflex timing", "stopwatch"),
+        field("f8", "Timing notes", "text"),
+    ]),
+    section("s6", "Session Progress Comparison", [
+        field("f1", "Progress vs last session", "select", true, PROGRESS_SCALE),
+        field("f2", "ROM change since intake (°)", "number"),
+        field("f3", "Sessions completed to date", "number"),
+        field("f4", "Patient effort level", "select", false, EFFORT_SCALE),
+        field("f5", "Patient-reported pain change", "select", false, ["Reduced", "Same", "Increased"]),
+        field("f6", "Functional milestone reached", "checkbox"),
+        field("f7", "Milestone description", "text"),
+        field("f8", "Comparison photos", "photo"),
+    ]),
+    section("s7", "Clinician Notes & Sign-off", [
+        field("f1", "Clinical observations", "text", true),
+        field("f2", "Treatment adjustments", "text"),
+        field("f3", "Home exercise program updated", "checkbox"),
+        field("f4", "Next session goals", "text"),
+        field("f5", "Recommended next session date", "text"),
+        field("f6", "Clinician signature", "signature", true),
+        field("f7", "Patient signature", "signature"),
     ]),
 ];
 
@@ -390,11 +425,11 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         id: "sys_rehab",
         name: "Patient Rehabilitation",
         category: "Rehab",
-        description: "Track patient recovery, joint angles, strength, and reflex timing across sessions.",
+        description: "Track patient recovery with gyroscope joint capture, rep performance, reflex timing, and session-over-session progress comparison.",
         icon: "fitness-outline",
         color: "#3b82f6",
         gpsValidation: false,
-        features: ["Gyroscope angle capture", "Rep & reflex timing", "Session comparison"],
+        features: ["Camera + gyro joint capture", "Rep & reflex timing", "Movement sensor analysis", "Session progress comparison"],
         sections: rehabSections,
     },
     {

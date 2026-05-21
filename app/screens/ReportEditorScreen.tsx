@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     ActionSheetIOS,
     Alert,
+    Dimensions,
     Image,
     Keyboard,
     KeyboardAvoidingView,
@@ -22,9 +23,10 @@ import {
     View,
 } from "react-native";
 import MapView, { Marker, Polyline, Region } from "react-native-maps";
-import { Path, Svg } from "react-native-svg";
+import { Circle, Line, Path, Svg } from "react-native-svg";
 
 import { AppScreen } from "@/components/BottomNavBar";
+import { detectJointAngle, JointAngleCapture, SKELETON_EDGES, AI_UNSUPPORTED_JOINTS } from "@/lib/poseService";
 import { store } from "@/lib/store";
 import { trackingStore, RouteFieldData, AccelFieldData } from "@/lib/trackingStore";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
@@ -100,10 +102,13 @@ function isLocationField(label: string) {
     return LOCATION_KEYWORDS.some((kw) => l.includes(kw));
 }
 
-// Fields that are read-only and auto-filled from accelerometer analysis
+// Fields that are read-only and auto-filled (accelerometer RMS/Peak/Avg, stopwatch trials)
 const AUTOFILL_NUMBER_LABELS = ["rms", "peak", "avg"];
 function isAutoFillNumber(label: string): boolean {
-    return AUTOFILL_NUMBER_LABELS.includes(label.toLowerCase().trim());
+    const l = label.toLowerCase();
+    if (AUTOFILL_NUMBER_LABELS.includes(l.trim())) return true;
+    if (l.includes("reaction time") || l.includes("average reaction")) return true;
+    return false;
 }
 
 function formatDuration(sec: number): string {
@@ -900,6 +905,526 @@ function AccelerometerField({
             <Ionicons name="pulse-outline" size={18} color="#60a5fa" />
             <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 15 }}>Start Vibration Analysis</Text>
         </TouchableOpacity>
+    );
+}
+
+// ─── Reflex timing stopwatch ──────────────────────────────────────────────────
+
+interface ReflexStopwatchData { trials: number[]; avg: number; }
+
+function ReflexStopwatchField({
+    value,
+    onChange,
+}: {
+    value: string | boolean | number | undefined;
+    onChange: (v: string) => void;
+}) {
+    type Phase = "idle" | "running" | "paused" | "done";
+    const [phase, setPhase] = useState<Phase>("idle");
+    const [trials, setTrials] = useState<number[]>([]);
+    const [liveMs, setLiveMs] = useState(0);
+    const startRef = useRef(0);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
+    // Restore from saved value on mount
+    useEffect(() => {
+        if (typeof value === "string" && value) {
+            try {
+                const d: ReflexStopwatchData = JSON.parse(value);
+                if (Array.isArray(d.trials) && d.trials.length > 0) {
+                    setTrials(d.trials);
+                    setPhase("done");
+                }
+            } catch {}
+        }
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const startTrial = () => {
+        startRef.current = Date.now();
+        setLiveMs(0);
+        setPhase("running");
+        intervalRef.current = setInterval(() => {
+            setLiveMs(Date.now() - startRef.current);
+        }, 30);
+    };
+
+    const stopTrial = () => {
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+        const elapsed = Date.now() - startRef.current;
+        const newTrials = [...trials, elapsed];
+        setTrials(newTrials);
+        setLiveMs(elapsed);
+        if (newTrials.length >= 3) {
+            finalize(newTrials);
+        } else {
+            setPhase("paused");
+        }
+    };
+
+    const finalize = (trialData: number[]) => {
+        const avg = Math.round(trialData.reduce((a, b) => a + b, 0) / trialData.length);
+        setPhase("done");
+        onChangeRef.current(JSON.stringify({ trials: trialData, avg }));
+    };
+
+    const reset = () => {
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+        setTrials([]);
+        setLiveMs(0);
+        setPhase("idle");
+        onChangeRef.current("");
+    };
+
+    const trialColors = ["#f2a72f", "#60a5fa", "#a78bfa"];
+
+    // ── Running ──────────────────────────────────────────────────────────────
+    if (phase === "running") {
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 20, borderWidth: 1, borderColor: "#ef444430", alignItems: "center", gap: 6 }}>
+                    <Text style={{ color: "#94a3b8", fontSize: 12, fontWeight: "600" }}>
+                        TRIAL {trials.length + 1}  ·  TAP STOP WHEN PATIENT RESPONDS
+                    </Text>
+                    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 52, fontVariant: ["tabular-nums"] as any }}>
+                        {liveMs < 1000
+                            ? `${liveMs} ms`
+                            : `${(liveMs / 1000).toFixed(2)} s`}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    onPress={stopTrial}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#7f1d1d", borderWidth: 1, borderColor: "#ef444440", borderRadius: 12, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                    <Ionicons name="stop-circle" size={20} color="#ef4444" />
+                    <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 16 }}>Stop</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Between trials ───────────────────────────────────────────────────────
+    if (phase === "paused") {
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#3f3f46", gap: 12 }}>
+                    {trials.map((ms, i) => (
+                        <View key={i} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                            <Text style={{ color: "#71717a", fontSize: 13 }}>Trial {i + 1}</Text>
+                            <Text style={{ color: trialColors[i], fontWeight: "bold", fontSize: 18, fontVariant: ["tabular-nums"] as any }}>
+                                {ms} ms
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                        onPress={startTrial}
+                        activeOpacity={0.8}
+                        style={{ flex: 1, backgroundColor: "#14532d", borderWidth: 1, borderColor: "#22c55e40", borderRadius: 12, paddingVertical: 13, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    >
+                        <Ionicons name="play" size={16} color="#22c55e" />
+                        <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 14 }}>Trial {trials.length + 1}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => finalize(trials)}
+                        activeOpacity={0.8}
+                        style={{ flex: 1, backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 13, alignItems: "center" }}
+                    >
+                        <Text style={{ color: "#94a3b8", fontWeight: "600", fontSize: 14 }}>Finish</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    // ── Done ─────────────────────────────────────────────────────────────────
+    if (phase === "done" && trials.length > 0) {
+        const avg = Math.round(trials.reduce((a, b) => a + b, 0) / trials.length);
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#22c55e30", gap: 10 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                        <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 13 }}>Completed — {trials.length} trial{trials.length !== 1 ? "s" : ""}</Text>
+                        <Text style={{ color: "#71717a", fontSize: 12 }}>avg {avg} ms</Text>
+                    </View>
+                    {trials.map((ms, i) => (
+                        <View key={i} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                            <Text style={{ color: "#71717a", fontSize: 13 }}>Trial {i + 1}</Text>
+                            <Text style={{ color: trialColors[i], fontWeight: "bold", fontSize: 18, fontVariant: ["tabular-nums"] as any }}>
+                                {ms} ms
+                            </Text>
+                        </View>
+                    ))}
+                </View>
+                <TouchableOpacity
+                    onPress={reset}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Reset & Redo</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Idle ─────────────────────────────────────────────────────────────────
+    return (
+        <TouchableOpacity
+            onPress={startTrial}
+            activeOpacity={0.8}
+            style={{ backgroundColor: "#14532d", borderWidth: 1, borderColor: "#22c55e40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+        >
+            <Ionicons name="play-circle-outline" size={20} color="#22c55e" />
+            <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 15 }}>Start Trial 1</Text>
+        </TouchableOpacity>
+    );
+}
+
+// ─── Session timer field ──────────────────────────────────────────────────────
+
+function SessionTimerField({
+    value,
+    onChange,
+}: {
+    value: string | boolean | number | undefined;
+    onChange: (v: number) => void;
+}) {
+    const [, refresh] = useState(0);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
+    useEffect(() => trackingStore.subscribe(() => refresh((n) => n + 1)), []);
+
+    // Sync a completed result that finished while unmounted
+    useEffect(() => {
+        if (trackingStore.timerStatus === "done" && trackingStore.timerResult !== null) {
+            if (value !== trackingStore.timerResult) onChangeRef.current(trackingStore.timerResult);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const savedSeconds: number | null = (() => {
+        if (trackingStore.timerStatus !== "idle") return null;
+        if (typeof value === "number" && value > 0) return value;
+        return null;
+    })();
+
+    const handleStop = () => {
+        const result = trackingStore.stopTimer();
+        onChangeRef.current(result);
+    };
+
+    const handleReset = () => {
+        trackingStore.resetTimer();
+        onChangeRef.current(0);
+    };
+
+    // ── Running ──────────────────────────────────────────────────────────────
+    if (trackingStore.timerStatus === "running") {
+        const elapsed = trackingStore.timerElapsed;
+        const hrs = Math.floor(elapsed / 3600);
+        const mins = Math.floor((elapsed % 3600) / 60);
+        const secs = elapsed % 60;
+        const display = hrs > 0
+            ? `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+            : `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 20, borderWidth: 1, borderColor: "#a78bfa30", alignItems: "center", gap: 8 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#a78bfa" }} />
+                        <Text style={{ color: "#a78bfa", fontWeight: "bold", fontSize: 13 }}>Session in progress</Text>
+                        <TouchableOpacity onPress={() => trackingStore.cancelTimer()} style={{ marginLeft: 12 }}>
+                            <Text style={{ color: "#52525b", fontSize: 12 }}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 48, fontVariant: ["tabular-nums"] as any, letterSpacing: 2 }}>
+                        {display}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    onPress={handleStop}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: "#3b0764", borderWidth: 1, borderColor: "#a78bfa40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                    <Ionicons name="stop-circle" size={18} color="#a78bfa" />
+                    <Text style={{ color: "#a78bfa", fontWeight: "bold", fontSize: 15 }}>Stop Timer</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Done / saved ─────────────────────────────────────────────────────────
+    const displaySeconds: number | null =
+        trackingStore.timerStatus === "done" ? trackingStore.timerResult : savedSeconds;
+
+    if (displaySeconds !== null && displaySeconds > 0) {
+        const hrs = Math.floor(displaySeconds / 3600);
+        const mins = Math.floor((displaySeconds % 3600) / 60);
+        const secs = displaySeconds % 60;
+        const display = hrs > 0
+            ? `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+            : `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+        const minLabel = Math.round(displaySeconds / 60);
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 20, borderWidth: 1, borderColor: "#a78bfa30", alignItems: "center", gap: 4 }}>
+                    <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 40, fontVariant: ["tabular-nums"] as any, letterSpacing: 2 }}>
+                        {display}
+                    </Text>
+                    <Text style={{ color: "#71717a", fontSize: 13 }}>{minLabel} {minLabel === 1 ? "minute" : "minutes"}</Text>
+                </View>
+                <TouchableOpacity
+                    onPress={handleReset}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Reset Timer</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Idle ─────────────────────────────────────────────────────────────────
+    return (
+        <TouchableOpacity
+            onPress={() => trackingStore.startTimer()}
+            activeOpacity={0.8}
+            style={{ backgroundColor: "#3b0764", borderWidth: 1, borderColor: "#a78bfa40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+        >
+            <Ionicons name="timer-outline" size={18} color="#a78bfa" />
+            <Text style={{ color: "#a78bfa", fontWeight: "bold", fontSize: 15 }}>Start Session Timer</Text>
+        </TouchableOpacity>
+    );
+}
+
+// ─── AI joint angle capture ───────────────────────────────────────────────────
+
+const DISPLAY_W = Dimensions.get("window").width - 48;
+const JOINT_LIST_AI = ["Knee", "Shoulder", "Elbow", "Hip", "Ankle"];
+
+function JointAngleCaptureField({
+    value,
+    onChange,
+}: {
+    value: string | boolean | number | undefined;
+    onChange: (v: string) => void;
+}) {
+    type Phase = "idle" | "processing" | "done" | "error";
+    const [phase, setPhase] = useState<Phase>("idle");
+    const [joint, setJoint] = useState("Knee");
+    const [result, setResult] = useState<JointAngleCapture | null>(null);
+    const [errorMsg, setErrorMsg] = useState("");
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
+    useEffect(() => {
+        if (typeof value === "string" && value) {
+            try {
+                const d: JointAngleCapture = JSON.parse(value);
+                setResult(d);
+                setJoint(d.joint);
+                setPhase("done");
+            } catch {}
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const capture = async () => {
+        if (AI_UNSUPPORTED_JOINTS.includes(joint)) {
+            Alert.alert(
+                "Not supported",
+                `AI angle detection isn't available for ${joint}. Enter the angle manually in the Angle Measurements section.`,
+            );
+            return;
+        }
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+            Alert.alert("Permission required", "Camera access is needed for joint capture.");
+            return;
+        }
+        const picked = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.85 });
+        if (picked.canceled) return;
+
+        setPhase("processing");
+        setErrorMsg("");
+        const asset = picked.assets[0];
+        try {
+            const detection = await detectJointAngle(asset.uri, joint, asset.width, asset.height);
+            setResult(detection);
+            setPhase("done");
+            onChangeRef.current(JSON.stringify(detection));
+        } catch (err: any) {
+            setErrorMsg(err.message ?? "Detection failed.");
+            setPhase("error");
+        }
+    };
+
+    const reset = () => {
+        setPhase("idle");
+        setResult(null);
+        setErrorMsg("");
+        onChangeRef.current("");
+    };
+
+    // ── Joint picker (shared across idle/error states) ───────────────────────
+    const JointPicker = () => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+                {JOINT_LIST_AI.map((j) => (
+                    <TouchableOpacity
+                        key={j}
+                        onPress={() => setJoint(j)}
+                        style={{
+                            paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+                            backgroundColor: joint === j ? "#22c55e20" : "#1e293b",
+                            borderWidth: 1,
+                            borderColor: joint === j ? "#22c55e" : "#3f3f46",
+                        }}
+                    >
+                        <Text style={{ color: joint === j ? "#22c55e" : "#71717a", fontSize: 13, fontWeight: "600" }}>
+                            {j}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </ScrollView>
+    );
+
+    // ── Processing ───────────────────────────────────────────────────────────
+    if (phase === "processing") {
+        return (
+            <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 24, alignItems: "center", gap: 12, borderWidth: 1, borderColor: "#22c55e20" }}>
+                <ActivityIndicator color="#22c55e" size="large" />
+                <Text style={{ color: "#94a3b8", fontSize: 14, fontWeight: "600" }}>Detecting joint angle…</Text>
+                <Text style={{ color: "#52525b", fontSize: 12, textAlign: "center" }}>
+                    Loading AI model on first use may take a moment
+                </Text>
+            </View>
+        );
+    }
+
+    // ── Done — photo + skeleton overlay + angle badge ────────────────────────
+    if (phase === "done" && result) {
+        const dispH = DISPLAY_W * (result.origH / result.origW);
+        const scaleX = DISPLAY_W / 256;
+        const scaleY = dispH / 256;
+        const [pIdx, vIdx, dIdx] = result.triplet;
+
+        return (
+            <View style={{ gap: 10 }}>
+                {/* Photo + SVG skeleton overlay */}
+                <View style={{ width: DISPLAY_W, height: dispH, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+                    <Image
+                        source={{ uri: result.imageUri }}
+                        style={{ width: DISPLAY_W, height: dispH }}
+                        resizeMode="stretch"
+                    />
+                    <Svg width={DISPLAY_W} height={dispH} style={{ position: "absolute", top: 0, left: 0 }}>
+                        {/* Skeleton edges */}
+                        {SKELETON_EDGES.map(([a, b], i) => {
+                            const kA = result.keypoints[a], kB = result.keypoints[b];
+                            if (!kA || !kB || kA.score < 0.2 || kB.score < 0.2) return null;
+                            return (
+                                <Line
+                                    key={i}
+                                    x1={kA.x * scaleX} y1={kA.y * scaleY}
+                                    x2={kB.x * scaleX} y2={kB.y * scaleY}
+                                    stroke="rgba(255,255,255,0.35)" strokeWidth={1.5}
+                                />
+                            );
+                        })}
+                        {/* All keypoints */}
+                        {result.keypoints.map((kp, i) => {
+                            if (kp.score < 0.2) return null;
+                            const isActive = i === pIdx || i === vIdx || i === dIdx;
+                            return (
+                                <Circle
+                                    key={i}
+                                    cx={kp.x * scaleX} cy={kp.y * scaleY}
+                                    r={isActive ? 7 : 4}
+                                    fill={isActive ? "#22c55e" : "rgba(255,255,255,0.5)"}
+                                    stroke={isActive ? "#fff" : "none"}
+                                    strokeWidth={isActive ? 1.5 : 0}
+                                />
+                            );
+                        })}
+                        {/* Lines connecting the measured triplet */}
+                        {[pIdx, dIdx].map((idx, i) => {
+                            const kA = result.keypoints[idx], kV = result.keypoints[vIdx];
+                            if (!kA || !kV || kA.score < 0.2 || kV.score < 0.2) return null;
+                            return (
+                                <Line
+                                    key={`active_${i}`}
+                                    x1={kA.x * scaleX} y1={kA.y * scaleY}
+                                    x2={kV.x * scaleX} y2={kV.y * scaleY}
+                                    stroke="#22c55e" strokeWidth={2.5}
+                                />
+                            );
+                        })}
+                    </Svg>
+                    {/* Angle badge */}
+                    <View style={{ position: "absolute", bottom: 10, right: 10, backgroundColor: "rgba(0,0,0,0.75)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+                        <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 28 }}>{result.angle}</Text>
+                        <Text style={{ color: "#22c55e", fontSize: 14 }}>°</Text>
+                    </View>
+                    {/* Confidence badge */}
+                    <View style={{ position: "absolute", top: 10, left: 10, backgroundColor: "rgba(0,0,0,0.65)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ color: "#94a3b8", fontSize: 11 }}>{result.joint} · {Math.round(result.confidence * 100)}% conf</Text>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={reset}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Retake</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Error ────────────────────────────────────────────────────────────────
+    if (phase === "error") {
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#ef444430", gap: 8 }}>
+                    <Text style={{ color: "#ef4444", fontWeight: "600", fontSize: 13 }}>Detection failed</Text>
+                    <Text style={{ color: "#94a3b8", fontSize: 12 }}>{errorMsg}</Text>
+                </View>
+                <JointPicker />
+                <TouchableOpacity
+                    onPress={capture}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: "#14532d", borderWidth: 1, borderColor: "#22c55e40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                    <Ionicons name="camera-outline" size={18} color="#22c55e" />
+                    <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 15 }}>Try Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Idle ─────────────────────────────────────────────────────────────────
+    return (
+        <View style={{ gap: 10 }}>
+            <JointPicker />
+            <TouchableOpacity
+                onPress={capture}
+                activeOpacity={0.8}
+                style={{ backgroundColor: "#14532d", borderWidth: 1, borderColor: "#22c55e40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+            >
+                <Ionicons name="camera-outline" size={18} color="#22c55e" />
+                <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 15 }}>
+                    Capture {joint} Angle
+                </Text>
+            </TouchableOpacity>
+        </View>
     );
 }
 
@@ -1774,6 +2299,30 @@ function FieldRow({
                 />
             )}
 
+            {/* JOINT ANGLE CAPTURE */}
+            {field.type === "joint_angle" && (
+                <JointAngleCaptureField
+                    value={value}
+                    onChange={(v) => onChange(v)}
+                />
+            )}
+
+            {/* REFLEX STOPWATCH */}
+            {field.type === "stopwatch" && (
+                <ReflexStopwatchField
+                    value={value}
+                    onChange={(v) => onChange(v)}
+                />
+            )}
+
+            {/* SESSION TIMER */}
+            {field.type === "timer" && (
+                <SessionTimerField
+                    value={value}
+                    onChange={(v) => onChange(v)}
+                />
+            )}
+
             {/* SIGNATURE */}
             {field.type === "signature" && (
                 <TouchableOpacity
@@ -1838,16 +2387,35 @@ function SectionEditor({
                     });
                 } catch {}
             }
+            if (field?.type === "stopwatch" && typeof value === "string" && value) {
+                try {
+                    const sw: ReflexStopwatchData = JSON.parse(value);
+                    section.fields.forEach((f) => {
+                        if (f.type !== "number") return;
+                        const l = f.label.toLowerCase();
+                        if (l.includes("trial 1")) next[f.id] = sw.trials[0] ?? 0;
+                        else if (l.includes("trial 2")) next[f.id] = sw.trials[1] ?? 0;
+                        else if (l.includes("trial 3")) next[f.id] = sw.trials[2] ?? 0;
+                        else if (l.includes("average")) next[f.id] = sw.avg ?? 0;
+                    });
+                } catch {}
+            }
             return next;
         });
     };
 
-    // Re-apply auto-fill when reopening a section that already has accel data
+    // Re-apply auto-fill when reopening a section that already has accel or stopwatch data
     useEffect(() => {
         const accelField = section.fields.find((f) => f.type === "accelerometer");
-        if (!accelField) return;
-        const accelValue = initialValues[accelField.id];
-        if (accelValue && typeof accelValue === "string") setValue(accelField.id, accelValue);
+        if (accelField) {
+            const accelValue = initialValues[accelField.id];
+            if (accelValue && typeof accelValue === "string") setValue(accelField.id, accelValue);
+        }
+        const swField = section.fields.find((f) => f.type === "stopwatch");
+        if (swField) {
+            const swValue = initialValues[swField.id];
+            if (swValue && typeof swValue === "string") setValue(swField.id, swValue);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

@@ -155,6 +155,7 @@ export default function App() {
             store.clearReport();
             trackingStore.cancelRoute();
             trackingStore.cancelAccel();
+            trackingStore.cancelTimer();
         }
 
         const history = historyRef.current;

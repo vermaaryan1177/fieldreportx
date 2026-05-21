@@ -50,6 +50,14 @@ class TrackingStore {
     private _routeSub: Location.LocationSubscription | null = null;
     private _routeTimer: ReturnType<typeof setInterval> | null = null;
 
+    // Timer state (read by components)
+    timerStatus: "idle" | "running" | "done" = "idle";
+    timerStartTime = 0;
+    timerElapsed = 0;
+    timerResult: number | null = null; // elapsed seconds
+
+    private _timerInterval: ReturnType<typeof setInterval> | null = null;
+
     // Accel state (read by components)
     accelStatus: "idle" | "sampling" | "done" = "idle";
     accelStartTime = 0;
@@ -152,6 +160,43 @@ class TrackingStore {
         this.routeElapsed = 0;
         this.routeWaypoints = [];
         this._routeSpeeds = [];
+        this.notify();
+    }
+
+    // ── Session timer actions ─────────────────────────────────────────────────
+
+    startTimer() {
+        this.timerStartTime = Date.now();
+        this.timerElapsed = 0;
+        this.timerResult = null;
+        this.timerStatus = "running";
+        this.notify();
+
+        this._timerInterval = setInterval(() => {
+            this.timerElapsed = Math.floor((Date.now() - this.timerStartTime) / 1000);
+            this.notify();
+        }, 1000);
+    }
+
+    stopTimer(): number {
+        if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
+        this.timerResult = Math.floor((Date.now() - this.timerStartTime) / 1000);
+        this.timerElapsed = this.timerResult;
+        this.timerStatus = "done";
+        this.notify();
+        return this.timerResult;
+    }
+
+    cancelTimer() {
+        if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
+        this.timerStatus = "idle";
+        this.timerResult = null;
+        this.notify();
+    }
+
+    resetTimer() {
+        this.cancelTimer();
+        this.timerElapsed = 0;
         this.notify();
     }
 
