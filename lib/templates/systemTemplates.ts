@@ -156,7 +156,6 @@ const legalSections: TemplateSection[] = [
     section("s2", "Scene Documentation", [
         field("f6", "Scene description", "text", true),
         field("f7", "Scene photos", "photo", true),
-        field("f8", "GPS-tagged scene photos", "photo"),
         field("f9", "Sketch / diagram", "photo"),
     ]),
     section("s3", "Evidence", [
@@ -179,12 +178,7 @@ const legalSections: TemplateSection[] = [
         field("f22", "Transferred to", "text"),
         field("f23", "Chain-of-custody photo", "photo"),
     ]),
-    section("s6", "Verification", [
-        field("f24", "GPS coordinates", "text"),
-        field("f25", "Timestamp verification", "text"),
-        field("f26", "Reporting officer signature", "signature", true),
-    ]),
-    section("s7", "Notes & Actions", [
+    section("s6", "Notes & Actions", [
         field("f27", "Investigator notes", "text"),
         field("f28", "Recommendations", "text"),
         field("f29", "Follow-up actions", "text"),
