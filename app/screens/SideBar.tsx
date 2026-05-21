@@ -1,9 +1,13 @@
+
+
+
 import { signOut } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { AppScreen } from "@/components/BottomNavBar";
+import { auth } from "@/lib/firebase";
 
 type SidebarItem = {
     id: AppScreen;
@@ -21,15 +25,30 @@ const OTHER_ITEMS: SidebarItem[] = [
     { id: "settings", label: "Settings", icon: "settings-outline" },
 ];
 
-const expoConfig = Constants.manifest ?? Constants.expoConfig ?? {};
-const version = expoConfig.version ?? "1.0.0";
-const build =
-    expoConfig.ios?.buildNumber ?? expoConfig.android?.versionCode ?? "1";
-
 interface SidebarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
-    onSignOut?: () => void;
+}
+
+function getEmailPrefix(email?: string | null) {
+    if (!email) return "USER";
+    return email.split("@")[0].toUpperCase();
+}
+
+function getInitials(name?: string | null, email?: string | null) {
+    if (name && name.trim().length > 0) {
+        return name
+            .trim()
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+    }
+
+    if (email) return email[0].toUpperCase();
+
+    return "U";
 }
 
 function SidebarButton({
@@ -70,6 +89,15 @@ function SidebarButton({
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const [signingOut, setSigningOut] = useState(false);
 
+    const user = auth.currentUser;
+
+    const userData = useMemo(() => {
+        return {
+            email: user?.email,
+            name: user?.displayName,
+        };
+    }, [user]);
+
     const handleSignOut = () => {
         Alert.alert("Sign out", "Are you sure you want to sign out?", [
             { text: "Cancel", style: "cancel" },
@@ -82,10 +110,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         await signOut();
                     } catch {
                         setSigningOut(false);
-                        Alert.alert(
-                            "Error",
-                            "Failed to sign out. Please try again.",
-                        );
+                        Alert.alert("Error", "Failed to sign out.");
                     }
                 },
             },
@@ -93,27 +118,27 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     };
 
     return (
-        <View
-            className="flex-1 pt-10 w-80 bg-slate-900 border-r border-zinc-800"
-            style={{ zIndex: 1000 }}
-        >
-            {/* Top User */}
+        <View className="flex-1 pt-10 w-80 bg-slate-900 border-r border-zinc-800">
+            {/* TOP USER */}
             <View className="flex-row items-center border-b border-zinc-800 p-5">
                 <View className="h-14 w-14 rounded-full bg-primary items-center justify-center">
-                    <Text className="text-black font-bold text-lg">AK</Text>
+                    <Text className="text-black font-bold text-lg">
+                        {getInitials(userData.name, userData.email)}
+                    </Text>
                 </View>
+
                 <View className="ml-3">
                     <Text className="text-white font-semibold text-base">
-                        Alex King
+                        {getEmailPrefix(userData.email)}
                     </Text>
+
                     <Text className="text-zinc-500 text-sm">
-                        Senior Inspector
+                        Field Inspector
                     </Text>
                 </View>
             </View>
 
             <ScrollView className="flex-1 px-4 pt-4">
-                {/* Main Navigation */}
                 {MAIN_ITEMS.map((item) => (
                     <SidebarButton
                         key={item.id}
@@ -139,15 +164,16 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                             Notifications
                         </Text>
                     </View>
+
                     <View className="h-6 w-6 rounded-full bg-red-500 items-center justify-center">
-                        <Text className="text-white text-xs font-bold">3</Text>
+                        <Text className="text-white text-xs font-bold">
+                            3
+                        </Text>
                     </View>
                 </TouchableOpacity>
 
-                {/* Divider */}
                 <View className="h-[1px] bg-zinc-800 my-2" />
 
-                {/* Other Items */}
                 {OTHER_ITEMS.map((item) => (
                     <SidebarButton
                         key={item.id}
@@ -157,7 +183,6 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     />
                 ))}
 
-                {/* Organisation */}
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mb-4 flex-row items-center rounded-xl px-3 py-4"
@@ -173,7 +198,6 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     </Text>
                 </TouchableOpacity>
 
-                {/* Divider */}
                 <View className="h-[1px] bg-zinc-800 mb-4" />
 
                 {/* Current Org */}
@@ -181,42 +205,34 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     Current Org
                 </Text>
 
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    className="border border-zinc-800 rounded-xl px-4 py-4 flex-row items-center justify-between"
-                >
+                <TouchableOpacity className="border border-zinc-800 rounded-xl px-4 py-4 flex-row items-center justify-between">
                     <View className="flex-row items-center">
                         <Ionicons name="business" size={18} color="#f2a72f" />
                         <Text className="text-white ml-2">
                             Field Inspectors Co
                         </Text>
                     </View>
-                    <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color="#71717a"
-                    />
+
+                    <Ionicons name="chevron-forward" size={18} color="#71717a" />
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* Footer */}
+            {/* FOOTER */}
             <View className="border-t border-zinc-800 p-4">
-                <Text className="text-white font-semibold">FieldReportX</Text>
+                <Text className="text-white font-semibold">
+                    FieldReportX
+                </Text>
+
                 <Text className="text-zinc-500 text-sm mt-1">
-                    Version {version} · Build {build}
+                    Version {Constants.expoConfig?.version ?? "1.0.0"}
                 </Text>
 
                 <TouchableOpacity
-                    activeOpacity={0.7}
                     className="mt-3 flex-row items-center"
                     onPress={handleSignOut}
                     disabled={signingOut}
                 >
-                    <Ionicons
-                        name="log-out-outline"
-                        size={18}
-                        color="#ef4444"
-                    />
+                    <Ionicons name="log-out-outline" size={18} color="#ef4444" />
                     <Text className="text-red-500 font-medium ml-2">
                         {signingOut ? "Signing out…" : "Sign out"}
                     </Text>
