@@ -18,11 +18,13 @@ import {
   createOrganisation,
   getUserOrganisation,
   addMember,
-  removeMember,
 } from "@/lib/db/organisations";
 
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { deleteDoc, doc, collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+// ✅ IMPORTANT: use your REAL user system
 import { getUserProfile } from "@/lib/db/users";
 
 interface Props {
@@ -56,10 +58,6 @@ export default function OrganisationScreen({
 
   const [inviteEmail, setInviteEmail] = useState("");
 
-  // MEMBER MENU
-  const [memberMenuVisible, setMemberMenuVisible] = useState(false);
-  const [menuMember, setMenuMember] = useState<Member | null>(null);
-
   useEffect(() => {
     if (!user?.uid) return;
     loadOrgs();
@@ -88,6 +86,7 @@ export default function OrganisationScreen({
     }
   };
 
+  // ✅ FIXED: uses users.ts abstraction (NO direct Firestore guessing)
   const buildMembers = async (org: any) => {
     if (!org?.memberUids?.length) {
       setMembers([]);
@@ -100,15 +99,22 @@ export default function OrganisationScreen({
 
         try {
           const profile = await getUserProfile(uid);
+
           if (profile) {
-            username = profile.displayName || profile.email || "Unknown User";
+            username =
+              profile.displayName ||
+              profile.email ||
+              "Unknown User";
           }
-        } catch {}
+        } catch (e) {
+          console.log("USER PROFILE ERROR:", e);
+        }
 
         const authUser = auth.currentUser;
 
         if (uid === authUser?.uid) {
-          username = authUser.displayName || authUser.email || "You";
+          username =
+            authUser.displayName || authUser.email || "You";
         }
 
         return {
@@ -143,11 +149,13 @@ export default function OrganisationScreen({
       setShowCreateModal(false);
 
       await loadOrgs();
-    } catch {
+    } catch (e) {
+      console.log("CREATE ORG ERROR:", e);
       Alert.alert("Failed to create organisation");
     }
   };
 
+  // Invite ONLY registered users
   const handleInvite = async () => {
     if (!selectedOrg?.id) return;
 
@@ -177,14 +185,10 @@ export default function OrganisationScreen({
       setShowInviteModal(false);
 
       await loadOrgs();
-    } catch {
+    } catch (e) {
+      console.log("INVITE ERROR:", e);
       Alert.alert("Failed to add member");
     }
-  };
-
-  const switchOrg = async (org: any) => {
-    setSelectedOrg(org);
-    await buildMembers(org);
   };
 
   const deleteOrganisation = async (orgId: string) => {
@@ -201,32 +205,15 @@ export default function OrganisationScreen({
         if (next) await buildMembers(next);
         else setMembers([]);
       }
-    } catch {
+    } catch (e) {
+      console.log("DELETE ORG ERROR:", e);
       Alert.alert("Failed to delete organisation");
     }
   };
 
-  // MEMBER MENU
-  const openMemberMenu = (member: Member) => {
-    setMenuMember(member);
-    setMemberMenuVisible(true);
-  };
-
-  const closeMemberMenu = () => {
-    setMenuMember(null);
-    setMemberMenuVisible(false);
-  };
-
-  const handleRemoveMember = async () => {
-    if (!selectedOrg?.id || !menuMember) return;
-
-    try {
-      await removeMember(selectedOrg.id, menuMember.uid);
-      closeMemberMenu();
-      await loadOrgs();
-    } catch {
-      Alert.alert("Failed to remove member");
-    }
+  const switchOrg = async (org: any) => {
+    setSelectedOrg(org);
+    await buildMembers(org);
   };
 
   if (!user?.uid) {
@@ -289,55 +276,18 @@ export default function OrganisationScreen({
         </View>
 
         {members.map((m) => (
-          <View
-            key={m.uid}
-            className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center"
-          >
-            <View>
-              <Text className="text-white font-semibold">{m.username}</Text>
-              <Text className="text-primary text-xs mt-1">{m.role}</Text>
-            </View>
-
-            <TouchableOpacity onPress={() => openMemberMenu(m)}>
-              <Ionicons name="ellipsis-vertical" size={18} color="#fff" />
-            </TouchableOpacity>
+          <View key={m.uid} className="bg-slate-900 p-4 rounded-2xl mt-3">
+            <Text className="text-white font-semibold">
+              {m.username}
+            </Text>
+            <Text className="text-primary text-xs mt-1">
+              {m.role}
+            </Text>
           </View>
         ))}
       </ScrollView>
 
       <BottomNavBar active="settings" onNavigate={onNavigate} />
-
-      {/* MEMBER MENU (ONLY REMOVE) */}
-      <Modal visible={memberMenuVisible} transparent animationType="fade">
-        <View className="flex-1 bg-black/70 justify-center px-6">
-          <View className="bg-slate-900 p-5 rounded-2xl">
-
-            <Text className="text-white font-bold mb-4">
-              Member Actions
-            </Text>
-
-            <Text className="text-zinc-400 mb-4">
-              {menuMember?.username}
-            </Text>
-
-            <TouchableOpacity
-              onPress={handleRemoveMember}
-              className="bg-red-600 p-3 rounded-xl mb-2"
-            >
-              <Text className="text-white text-center">
-                Remove Member
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={closeMemberMenu} className="p-3">
-              <Text className="text-zinc-400 text-center">
-                Cancel
-              </Text>
-            </TouchableOpacity>
-
-          </View>
-        </View>
-      </Modal>
 
       {/* CREATE MODAL */}
       <Modal visible={showCreateModal} transparent>
