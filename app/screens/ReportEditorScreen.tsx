@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Audio } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import React, { useRef, useState } from "react";
 import {
+    ActivityIndicator,
     ActionSheetIOS,
     Alert,
     Image,
@@ -87,10 +90,19 @@ function statusDetail(status: SectionStatus) {
     return "Not started";
 }
 
-function isFieldFilled(type: string, value: string | boolean | number | undefined): boolean {
+function isFieldFilled(
+    type: string,
+    value: string | boolean | number | undefined,
+): boolean {
     if (value === undefined) return false;
     if (type === "checkbox") return true; // false (No) is a valid answer
     return value !== "" && value !== false;
+}
+
+interface TaggedPhoto {
+    uri: string;
+    lat?: number;
+    lng?: number;
 }
 
 // ─── Signature pad ───────────────────────────────────────────────────────────
@@ -266,19 +278,22 @@ function FieldRow({
 
     // ── Photo helpers ─────────────────────────────────────────────────────────
 
-    // Photos are stored as a JSON array string so the FieldValues type stays intact.
-    const photos: string[] = (() => {
+    // Photos stored as JSON array of TaggedPhoto objects; legacy string-only arrays are upgraded transparently.
+    const photos: TaggedPhoto[] = (() => {
         if (!value || typeof value !== "string") return [];
         try {
             const p = JSON.parse(value);
-            return Array.isArray(p) ? p : value ? [value] : [];
+            if (!Array.isArray(p)) return [];
+            return p.map((item: unknown) =>
+                typeof item === "string" ? { uri: item } : (item as TaggedPhoto),
+            );
         } catch {
-            return value ? [value] : [];
+            return typeof value === "string" && value ? [{ uri: value }] : [];
         }
     })();
 
-    const commitPhotos = (uris: string[]) =>
-        onChange(uris.length > 0 ? JSON.stringify(uris) : "");
+    const commitPhotos = (tagged: TaggedPhoto[]) =>
+        onChange(tagged.length > 0 ? JSON.stringify(tagged) : "");
 
     const launchCamera = async () => {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
@@ -293,7 +308,24 @@ function FieldRow({
             allowsEditing: true,
             quality: 0.8,
         });
-        if (!result.canceled) commitPhotos([...photos, result.assets[0].uri]);
+        if (result.canceled) return;
+
+        const uri = result.assets[0].uri;
+        let lat: number | undefined;
+        let lng: number | undefined;
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === "granted") {
+                const pos = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+            }
+        } catch {
+            // GPS unavailable — photo saved without coordinates
+        }
+        commitPhotos([...photos, { uri, lat, lng }]);
     };
 
     const launchGallery = async () => {
@@ -312,7 +344,7 @@ function FieldRow({
             quality: 0.8,
         });
         if (!result.canceled)
-            commitPhotos([...photos, ...result.assets.map((a) => a.uri)]);
+            commitPhotos([...photos, ...result.assets.map((a) => ({ uri: a.uri }))]);
     };
 
     const removePhoto = (index: number) =>
@@ -336,6 +368,69 @@ function FieldRow({
                 { text: "Choose from Library", onPress: launchGallery },
                 { text: "Cancel", style: "cancel" },
             ]);
+        }
+    };
+
+    // ── Voice helpers ─────────────────────────────────────────────────────────
+
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+
+    const startRecording = async () => {
+        try {
+            const { granted } = await Audio.requestPermissionsAsync();
+            if (!granted) {
+                Alert.alert("Permission required", "Microphone access is needed for voice input.");
+                return;
+            }
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+            const { recording: rec } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY,
+            );
+            setRecording(rec);
+        } catch {
+            Alert.alert("Error", "Could not start recording.");
+        }
+    };
+
+    const stopAndTranscribe = async () => {
+        if (!recording) return;
+        try {
+            await recording.stopAndUnloadAsync();
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+            const uri = recording.getURI();
+            setRecording(null);
+            if (!uri) return;
+
+            setIsTranscribing(true);
+            const apiKey = (process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "").replace(/^["']|["']$/g, "").trim();
+            if (!apiKey) {
+                Alert.alert("Setup required", "Add EXPO_PUBLIC_GROQ_API_KEY to your .env file.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", { uri, type: "audio/m4a", name: "recording.m4a" } as any);
+            formData.append("model", "whisper-large-v3");
+
+            const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${apiKey}` },
+                body: formData,
+            });
+            if (!res.ok) {
+                const body = await res.text();
+                throw new Error(`${res.status}: ${body}`);
+            }
+            const { text } = await res.json();
+            if (text?.trim()) {
+                const current = String(value ?? "").trim();
+                onChange(current ? `${current} ${text.trim()}` : text.trim());
+            }
+        } catch (err: any) {
+            Alert.alert("Transcription failed", err?.message ?? "Unknown error");
+        } finally {
+            setIsTranscribing(false);
         }
     };
 
@@ -465,32 +560,93 @@ function FieldRow({
                 </>
             )}
 
-            {/* TEXT — normal multiline or single-line */}
-            {field.type === "text" && !isDateField(field.label) && (
-                <View
-                    className={`bg-slate-800 rounded-xl px-3 ${
-                        isMultiline(field.label)
-                            ? "py-3"
-                            : "h-11 justify-center"
-                    }`}
-                >
+            {/* TEXT — single-line (mic icon at right) */}
+            {field.type === "text" && !isDateField(field.label) && !isMultiline(field.label) && (
+                <View className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
+                    <TextInput
+                        className="text-white text-sm flex-1"
+                        value={String(value ?? "")}
+                        onChangeText={onChange}
+                        placeholderTextColor="#52525b"
+                        placeholder="Type here…"
+                        numberOfLines={1}
+                        textAlignVertical="center"
+                    />
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={recording ? stopAndTranscribe : startRecording}
+                        disabled={isTranscribing}
+                        style={{ paddingLeft: 10 }}
+                    >
+                        {isTranscribing ? (
+                            <ActivityIndicator size="small" color="#f2a72f" />
+                        ) : recording ? (
+                            <Ionicons name="stop-circle" size={20} color="#ef4444" />
+                        ) : (
+                            <Ionicons name="mic-outline" size={20} color="#52525b" />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* TEXT — multiline (Dictate button below textarea) */}
+            {field.type === "text" && !isDateField(field.label) && isMultiline(field.label) && (
+                <View className="bg-slate-800 rounded-xl px-3 py-3">
                     <TextInput
                         className="text-white text-sm"
                         value={String(value ?? "")}
                         onChangeText={onChange}
                         placeholderTextColor="#52525b"
                         placeholder="Type here…"
-                        multiline={isMultiline(field.label)}
-                        numberOfLines={isMultiline(field.label) ? 4 : 1}
-                        textAlignVertical={
-                            isMultiline(field.label) ? "top" : "center"
-                        }
-                        style={
-                            isMultiline(field.label)
-                                ? { minHeight: 88 }
-                                : undefined
-                        }
+                        multiline
+                        numberOfLines={4}
+                        textAlignVertical="top"
+                        style={{ minHeight: 88 }}
                     />
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "flex-end",
+                            marginTop: 8,
+                            paddingTop: 8,
+                            borderTopWidth: 1,
+                            borderTopColor: "#27272a",
+                        }}
+                    >
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={recording ? stopAndTranscribe : startRecording}
+                            disabled={isTranscribing}
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                                backgroundColor: "#1e293b",
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 10,
+                                borderWidth: 1,
+                                borderColor: recording ? "#ef444440" : "#3f3f46",
+                            }}
+                        >
+                            {isTranscribing ? (
+                                <>
+                                    <ActivityIndicator size="small" color="#f2a72f" />
+                                    <Text style={{ color: "#f2a72f", fontSize: 12 }}>Transcribing…</Text>
+                                </>
+                            ) : recording ? (
+                                <>
+                                    <Ionicons name="stop-circle" size={14} color="#ef4444" />
+                                    <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>Stop recording</Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Ionicons name="mic-outline" size={14} color="#94a3b8" />
+                                    <Text style={{ color: "#94a3b8", fontSize: 12 }}>Dictate</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
             )}
 
@@ -608,13 +764,13 @@ function FieldRow({
                 <View
                     style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                 >
-                    {photos.map((uri, idx) => (
+                    {photos.map((photo, idx) => (
                         <View
                             key={idx}
                             style={{ width: "47.5%", position: "relative" }}
                         >
                             <Image
-                                source={{ uri }}
+                                source={{ uri: photo.uri }}
                                 style={{
                                     width: "100%",
                                     height: 110,
@@ -622,6 +778,28 @@ function FieldRow({
                                 }}
                                 resizeMode="cover"
                             />
+                            {/* GPS badge */}
+                            {photo.lat !== undefined && (
+                                <View
+                                    style={{
+                                        position: "absolute",
+                                        bottom: 5,
+                                        left: 5,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        backgroundColor: "rgba(0,0,0,0.6)",
+                                        borderRadius: 6,
+                                        paddingHorizontal: 5,
+                                        paddingVertical: 2,
+                                        gap: 3,
+                                    }}
+                                >
+                                    <Ionicons name="location" size={10} color="#22c55e" />
+                                    <Text style={{ color: "#22c55e", fontSize: 9, fontWeight: "600" }}>
+                                        GPS
+                                    </Text>
+                                </View>
+                            )}
                             {/* Delete button */}
                             <TouchableOpacity
                                 onPress={() => removePhoto(idx)}
@@ -876,7 +1054,8 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
     const progress = total > 0 ? completed / total : 0;
 
     const openSection = (sectionId: string) => {
-        prevStatusRef.current[sectionId] = sectionStatuses[sectionId] ?? "notstarted";
+        prevStatusRef.current[sectionId] =
+            sectionStatuses[sectionId] ?? "notstarted";
         const cur = sectionStatuses[sectionId] ?? "notstarted";
         if (cur !== "completed" && cur !== "partial") {
             setSectionStatuses((prev) => ({
@@ -990,9 +1169,17 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                 className="flex-row items-center rounded-2xl px-4 py-3.5"
                                 style={
                                     isInProgress
-                                        ? { backgroundColor: "#f2a72f1a", borderWidth: 1, borderColor: "#f2a72f4d" }
+                                        ? {
+                                              backgroundColor: "#f2a72f1a",
+                                              borderWidth: 1,
+                                              borderColor: "#f2a72f4d",
+                                          }
                                         : isPartial
-                                          ? { backgroundColor: "#eab3080d", borderWidth: 1, borderColor: "#eab30833" }
+                                          ? {
+                                                backgroundColor: "#eab3080d",
+                                                borderWidth: 1,
+                                                borderColor: "#eab30833",
+                                            }
                                           : { backgroundColor: "#0f172a" }
                                 }
                             >

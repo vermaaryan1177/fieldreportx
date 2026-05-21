@@ -3,22 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import React, { useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-
-export type AppScreen =
-    | "home"
-    | "reports"
-    | "templateLibrary"
-    | "templateBuilder"
-    | "reportSetup"
-    | "reportEditor"
-    | "mapsRoutes"
-    | "reportPreview"
-    | "score"
-    | "signature"
-    | "reportComparison"
-    | "settings"
-    | "notifications"
-    | "organisation";
+import { AppScreen } from "@/components/BottomNavBar";
 
 type SidebarItem = {
     id: AppScreen;
@@ -44,6 +29,7 @@ const build =
 interface SidebarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
+    onSignOut?: () => void;
 }
 
 function SidebarButton({
@@ -141,7 +127,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
-                    onPress={() => onNavigate("notifications")}
+                    onPress={() => onNavigate("notification")}
                 >
                     <View className="flex-row items-center">
                         <Ionicons

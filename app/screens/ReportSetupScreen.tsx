@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     ScrollView,
     Text,
     TextInput,
@@ -69,6 +72,66 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
         auth.currentUser?.displayName ?? "",
     );
     const [autoGps, setAutoGps] = useState(template?.gpsValidation ?? false);
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+
+    const startRecording = async () => {
+        try {
+            const { granted } = await Audio.requestPermissionsAsync();
+            if (!granted) {
+                Alert.alert("Permission required", "Microphone access is needed for voice input.");
+                return;
+            }
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+            const { recording: rec } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY,
+            );
+            setRecording(rec);
+        } catch {
+            Alert.alert("Error", "Could not start recording.");
+        }
+    };
+
+    const stopAndTranscribe = async () => {
+        if (!recording) return;
+        try {
+            await recording.stopAndUnloadAsync();
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+            const uri = recording.getURI();
+            setRecording(null);
+            if (!uri) return;
+
+            setIsTranscribing(true);
+            const apiKey = (process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "").replace(/^["']|["']$/g, "").trim();
+            if (!apiKey) {
+                Alert.alert("Setup required", "Add EXPO_PUBLIC_GROQ_API_KEY to your .env file.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", { uri, type: "audio/m4a", name: "recording.m4a" } as any);
+            formData.append("model", "whisper-large-v3");
+
+            const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${apiKey}` },
+                body: formData,
+            });
+            if (!res.ok) {
+                const body = await res.text();
+                throw new Error(`${res.status}: ${body}`);
+            }
+            const { text } = await res.json();
+            if (text?.trim()) {
+                const current = description.trim();
+                setDescription(current ? `${current} ${text.trim()}` : text.trim());
+            }
+        } catch (err: any) {
+            Alert.alert("Transcription failed", err?.message ?? "Unknown error");
+        } finally {
+            setIsTranscribing(false);
+        }
+    };
 
     const handleBegin = () => {
         store.setReportSetup({
@@ -192,6 +255,50 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                         textAlignVertical="top"
                         style={{ minHeight: 72 }}
                     />
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "flex-end",
+                            marginTop: 8,
+                            paddingTop: 8,
+                            borderTopWidth: 1,
+                            borderTopColor: "#1e293b",
+                        }}
+                    >
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={recording ? stopAndTranscribe : startRecording}
+                            disabled={isTranscribing}
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                                backgroundColor: "#0f172a",
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 10,
+                                borderWidth: 1,
+                                borderColor: recording ? "#ef444440" : "#3f3f46",
+                            }}
+                        >
+                            {isTranscribing ? (
+                                <>
+                                    <ActivityIndicator size="small" color="#f2a72f" />
+                                    <Text style={{ color: "#f2a72f", fontSize: 12 }}>Transcribing…</Text>
+                                </>
+                            ) : recording ? (
+                                <>
+                                    <Ionicons name="stop-circle" size={14} color="#ef4444" />
+                                    <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>Stop recording</Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Ionicons name="mic-outline" size={14} color="#94a3b8" />
+                                    <Text style={{ color: "#94a3b8", fontSize: 12 }}>Dictate</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Associate With */}
