@@ -21,11 +21,12 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import MapView, { Marker, Polyline, Region } from "react-native-maps";
 import { Path, Svg } from "react-native-svg";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { store } from "@/lib/store";
+import { trackingStore, RouteFieldData, AccelFieldData } from "@/lib/trackingStore";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 import { SectionStatus, TemplateField, TemplateSection } from "@/lib/types";
 
@@ -98,6 +99,20 @@ function isLocationField(label: string) {
     const l = label.toLowerCase();
     return LOCATION_KEYWORDS.some((kw) => l.includes(kw));
 }
+
+// Fields that are read-only and auto-filled from accelerometer analysis
+const AUTOFILL_NUMBER_LABELS = ["rms", "peak", "avg"];
+function isAutoFillNumber(label: string): boolean {
+    return AUTOFILL_NUMBER_LABELS.includes(label.toLowerCase().trim());
+}
+
+function formatDuration(sec: number): string {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
 
 function statusColor(status: SectionStatus) {
     if (status === "completed") return "#22c55e";
@@ -583,6 +598,308 @@ function LocationPicker({
                 )}
             </View>
         </View>
+    );
+}
+
+// ─── Route tracker ───────────────────────────────────────────────────────────
+
+function RouteTrackerField({
+    value,
+    onChange,
+}: {
+    value: string | boolean | number | undefined;
+    onChange: (v: string) => void;
+}) {
+    const [, refresh] = useState(0);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
+    useEffect(() => trackingStore.subscribe(() => refresh((n) => n + 1)), []);
+
+    // Sync a completed result that finished while the component was unmounted
+    useEffect(() => {
+        if (trackingStore.routeStatus === "done" && trackingStore.routeResult) {
+            const serialized = JSON.stringify(trackingStore.routeResult);
+            if (String(value ?? "") !== serialized) onChangeRef.current(serialized);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const savedData: RouteFieldData | null = (() => {
+        if (trackingStore.routeStatus !== "idle") return null;
+        if (!value || typeof value !== "string") return null;
+        try { return JSON.parse(value); } catch { return null; }
+    })();
+
+    const handleStart = async () => {
+        const ok = await trackingStore.startRoute();
+        if (!ok) Alert.alert("Permission required", "Location access is needed for route tracking.");
+    };
+
+    const handleStop = () => {
+        const result = trackingStore.stopRoute();
+        onChangeRef.current(JSON.stringify(result));
+    };
+
+    const handleReset = () => {
+        trackingStore.resetRoute();
+        onChangeRef.current("");
+    };
+
+    // ── Active tracking ──────────────────────────────────────────────────────
+    if (trackingStore.routeStatus === "tracking") {
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#ef444430" }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#ef4444" }} />
+                            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 13 }}>
+                                Recording  ·  {formatDuration(trackingStore.routeElapsed)}
+                            </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => trackingStore.cancelRoute()}>
+                            <Text style={{ color: "#52525b", fontSize: 12 }}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Distance</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 20 }}>
+                                {trackingStore.routeDistance.toFixed(2)}{" "}
+                                <Text style={{ fontSize: 12, fontWeight: "normal", color: "#94a3b8" }}>km</Text>
+                            </Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Speed</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 20 }}>
+                                {trackingStore.routeLiveSpeed}{" "}
+                                <Text style={{ fontSize: 12, fontWeight: "normal", color: "#94a3b8" }}>km/h</Text>
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={handleStop}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: "#7f1d1d", borderWidth: 1, borderColor: "#ef444440", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                    <Ionicons name="stop-circle" size={18} color="#ef4444" />
+                    <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 15 }}>End Route</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Completed / saved result ─────────────────────────────────────────────
+    const displayData: RouteFieldData | null =
+        trackingStore.routeStatus === "done" ? trackingStore.routeResult : savedData;
+
+    if (displayData) {
+        const coords = displayData.waypoints.map((w) => ({ latitude: w.lat, longitude: w.lng }));
+        const durationSec = Math.floor((displayData.endTime - displayData.startTime) / 1000);
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        return (
+            <View style={{ gap: 10 }}>
+                {coords.length > 1 && first && last && (
+                    <MapView
+                        style={{ height: 200, borderRadius: 12 }}
+                        initialRegion={{ latitude: first.latitude, longitude: first.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
+                        scrollEnabled={false} zoomEnabled={false} pitchEnabled={false} rotateEnabled={false}
+                    >
+                        <Polyline coordinates={coords} strokeColor="#f2a72f" strokeWidth={3} />
+                        <Marker coordinate={first} pinColor="green" />
+                        <Marker coordinate={last} pinColor="red" />
+                    </MapView>
+                )}
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, gap: 12 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Distance</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>{displayData.distanceKm} km</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Duration</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>{formatDuration(durationSec)}</Text>
+                        </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Avg Speed</Text>
+                            <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 16 }}>{displayData.avgSpeedKmh} km/h</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Top Speed</Text>
+                            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 16 }}>{displayData.topSpeedKmh} km/h</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Min Speed</Text>
+                            <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 16 }}>{displayData.minSpeedKmh} km/h</Text>
+                        </View>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={handleReset}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Reset & Track Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Idle ────────────────────────────────────────────────────────────────
+    return (
+        <TouchableOpacity
+            onPress={handleStart}
+            activeOpacity={0.8}
+            style={{ backgroundColor: "#14532d", borderWidth: 1, borderColor: "#22c55e40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+        >
+            <Ionicons name="navigate" size={18} color="#22c55e" />
+            <Text style={{ color: "#22c55e", fontWeight: "bold", fontSize: 15 }}>Start Route Tracking</Text>
+        </TouchableOpacity>
+    );
+}
+
+// ─── Accelerometer vibration field ───────────────────────────────────────────
+
+function AccelerometerField({
+    value,
+    onChange,
+}: {
+    value: string | boolean | number | undefined;
+    onChange: (v: string) => void;
+}) {
+    const [, refresh] = useState(0);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
+    useEffect(() => trackingStore.subscribe(() => refresh((n) => n + 1)), []);
+
+    useEffect(() => {
+        if (trackingStore.accelStatus === "done" && trackingStore.accelResult) {
+            const serialized = JSON.stringify(trackingStore.accelResult);
+            if (String(value ?? "") !== serialized) onChangeRef.current(serialized);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const savedData: AccelFieldData | null = (() => {
+        if (trackingStore.accelStatus !== "idle") return null;
+        if (!value || typeof value !== "string") return null;
+        try { return JSON.parse(value); } catch { return null; }
+    })();
+
+    const handleStop = () => {
+        const result = trackingStore.stopAccel();
+        onChangeRef.current(JSON.stringify(result));
+    };
+
+    const handleReset = () => {
+        trackingStore.resetAccel();
+        onChangeRef.current("");
+    };
+
+    // ── Active sampling ──────────────────────────────────────────────────────
+    if (trackingStore.accelStatus === "sampling") {
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "#60a5fa30" }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#60a5fa" }} />
+                            <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 13 }}>
+                                Sampling  ·  {formatDuration(trackingStore.accelElapsed)}
+                            </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => trackingStore.cancelAccel()}>
+                            <Text style={{ color: "#52525b", fontSize: 12 }}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Samples</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 20 }}>{trackingStore.accelSampleCount}</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Live Magnitude</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 20 }}>
+                                {trackingStore.accelLiveMag}{" "}
+                                <Text style={{ fontSize: 12, fontWeight: "normal", color: "#94a3b8" }}>g</Text>
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={handleStop}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: "#1e3a5f", borderWidth: 1, borderColor: "#60a5fa40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+                >
+                    <Ionicons name="stop-circle" size={18} color="#60a5fa" />
+                    <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 15 }}>Stop Analysis</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Completed / saved result ─────────────────────────────────────────────
+    const displayData: AccelFieldData | null =
+        trackingStore.accelStatus === "done" ? trackingStore.accelResult : savedData;
+
+    if (displayData) {
+        const catColor =
+            displayData.category === "Smooth" ? "#22c55e" :
+            displayData.category === "Moderate" ? "#f2a72f" :
+            displayData.category === "Rough" ? "#f97316" : "#ef4444";
+        return (
+            <View style={{ gap: 10 }}>
+                <View style={{ backgroundColor: "#1e293b", borderRadius: 12, padding: 16, gap: 12 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={{ color: "#94a3b8", fontSize: 12 }}>
+                            {formatDuration(displayData.durationSec)} · {trackingStore.accelSampleCount || "saved"} samples
+                        </Text>
+                        <View style={{ backgroundColor: catColor + "20", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                            <Text style={{ color: catColor, fontWeight: "bold", fontSize: 13 }}>{displayData.category}</Text>
+                        </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>RMS</Text>
+                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>{displayData.rms} g</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Peak</Text>
+                            <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 16 }}>{displayData.peak} g</Text>
+                        </View>
+                        <View>
+                            <Text style={{ color: "#52525b", fontSize: 11 }}>Avg</Text>
+                            <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 16 }}>{displayData.avgMagnitude} g</Text>
+                        </View>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={handleReset}
+                    activeOpacity={0.7}
+                    style={{ backgroundColor: "#1e293b", borderWidth: 1, borderColor: "#3f3f46", borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Reset & Analyse Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    // ── Idle ────────────────────────────────────────────────────────────────
+    return (
+        <TouchableOpacity
+            onPress={() => trackingStore.startAccel()}
+            activeOpacity={0.8}
+            style={{ backgroundColor: "#1e3a5f", borderWidth: 1, borderColor: "#60a5fa40", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+        >
+            <Ionicons name="pulse-outline" size={18} color="#60a5fa" />
+            <Text style={{ color: "#60a5fa", fontWeight: "bold", fontSize: 15 }}>Start Vibration Analysis</Text>
+        </TouchableOpacity>
     );
 }
 
@@ -1155,21 +1472,27 @@ function FieldRow({
                 </View>
             )}
 
-            {/* NUMBER */}
-            {field.type === "number" && (
+            {/* NUMBER — read-only auto-fill (RMS / Peak / Avg from accelerometer) */}
+            {field.type === "number" && isAutoFillNumber(field.label) && (
+                <View
+                    className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                    style={{ opacity: 0.7 }}
+                >
+                    <Text style={{ color: value !== undefined && value !== "" ? "#fff" : "#3f3f46", fontSize: 14 }}>
+                        {value !== undefined && value !== "" ? String(value) : "—"}
+                    </Text>
+                    <Ionicons name="flash-outline" size={13} color="#3f3f46" />
+                </View>
+            )}
+
+            {/* NUMBER — editable */}
+            {field.type === "number" && !isAutoFillNumber(field.label) && (
                 <View className="bg-slate-800 rounded-xl px-3 h-11 justify-center">
                     <TextInput
                         className="text-white text-sm"
-                        value={
-                            value !== undefined && value !== ""
-                                ? String(value)
-                                : ""
-                        }
+                        value={value !== undefined && value !== "" ? String(value) : ""}
                         onChangeText={(v) => {
-                            if (v === "" || v === "-") {
-                                onChange(v);
-                                return;
-                            }
+                            if (v === "" || v === "-") { onChange(v); return; }
                             const n = parseFloat(v);
                             if (!isNaN(n)) onChange(n);
                         }}
@@ -1435,6 +1758,22 @@ function FieldRow({
                 </Modal>
             )}
 
+            {/* ROUTE TRACKER */}
+            {field.type === "route" && (
+                <RouteTrackerField
+                    value={value}
+                    onChange={(v) => onChange(v)}
+                />
+            )}
+
+            {/* ACCELEROMETER */}
+            {field.type === "accelerometer" && (
+                <AccelerometerField
+                    value={value}
+                    onChange={(v) => onChange(v)}
+                />
+            )}
+
             {/* SIGNATURE */}
             {field.type === "signature" && (
                 <TouchableOpacity
@@ -1484,8 +1823,33 @@ function SectionEditor({
     );
 
     const setValue = (fieldId: string, value: string | boolean | number) => {
-        setValues((prev) => ({ ...prev, [fieldId]: value }));
+        setValues((prev) => {
+            const next = { ...prev, [fieldId]: value };
+            const field = section.fields.find((f) => f.id === fieldId);
+            if (field?.type === "accelerometer" && typeof value === "string" && value) {
+                try {
+                    const accel = JSON.parse(value);
+                    section.fields.forEach((f) => {
+                        if (f.type !== "number") return;
+                        const l = f.label.toLowerCase().trim();
+                        if (l === "rms")  next[f.id] = accel.rms ?? 0;
+                        if (l === "peak") next[f.id] = accel.peak ?? 0;
+                        if (l === "avg")  next[f.id] = accel.avgMagnitude ?? 0;
+                    });
+                } catch {}
+            }
+            return next;
+        });
     };
+
+    // Re-apply auto-fill when reopening a section that already has accel data
+    useEffect(() => {
+        const accelField = section.fields.find((f) => f.type === "accelerometer");
+        if (!accelField) return;
+        const accelValue = initialValues[accelField.id];
+        if (accelValue && typeof accelValue === "string") setValue(accelField.id, accelValue);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const requiredFilled = section.fields
         .filter((f) => f.required)
@@ -1633,7 +1997,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
 
     const sections = template.sections;
     const completed = Object.values(sectionStatuses).filter(
-        (s) => s === "completed",
+        (s) => s === "completed" || s === "partial",
     ).length;
     const total = sections.length;
     const progress = total > 0 ? completed / total : 0;

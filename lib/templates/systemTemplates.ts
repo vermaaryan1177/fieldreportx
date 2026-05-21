@@ -17,7 +17,7 @@ export interface SystemTemplate {
 function field(
     id: string,
     label: string,
-    type: "text" | "number" | "checkbox" | "select" | "photo" | "signature",
+    type: "text" | "number" | "checkbox" | "select" | "photo" | "signature" | "route" | "accelerometer",
     required = false,
     options?: string[],
     gyroCapture = false,
@@ -205,7 +205,7 @@ const drivingSections: TemplateSection[] = [
         field("f11", "Vehicle condition photos", "photo"),
     ]),
     section("s3", "Route & GPS", [
-        field("f12", "Route description", "text", true),
+        field("f12", "Route tracking", "route"),
         field("f13", "Start location", "text"),
         field("f14", "End location", "text"),
         field("f15", "Route notes", "text"),
@@ -219,10 +219,10 @@ const drivingSections: TemplateSection[] = [
         field("f21", "Lane discipline", "select", false, CONDITION),
     ]),
     section("s5", "Sensor Analysis", [
-        field("f22", "Vibration level", "select", false, ["Low", "Medium", "High"]),
-        field("f23", "Stability score (0–100)", "number"),
-        field("f24", "Average speed (km/h)", "number"),
-        field("f25", "Max speed recorded (km/h)", "number"),
+        field("f22", "Vibration analysis", "accelerometer"),
+        field("f23", "RMS", "number"),
+        field("f24", "Peak", "number"),
+        field("f25", "Avg", "number"),
         field("f26", "Sensor notes", "text"),
     ]),
     section("s6", "Assessment Summary", [

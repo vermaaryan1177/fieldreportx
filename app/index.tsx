@@ -38,6 +38,9 @@ import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
 import Sidebar from "./screens/SideBar";
 
+import { store } from "@/lib/store";
+import { trackingStore } from "@/lib/trackingStore";
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const TIMING = {
@@ -147,6 +150,13 @@ export default function App() {
     };
 
     const navigate = (target: AppScreen) => {
+        const REPORT_SCREENS: AppScreen[] = ["reportSetup", "reportEditor", "reportPreview"];
+        if (REPORT_SCREENS.includes(currentScreen) && !REPORT_SCREENS.includes(target)) {
+            store.clearReport();
+            trackingStore.cancelRoute();
+            trackingStore.cancelAccel();
+        }
+
         const history = historyRef.current;
         const existingIdx = history.lastIndexOf(target);
         const isBack = existingIdx !== -1 && existingIdx < history.length - 1;

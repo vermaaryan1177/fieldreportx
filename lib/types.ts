@@ -32,7 +32,9 @@ export type FieldType =
     | "checkbox"
     | "select"
     | "photo"
-    | "signature";
+    | "signature"
+    | "route"
+    | "accelerometer";
 
 export interface TemplateField {
     id: string;
