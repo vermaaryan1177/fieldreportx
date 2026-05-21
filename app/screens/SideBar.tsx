@@ -14,6 +14,7 @@ import {
 import { AppScreen } from "@/components/BottomNavBar";
 import { auth } from "@/lib/firebase";
 import { getUserOrganisation } from "@/lib/db/organisations";
+// import { getUserNotifications } from "@/lib/db/notifications"; // <- add your real function
 
 type SidebarItem = {
     id: AppScreen;
@@ -36,8 +37,7 @@ interface SidebarProps {
     onNavigate: (screen: AppScreen) => void;
 }
 
-/* ---------------- helpers ---------------- */
-
+/* helpers */
 function getEmailPrefix(email?: string | null) {
     if (!email) return "USER";
     return email.split("@")[0].toUpperCase();
@@ -55,11 +55,8 @@ function getInitials(name?: string | null, email?: string | null) {
     }
 
     if (email) return email[0].toUpperCase();
-
     return "U";
 }
-
-/* ---------------- button ---------------- */
 
 function SidebarButton({
     item,
@@ -96,8 +93,6 @@ function SidebarButton({
     );
 }
 
-/* ---------------- main ---------------- */
-
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const user = auth.currentUser;
 
@@ -106,6 +101,8 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const [organisations, setOrganisations] = useState<any[]>([]);
     const [currentOrg, setCurrentOrg] = useState<any | null>(null);
     const [orgModalVisible, setOrgModalVisible] = useState(false);
+
+    const [notifications, setNotifications] = useState<any[]>([]);
 
     /* load orgs */
     useEffect(() => {
@@ -120,11 +117,25 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         })();
     }, [user?.uid]);
 
-    const hasOrgs = organisations.length > 0;
+    /* load notifications (replace with your real function) */
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        (async () => {
+            // const data = await getUserNotifications(user.uid);
+            // setNotifications(Array.isArray(data) ? data : []);
+
+            setNotifications([]); // placeholder until wired
+        })();
+    }, [user?.uid]);
 
     const initials = useMemo(() => {
         return getInitials(user?.displayName, user?.email);
     }, [user]);
+
+    const unreadCount = useMemo(() => {
+        return notifications.filter((n) => !n.read).length;
+    }, [notifications]);
 
     const handleSignOut = () => {
         Alert.alert("Sign out", "Are you sure you want to sign out?", [
@@ -148,7 +159,6 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const switchOrg = (org: any) => {
         setCurrentOrg(org);
         setOrgModalVisible(false);
-        // TODO: persist globally if needed
     };
 
     return (
@@ -182,7 +192,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     />
                 ))}
 
-                {/* Notifications */}
+                {/* NOTIFICATIONS */}
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="mb-3 flex-row items-center justify-between rounded-xl px-3 py-4"
@@ -199,11 +209,13 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         </Text>
                     </View>
 
-                    <View className="h-6 w-6 rounded-full bg-red-500 items-center justify-center">
-                        <Text className="text-white text-xs font-bold">
-                            3
-                        </Text>
-                    </View>
+                    {unreadCount > 0 && (
+                        <View className="h-6 w-6 rounded-full bg-red-500 items-center justify-center">
+                            <Text className="text-white text-xs font-bold">
+                                {unreadCount}
+                            </Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
 
                 <View className="h-[1px] bg-zinc-800 my-2" />
@@ -218,7 +230,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     />
                 ))}
 
-                {/* Organisation */}
+                {/* ORG */}
                 <TouchableOpacity
                     onPress={() => onNavigate("organisation")}
                     className="mb-4 flex-row items-center rounded-xl px-3 py-4"
@@ -240,7 +252,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     Current Org
                 </Text>
 
-                {hasOrgs ? (
+                {organisations.length > 0 ? (
                     <TouchableOpacity
                         onPress={() => setOrgModalVisible(true)}
                         className="border border-zinc-800 rounded-xl px-4 py-4 flex-row items-center justify-between"
@@ -279,7 +291,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                 )}
             </ScrollView>
 
-            {/* ORG SWITCH MODAL */}
+            {/* ORG MODAL */}
             <Modal visible={orgModalVisible} transparent animationType="fade">
                 <View className="flex-1 bg-black/70 justify-center px-6">
                     <View className="bg-slate-900 rounded-2xl p-5">
