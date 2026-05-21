@@ -429,12 +429,9 @@ import {
   createOrganisation,
   getUserOrganisation,
   addMember,
-  addMember,
 } from "@/lib/db/organisations";
 
 import { auth } from "@/lib/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
-import { db as firestoreDb } from "@/lib/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { db as firestoreDb } from "@/lib/firebase";
 
@@ -453,22 +450,14 @@ export default function OrganisationScreen({
   onNavigate,
   onOpenSidebar,
 }: Props) {
-export default function OrganisationScreen({
-  onNavigate,
-  onOpenSidebar,
-}: Props) {
   const user = auth.currentUser;
 
-  const [organisations, setOrganisations] = useState<any[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
   const [organisations, setOrganisations] = useState<any[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const [orgName, setOrgName] = useState("");
@@ -481,10 +470,7 @@ export default function OrganisationScreen({
     if (!user?.uid) return;
     loadOrgs();
   }, []);
-    loadOrgs();
-  }, []);
 
-  const loadOrgs = async () => {
   const loadOrgs = async () => {
     try {
       setLoading(true);
@@ -493,16 +479,7 @@ export default function OrganisationScreen({
       const safe = Array.isArray(orgs) ? orgs : [];
 
       setOrganisations(safe);
-      const orgs = await getUserOrganisation(user!.uid);
-      const safe = Array.isArray(orgs) ? orgs : [];
 
-      setOrganisations(safe);
-
-      if (safe.length > 0) {
-        setSelectedOrg(safe[0]);
-        buildMembers(safe[0]);
-      } else {
-        setSelectedOrg(null);
       if (safe.length > 0) {
         setSelectedOrg(safe[0]);
         buildMembers(safe[0]);
@@ -510,10 +487,7 @@ export default function OrganisationScreen({
         setSelectedOrg(null);
         setMembers([]);
       }
-      }
     } catch (e) {
-      console.log("LOAD ORGS ERROR:", e);
-    } finally {
       console.log("LOAD ORGS ERROR:", e);
     } finally {
       setLoading(false);
@@ -553,7 +527,6 @@ export default function OrganisationScreen({
 
     if (!orgName || !orgAbn || !orgAddress) {
       Alert.alert("Fill all fields");
-      Alert.alert("Fill all fields");
       return;
     }
 
@@ -568,9 +541,7 @@ export default function OrganisationScreen({
       setOrgAbn("");
       setOrgAddress("");
       setShowCreateModal(false);
-      setShowCreateModal(false);
 
-      await loadOrgs();
       await loadOrgs();
     } catch (e) {
       console.log("CREATE ORG ERROR:", e);
@@ -578,8 +549,6 @@ export default function OrganisationScreen({
     }
   };
 
-  const handleInvite = async () => {
-    if (!selectedOrg?.id) return;
   const handleInvite = async () => {
     if (!selectedOrg?.id) return;
 
@@ -626,20 +595,15 @@ export default function OrganisationScreen({
   };
 
   if (!user?.uid) {
-  if (!user?.uid) {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">Please login again</Text>
         <Text className="text-white">Please login again</Text>
       </SafeAreaView>
     );
   }
 
   if (loading) {
-  if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">Loading...</Text>
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
         <Text className="text-white">Loading...</Text>
       </SafeAreaView>
@@ -657,8 +621,6 @@ export default function OrganisationScreen({
             Organisations
           </Text>
 
-          <TouchableOpacity onPress={() => setShowCreateModal(true)}>
-            <Text className="text-primary">+ Create</Text>
           <TouchableOpacity onPress={() => setShowCreateModal(true)}>
             <Text className="text-primary">+ Create</Text>
           </TouchableOpacity>
@@ -720,16 +682,6 @@ export default function OrganisationScreen({
           <TouchableOpacity onPress={() => setShowInviteModal(true)}>
             <Text className="text-primary">+ Invite</Text>
           </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* MEMBERS */}
-        <View className="mt-6 flex-row justify-between">
-          <Text className="text-zinc-400">Members</Text>
-
-          <TouchableOpacity onPress={() => setShowInviteModal(true)}>
-            <Text className="text-primary">+ Invite</Text>
-          </TouchableOpacity>
         </View>
 
         {members.map((m) => (
@@ -743,7 +695,6 @@ export default function OrganisationScreen({
             </Text>
           </View>
         ))}
-
       </ScrollView>
 
       <BottomNavBar active="settings" onNavigate={onNavigate} />
@@ -797,11 +748,8 @@ export default function OrganisationScreen({
             <TextInput
               placeholder="UID or email"
               placeholderTextColor="#777"
-              placeholder="UID or email"
-              placeholderTextColor="#777"
               value={inviteEmail}
               onChangeText={setInviteEmail}
-              className="bg-slate-800 text-white p-3 rounded-xl"
               className="bg-slate-800 text-white p-3 rounded-xl"
             />
 
