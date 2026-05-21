@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
-import { Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import SignaturePad from "@/components/SignaturePad";
+import { submitReport } from "@/lib/db/submitReport";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
-import { FieldType, SectionStatus, TemplateField, TemplateSection } from "@/lib/types";
+import { FieldType, SectionStatus } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -103,6 +104,7 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
     const [expanded, setExpanded] = useState<number | null>(null);
     const [sigVisible, setSigVisible] = useState(false);
     const [renderTick, setRenderTick] = useState(0);
+    const [submitting, setSubmitting] = useState(false);
 
     const setup = store.reportSetup;
     const template = store.selectedUserTemplate
@@ -138,6 +140,19 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
 
     const score = sections.length > 0 ? Math.round((completedCount / sections.length) * 100) : 0;
     const scoreColor = score >= 80 ? "#22c55e" : score >= 50 ? "#f2a72f" : "#ef4444";
+
+    const handleSubmit = async () => {
+        setSubmitting(true);
+        try {
+            await submitReport();
+            store.clearReport();
+            onNavigate("reports");
+        } catch (e: any) {
+            Alert.alert("Submit failed", e?.message ?? "Something went wrong. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleSignatureDone = (paths: string) => {
         // Write signature to the first signature-type field found in the template
@@ -395,10 +410,19 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
                 )}
                 <TouchableOpacity
                     activeOpacity={0.8}
+                    disabled={submitting}
+                    onPress={handleSubmit}
                     className="bg-primary rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                    style={submitting ? { opacity: 0.6 } : undefined}
                 >
-                    <Ionicons name="document-text-outline" size={16} color="#ffffff" />
-                    <Text className="text-white font-bold text-sm">Submit Report</Text>
+                    {submitting ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                        <Ionicons name="document-text-outline" size={16} color="#ffffff" />
+                    )}
+                    <Text className="text-white font-bold text-sm">
+                        {submitting ? "Submitting…" : "Submit Report"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>

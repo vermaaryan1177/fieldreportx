@@ -1,106 +1,114 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { listReportsByUser } from "@/lib/db/reports";
+import { auth } from "@/lib/firebase";
+import { Report } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
 }
 
-type ReportStatus = "Draft" | "Done" | "In Progress";
-type FilterTab = "All" | ReportStatus;
+// ─── Helpers (mirrored from HomeScreen) ──────────────────────────────────────
 
-const ALL_REPORTS: {
-    id: string;
-    title: string;
-    type: string;
-    date: string;
-    status: ReportStatus;
-    color: string;
-    score: number | null;
-}[] = [
-    {
-        id: "1",
-        title: "42 Maple Ave — Outbound",
-        type: "Rental Inspection",
-        date: "Today",
-        status: "In Progress",
-        color: "#f2a72f",
-        score: null,
-    },
-    {
-        id: "2",
-        title: "12 Oak St — Inbound",
-        type: "Rental Inspection",
-        date: "Yesterday",
-        status: "Draft",
-        color: "#8b5cf6",
-        score: null,
-    },
-    {
-        id: "3",
-        title: "Elec. compliance #441",
-        type: "Trades",
-        date: "12 May",
-        status: "Done",
-        color: "#22c55e",
-        score: 91,
-    },
-    {
-        id: "4",
-        title: "Driver eval — Sam K.",
-        type: "Driving",
-        date: "10 May",
-        status: "Done",
-        color: "#f59e0b",
-        score: 87,
-    },
-    {
-        id: "5",
-        title: "Patient rehab — J. Torres",
-        type: "Rehabilitation",
-        date: "9 May",
-        status: "In Progress",
-        color: "#3b82f6",
-        score: null,
-    },
-    {
-        id: "6",
-        title: "Site safety #88",
-        type: "Safety",
-        date: "7 May",
-        status: "Done",
-        color: "#ef4444",
-        score: 74,
-    },
-];
+function toMs(ts: any): number {
+    if (!ts) return 0;
+    if (typeof ts === "number") return ts;
+    if (typeof ts.toMillis === "function") return ts.toMillis();
+    if (ts.seconds !== undefined) return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
+    return 0;
+}
 
-const STATUS_STYLE: Record<ReportStatus, { bg: string; text: string }> = {
-    Draft: { bg: "#ffff5b25", text: "#ffff5b" },
-    Done: { bg: "#44ff0025", text: "#44ff00" },
-    "In Progress": { bg: "#44d2f925", text: "#44d2f9" },
+function timeAgo(ts: any): string {
+    const ms = toMs(ts);
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+}
+
+const PALETTE = ["#8b5cf6", "#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#f2a72f", "#06b6d4"];
+
+function templateColor(name: string): string {
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+    return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+function getInitials(name: string | null | undefined): string {
+    if (!name) return "?";
+    return name.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
+    draft:      { label: "Draft",       bg: "#ffff5b25", text: "#ffff5b" },
+    done:       { label: "Done",        bg: "#44ff0025", text: "#44ff00" },
+    inprogress: { label: "In Progress", bg: "#44d2f925", text: "#44d2f9" },
 };
 
+type FilterTab = "All" | "In Progress" | "Draft" | "Done";
 const FILTERS: FilterTab[] = ["All", "In Progress", "Draft", "Done"];
 
+const FILTER_TO_STATUS: Record<FilterTab, string | null> = {
+    "All":         null,
+    "In Progress": "inprogress",
+    "Draft":       "draft",
+    "Done":        "done",
+};
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
+    const [reports, setReports] = useState<Report[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
 
-    const filtered = ALL_REPORTS.filter((r) => {
-        const matchFilter = activeFilter === "All" || r.status === activeFilter;
+    const user = auth.currentUser;
+    const initials = getInitials(user?.displayName ?? user?.email);
+
+    const fetchReports = useCallback(async () => {
+        if (!user) { setLoading(false); return; }
+        try {
+            const all = await listReportsByUser(user.uid);
+            all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+            setReports(all);
+        } catch (e) {
+            console.warn("Failed to load reports", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.uid]);
+
+    useEffect(() => { fetchReports(); }, [fetchReports]);
+
+    const filtered = reports.filter((r) => {
+        const statusFilter = FILTER_TO_STATUS[activeFilter];
+        const matchFilter = statusFilter === null || r.status === statusFilter;
+        const q = search.toLowerCase();
         const matchSearch =
-            r.title.toLowerCase().includes(search.toLowerCase()) ||
-            r.type.toLowerCase().includes(search.toLowerCase());
+            r.title.toLowerCase().includes(q) ||
+            r.templateName.toLowerCase().includes(q);
         return matchFilter && matchSearch;
     });
 
@@ -116,21 +124,17 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
 
     return (
         <View className="flex-1 bg-background">
-            {/* Header */}
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} />
+
             <View className="px-5 pt-5 pb-4">
                 <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-white text-2xl font-bold">
-                        Reports
-                    </Text>
+                    <Text className="text-white text-2xl font-bold">Reports</Text>
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => onNavigate("reportSetup")}
                         className="bg-primary rounded-2xl px-4 py-2"
                     >
-                        <Text className="text-white font-bold text-sm">
-                            + New
-                        </Text>
+                        <Text className="text-white font-bold text-sm">+ New</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -146,11 +150,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                     />
                     {search.length > 0 && (
                         <TouchableOpacity onPress={() => setSearch("")}>
-                            <Ionicons
-                                name="close-circle"
-                                size={16}
-                                color="#52525b"
-                            />
+                            <Ionicons name="close-circle" size={16} color="#52525b" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -161,12 +161,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ flexGrow: 0 }}
-                contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    gap: 8,
-                    paddingBottom: 12,
-                    alignItems: "center",
-                }}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: "center" }}
             >
                 {FILTERS.map((f) => (
                     <TouchableOpacity
@@ -176,9 +171,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                         className={`py-1.5 rounded-xl items-center ${activeFilter === f ? "bg-primary" : "bg-slate-900"}`}
                         style={{ minWidth: 82 }}
                     >
-                        <Text
-                            className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}
-                        >
+                        <Text className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}>
                             {f}
                         </Text>
                     </TouchableOpacity>
@@ -188,27 +181,31 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
             {/* Report List */}
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 16,
-                }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
             >
-                {filtered.length === 0 ? (
+                {loading ? (
+                    <View className="items-center mt-16">
+                        <ActivityIndicator color="#f2a72f" />
+                    </View>
+                ) : filtered.length === 0 ? (
                     <View className="items-center mt-16 gap-3">
-                        <Ionicons
-                            name="document-text-outline"
-                            size={48}
-                            color="#3f3f46"
-                        />
+                        <Ionicons name="document-text-outline" size={48} color="#3f3f46" />
                         <Text className="text-zinc-500 text-sm">
-                            No reports found
+                            {reports.length === 0 ? "No reports yet" : "No reports match your search"}
                         </Text>
+                        {reports.length === 0 && (
+                            <TouchableOpacity onPress={() => onNavigate("reportSetup")} className="mt-1">
+                                <Text className="text-primary text-sm font-semibold">Create your first report</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 ) : (
                     <View className="gap-3">
                         {filtered.map((report) => {
-                            const style = STATUS_STYLE[report.status];
+                            const color = templateColor(report.templateName);
+                            const cfg = STATUS_CFG[report.status] ?? STATUS_CFG.draft;
                             const isSelected = comparing.includes(report.id);
+
                             return (
                                 <TouchableOpacity
                                     key={report.id}
@@ -216,61 +213,44 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                                     onPress={() =>
                                         comparing.length > 0
                                             ? toggleCompare(report.id)
-                                            : onNavigate("reportPreview")
+                                            : onNavigate("reports")
                                     }
                                     onLongPress={() => toggleCompare(report.id)}
                                     className={`flex-row items-center bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
                                 >
                                     {/* Left color strip */}
-                                    <View
-                                        style={{
-                                            width: 4,
-                                            alignSelf: "stretch",
-                                            backgroundColor: report.color,
-                                        }}
-                                    />
+                                    <View style={{ width: 4, alignSelf: "stretch", backgroundColor: color }} />
+
                                     {/* Icon */}
                                     <View
                                         className="w-10 h-10 rounded-xl m-3 items-center justify-center"
-                                        style={{
-                                            backgroundColor:
-                                                report.color + "33",
-                                        }}
+                                        style={{ backgroundColor: color + "33" }}
                                     >
-                                        <Ionicons
-                                            name="document-text"
-                                            size={18}
-                                            color={report.color}
-                                        />
+                                        <Ionicons name="document-text" size={18} color={color} />
                                     </View>
+
                                     {/* Text */}
                                     <View className="flex-1 py-3 pr-2">
-                                        <Text
-                                            className="text-white font-semibold text-sm"
-                                            numberOfLines={1}
-                                        >
+                                        <Text className="text-white font-semibold text-sm" numberOfLines={1}>
                                             {report.title}
                                         </Text>
                                         <Text className="text-zinc-500 text-xs mt-0.5">
-                                            {report.type} · {report.date}
+                                            {report.templateName} · {timeAgo(report.updatedAt)}
                                         </Text>
                                     </View>
+
                                     {/* Score */}
                                     {report.score !== null && (
-                                        <Text className="text-zinc-400 text-xs mr-2">
-                                            {report.score}%
-                                        </Text>
+                                        <Text className="text-zinc-400 text-xs mr-2">{report.score}%</Text>
                                     )}
+
                                     {/* Status Badge */}
                                     <View
                                         className="mx-3 px-2.5 py-1 rounded-full"
-                                        style={{ backgroundColor: style.bg }}
+                                        style={{ backgroundColor: cfg.bg }}
                                     >
-                                        <Text
-                                            className="text-xs font-semibold"
-                                            style={{ color: style.text }}
-                                        >
-                                            {report.status}
+                                        <Text className="text-xs font-semibold" style={{ color: cfg.text }}>
+                                            {cfg.label}
                                         </Text>
                                     </View>
                                 </TouchableOpacity>
@@ -279,7 +259,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                     </View>
                 )}
 
-                {comparing.length === 0 && filtered.length > 1 && (
+                {!loading && comparing.length === 0 && filtered.length > 1 && (
                     <Text className="text-zinc-600 text-xs text-center mt-4">
                         Long-press a report to select for comparison
                     </Text>

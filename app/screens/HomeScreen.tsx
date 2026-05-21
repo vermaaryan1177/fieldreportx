@@ -1,115 +1,124 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { listReportsByUser } from "@/lib/db/reports";
+import { auth } from "@/lib/firebase";
+import { Report } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
 }
 
-type ReportStatus = "Draft" | "Done" | "In Progress";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const RECENT_REPORTS: {
-    id: string;
-    title: string;
-    type: string;
-    time: string;
-    status: ReportStatus;
-    color: string;
-}[] = [
-    {
-        id: "1",
-        title: "12 Oak St — Inbound",
-        type: "Rental Inspection",
-        time: "2h ago",
-        status: "Draft",
-        color: "#8b5cf6",
-    },
-    {
-        id: "2",
-        title: "Elec. compliance #441",
-        type: "Trades",
-        time: "Yesterday",
-        status: "Done",
-        color: "#22c55e",
-    },
-    {
-        id: "3",
-        title: "Driver eval — Sam K.",
-        type: "Driving",
-        time: "3 days ago",
-        status: "Done",
-        color: "#f59e0b",
-    },
-    {
-        id: "4",
-        title: "Patient rehab — J. Torres",
-        type: "Rehabilitation",
-        time: "5 days ago",
-        status: "In Progress",
-        color: "#3b82f6",
-    },
-];
+function toMs(ts: any): number {
+    if (!ts) return 0;
+    if (typeof ts === "number") return ts;
+    if (typeof ts.toMillis === "function") return ts.toMillis();
+    if (ts.seconds !== undefined) return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
+    return 0;
+}
 
-const STATUS_STYLE: Record<
-    ReportStatus,
-    { bg: string; text: string }
-> = {
-    Draft: { bg: "#ffff5b25", text: "#ffff5b" },
-    Done: { bg: "#44ff0025", text: "#44ff00" },
-    "In Progress": { bg: "#44d2f925", text: "#44d2f9" },
+function timeAgo(ts: any): string {
+    const ms = toMs(ts);
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+}
+
+const PALETTE = ["#8b5cf6", "#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#f2a72f", "#06b6d4"];
+
+function templateColor(name: string): string {
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+    return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
+    draft:      { label: "Draft",       bg: "#ffff5b25", text: "#ffff5b" },
+    done:       { label: "Done",        bg: "#44ff0025", text: "#44ff00" },
+    inprogress: { label: "In Progress", bg: "#44d2f925", text: "#44d2f9" },
 };
 
-export default function HomeScreen({
-    onNavigate,
-    onOpenSidebar,
-}: Props) {
+function getInitials(name: string | null | undefined): string {
+    if (!name) return "?";
+    return name.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
+export default function HomeScreen({ onNavigate, onOpenSidebar }: Props) {
+    const [reports, setReports] = useState<Report[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const user = auth.currentUser;
+    const firstName = user?.displayName?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
+    const initials = getInitials(user?.displayName ?? user?.email);
+
+    const fetchReports = useCallback(async () => {
+        if (!user) { setLoading(false); return; }
+        try {
+            const all = await listReportsByUser(user.uid);
+            // Sort most-recent first by updatedAt
+            all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+            setReports(all);
+        } catch (e) {
+            console.warn("Failed to load reports", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.uid]);
+
+    useEffect(() => { fetchReports(); }, [fetchReports]);
+
+    // Stats derived from full list
+    const now = new Date();
+    const thisMonthMs = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const reportsThisMonth = reports.filter((r) => toMs(r.createdAt) >= thisMonthMs).length;
+    const inProgressCount = reports.filter((r) => r.status === "inprogress").length;
+    const recent = reports.slice(0, 5);
+
     return (
         <View className="flex-1 bg-background">
-            {/* Header */}
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
-            <View className="flex-row items-center justify-between px-5 pt-5 pb-5">
-                {/* Left Side */}
-                <View className="flex-row items-center">
-                    
-                    
-                    {/* Greeting */}
-                    <View>
-                        <Text className="text-white text-2xl font-bold">
-                            Hello, Arn
-                        </Text>
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} />
 
-                        <Text className="text-zinc-400 text-sm mt-0.5">
-                            3 reports due this week
-                        </Text>
-                    </View>
+            <View className="flex-row items-center px-5 pt-5 pb-5">
+                <View>
+                    <Text className="text-white text-2xl font-bold">Hello, {firstName}</Text>
+                    <Text className="text-zinc-400 text-sm mt-0.5">
+                        {inProgressCount > 0
+                            ? `${inProgressCount} report${inProgressCount !== 1 ? "s" : ""} in progress`
+                            : "No reports in progress"}
+                    </Text>
                 </View>
-
-                
             </View>
 
             {/* Stats Row */}
             <View className="flex-row mx-5 gap-3 mb-4">
                 <View className="flex-1 bg-slate-900 rounded-2xl p-4">
                     <Text className="text-white text-2xl font-bold">
-                        12
+                        {loading ? "—" : reportsThisMonth}
                     </Text>
-
-                    <Text className="text-zinc-500 text-xs mt-0.5">
-                        Reports this month
-                    </Text>
+                    <Text className="text-zinc-500 text-xs mt-0.5">Reports this month</Text>
                 </View>
-
                 <View className="flex-1 bg-slate-900 rounded-2xl p-4">
                     <Text className="text-white text-2xl font-bold">
-                        3
+                        {loading ? "—" : inProgressCount}
                     </Text>
-
-                    <Text className="text-zinc-500 text-xs mt-0.5">
-                        In progress
-                    </Text>
+                    <Text className="text-zinc-500 text-xs mt-0.5">In progress</Text>
                 </View>
             </View>
 
@@ -119,9 +128,7 @@ export default function HomeScreen({
                 onPress={() => onNavigate("reportSetup")}
                 className="bg-primary mx-5 rounded-2xl py-4 items-center mb-6"
             >
-                <Text className="text-white font-bold text-base">
-                    + New report
-                </Text>
+                <Text className="text-white font-bold text-base">+ New report</Text>
             </TouchableOpacity>
 
             {/* Section Label */}
@@ -132,90 +139,68 @@ export default function HomeScreen({
             {/* Report List */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 16,
-                }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
             >
-                <View className="gap-3">
-                    {RECENT_REPORTS.map((report) => {
-                        const style = STATUS_STYLE[report.status];
+                {loading ? (
+                    <View className="items-center py-10">
+                        <ActivityIndicator color="#f2a72f" />
+                    </View>
+                ) : recent.length === 0 ? (
+                    <View className="items-center py-10 gap-2">
+                        <Ionicons name="document-text-outline" size={36} color="#3f3f46" />
+                        <Text className="text-zinc-500 text-sm">No reports yet</Text>
+                        <TouchableOpacity onPress={() => onNavigate("reportSetup")} className="mt-1">
+                            <Text className="text-primary text-sm font-semibold">Create your first report</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View className="gap-3">
+                        {recent.map((report) => {
+                            const color = templateColor(report.templateName);
+                            const cfg = STATUS_CFG[report.status] ?? STATUS_CFG.draft;
 
-                        return (
-                            <TouchableOpacity
-                                key={report.id}
-                                activeOpacity={0.7}
-                                onPress={() =>
-                                    onNavigate("reportPreview")
-                                }
-                                className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
-                            >
-                                {/* Left color strip */}
-                                <View
-                                    style={{
-                                        width: 4,
-                                        alignSelf: "stretch",
-                                        backgroundColor: report.color,
-                                    }}
-                                />
-
-                                {/* Thumbnail */}
-                                <View
-                                    className="w-10 h-10 rounded-xl m-3 items-center justify-center"
-                                    style={{
-                                        backgroundColor:
-                                            report.color + "33",
-                                    }}
+                            return (
+                                <TouchableOpacity
+                                    key={report.id}
+                                    activeOpacity={0.7}
+                                    onPress={() => onNavigate("reports")}
+                                    className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                                 >
+                                    {/* Left color strip */}
+                                    <View style={{ width: 4, alignSelf: "stretch", backgroundColor: color }} />
+
+                                    {/* Icon thumbnail */}
                                     <View
-                                        className="w-5 h-5 rounded"
-                                        style={{
-                                            backgroundColor:
-                                                report.color,
-                                        }}
-                                    />
-                                </View>
-
-                                {/* Text */}
-                                <View className="flex-1 py-3 pr-2">
-                                    <Text
-                                        className="text-white font-semibold text-sm"
-                                        numberOfLines={1}
+                                        className="w-10 h-10 rounded-xl m-3 items-center justify-center"
+                                        style={{ backgroundColor: color + "33" }}
                                     >
-                                        {report.title}
-                                    </Text>
+                                        <Ionicons name="document-text" size={18} color={color} />
+                                    </View>
 
-                                    <Text className="text-zinc-500 text-xs mt-0.5">
-                                        {report.type} · {report.time}
-                                    </Text>
-                                </View>
+                                    {/* Text */}
+                                    <View className="flex-1 py-3 pr-2">
+                                        <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+                                            {report.title}
+                                        </Text>
+                                        <Text className="text-zinc-500 text-xs mt-0.5">
+                                            {report.templateName} · {timeAgo(report.updatedAt)}
+                                        </Text>
+                                    </View>
 
-                                {/* Status Badge */}
-                                <View
-                                    className="mx-3 px-2.5 py-1 rounded-full"
-                                    style={{
-                                        backgroundColor: style.bg,
-                                    }}
-                                >
-                                    <Text
-                                        className="text-xs font-semibold"
-                                        style={{
-                                            color: style.text,
-                                        }}
-                                    >
-                                        {report.status}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
+                                    {/* Status Badge */}
+                                    <View className="mx-3 px-2.5 py-1 rounded-full" style={{ backgroundColor: cfg.bg }}>
+                                        <Text className="text-xs font-semibold" style={{ color: cfg.text }}>
+                                            {cfg.label}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
             </ScrollView>
 
-            <BottomNavBar
-                active="home"
-                onNavigate={onNavigate}
-            />
+            <BottomNavBar active="home" onNavigate={onNavigate} />
         </View>
     );
 }
