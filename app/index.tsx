@@ -1,7 +1,13 @@
 import "./global.css";
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, View,TouchableOpacity } from "react-native";
+import {
+    ActivityIndicator,
+    Dimensions,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 import Animated, {
     Easing,
@@ -16,7 +22,6 @@ import { useAuth } from "@/hooks/useAuth";
 import HomeScreen from "./screens/HomeScreen";
 import LoginRegisterScreen from "./screens/LoginRegisterScreen";
 import MapsRoutesScreen from "./screens/MapsRoutesScreen";
-import MediaHandlerScreen from "./screens/MediaHandlerScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import OrganisationScreen from "./screens/OrganisationScreen";
 import PermissionsScreen from "./screens/PermissionsScreen";
@@ -31,9 +36,7 @@ import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
-
 import Sidebar from "./screens/SideBar";
-
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -55,17 +58,25 @@ function ScreenContent({
         case "permissions":
             return <PermissionsScreen onNavigate={navigate} />;
         case "reports":
-            return <ReportListScreen onNavigate={navigate} onOpenSidebar={openSidebar}/>;
+            return (
+                <ReportListScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                />
+            );
         case "templateLibrary":
-            return <TemplateLibraryScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
+            return (
+                <TemplateLibraryScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                />
+            );
         case "templateBuilder":
             return <TemplateBuilderScreen onNavigate={navigate} />;
         case "reportSetup":
             return <ReportSetupScreen onNavigate={navigate} />;
         case "reportEditor":
             return <ReportEditorScreen onNavigate={navigate} />;
-        case "mediaHandler":
-            return <MediaHandlerScreen onNavigate={navigate} />;
         case "mapsRoutes":
             return <MapsRoutesScreen onNavigate={navigate} />;
         case "reportPreview":
@@ -77,15 +88,30 @@ function ScreenContent({
         case "reportComparison":
             return <ReportComparisonScreen onNavigate={navigate} />;
         case "settings":
-            return <SettingsScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
-        case "organisation":
-            return <OrganisationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
-        case "notifications":
-            return <NotificationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
-        default:
-            
             return (
-                    <HomeScreen onNavigate={navigate} onOpenSidebar={openSidebar} />);
+                <SettingsScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                />
+            );
+        case "organisation":
+            return (
+                <OrganisationScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                />
+            );
+        case "notification":
+            return (
+                <NotificationScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                />
+            );
+        default:
+            return (
+                <HomeScreen onNavigate={navigate} onOpenSidebar={openSidebar} />
+            );
     }
 }
 
@@ -175,72 +201,70 @@ export default function App() {
         );
     }
 
-
-
     return (
-    <View style={{ flex: 1 }}>
-        {/* Main Content */}
-        <ScreenContent
-            screen={currentScreen}
-            navigate={navigate}
-            openSidebar={() => setSidebarOpen(true)}
-        />
+        <View style={{ flex: 1 }}>
+            {/* Main Content */}
+            <ScreenContent
+                screen={currentScreen}
+                navigate={navigate}
+                openSidebar={() => setSidebarOpen(true)}
+            />
 
-        {/* Transition layer */}
-        {incomingScreen !== null && (
-            <Animated.View style={incomingStyle}>
-                <ScreenContent
-                    screen={incomingScreen}
-                    navigate={navigate}
-                    openSidebar={() => setSidebarOpen(true)}
-                />
-            </Animated.View>
-        )}
-
-        {/* Only render overlay and sidebar if open */}
-        {sidebarOpen && (
-            <>
-                {/* Dark semi-transparent overlay */}
-                <TouchableOpacity
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0,0,0,0.3)",
-                        zIndex: 998,
-                    }}
-                    activeOpacity={1}
-                    onPress={() => setSidebarOpen(false)}
-                />
-
-                {/* Sidebar */}
-                <View
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        bottom: 0,
-                        width: 300, // sidebar width
-                        zIndex: 999,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.3,
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowRadius: 10,
-                    }}
-                >
-                    <Sidebar
-                        active={currentScreen}
-                        onNavigate={(screen) => {
-                            setSidebarOpen(false);
-                            navigate(screen);
-                        }}
-                        onSignOut={() => setSidebarOpen(false)}
+            {/* Transition layer */}
+            {incomingScreen !== null && (
+                <Animated.View style={incomingStyle}>
+                    <ScreenContent
+                        screen={incomingScreen}
+                        navigate={navigate}
+                        openSidebar={() => setSidebarOpen(true)}
                     />
-                </View>
-            </>
-        )}
-    </View>
-);
+                </Animated.View>
+            )}
+
+            {/* Only render overlay and sidebar if open */}
+            {sidebarOpen && (
+                <>
+                    {/* Dark semi-transparent overlay */}
+                    <TouchableOpacity
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: "rgba(0,0,0,0.3)",
+                            zIndex: 998,
+                        }}
+                        activeOpacity={1}
+                        onPress={() => setSidebarOpen(false)}
+                    />
+
+                    {/* Sidebar */}
+                    <View
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            bottom: 0,
+                            width: 300, // sidebar width
+                            zIndex: 999,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.3,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowRadius: 10,
+                        }}
+                    >
+                        <Sidebar
+                            active={currentScreen}
+                            onNavigate={(screen) => {
+                                setSidebarOpen(false);
+                                navigate(screen);
+                            }}
+                            onSignOut={() => setSidebarOpen(false)}
+                        />
+                    </View>
+                </>
+            )}
+        </View>
+    );
 }

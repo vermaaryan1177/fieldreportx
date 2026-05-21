@@ -8,7 +8,6 @@ export type AppScreen =
     | "templateBuilder"
     | "reportSetup"
     | "reportEditor"
-    | "mediaHandler"
     | "mapsRoutes"
     | "reportPreview"
     | "score"
@@ -53,7 +52,10 @@ interface BottomNavBarProps {
     onNavigate: (screen: AppScreen) => void;
 }
 
-export default function BottomNavBar({ active, onNavigate }: BottomNavBarProps) {
+export default function BottomNavBar({
+    active,
+    onNavigate,
+}: BottomNavBarProps) {
     return (
         <View className="flex-row bg-slate-900 border-t border-zinc-800 pb-8 pt-3 px-2">
             {NAV_ITEMS.map((item) => {

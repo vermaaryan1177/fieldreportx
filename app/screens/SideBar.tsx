@@ -1,9 +1,8 @@
+import { signOut } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Constants from "expo-constants";
 import React, { useState } from "react";
-import { Alert } from "react-native";
-import { signOut } from "@/lib/auth";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export type AppScreen =
     | "home"
@@ -12,7 +11,6 @@ export type AppScreen =
     | "templateBuilder"
     | "reportSetup"
     | "reportEditor"
-    | "mediaHandler"
     | "mapsRoutes"
     | "reportPreview"
     | "score"
@@ -100,7 +98,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                         setSigningOut(false);
                         Alert.alert(
                             "Error",
-                            "Failed to sign out. Please try again."
+                            "Failed to sign out. Please try again.",
                         );
                     }
                 },
@@ -122,7 +120,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     <Text className="text-white font-semibold text-base">
                         Alex King
                     </Text>
-                    <Text className="text-zinc-500 text-sm">Senior Inspector</Text>
+                    <Text className="text-zinc-500 text-sm">
+                        Senior Inspector
+                    </Text>
                 </View>
             </View>
 
@@ -177,8 +177,14 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     className="mb-4 flex-row items-center rounded-xl px-3 py-4"
                     onPress={() => onNavigate("organisation")}
                 >
-                    <Ionicons name="business-outline" size={22} color="#71717a" />
-                    <Text className="ml-3 text-base text-zinc-400">Organisation</Text>
+                    <Ionicons
+                        name="business-outline"
+                        size={22}
+                        color="#71717a"
+                    />
+                    <Text className="ml-3 text-base text-zinc-400">
+                        Organisation
+                    </Text>
                 </TouchableOpacity>
 
                 {/* Divider */}
@@ -195,9 +201,15 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                 >
                     <View className="flex-row items-center">
                         <Ionicons name="business" size={18} color="#f2a72f" />
-                        <Text className="text-white ml-2">Field Inspectors Co</Text>
+                        <Text className="text-white ml-2">
+                            Field Inspectors Co
+                        </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#71717a" />
+                    <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#71717a"
+                    />
                 </TouchableOpacity>
             </ScrollView>
 
@@ -214,7 +226,11 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                     onPress={handleSignOut}
                     disabled={signingOut}
                 >
-                    <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+                    <Ionicons
+                        name="log-out-outline"
+                        size={18}
+                        color="#ef4444"
+                    />
                     <Text className="text-red-500 font-medium ml-2">
                         {signingOut ? "Signing out…" : "Sign out"}
                     </Text>

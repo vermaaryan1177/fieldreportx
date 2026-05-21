@@ -39,7 +39,7 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => onNavigate("reports")}
+                        onPress={() => onNavigate("reportEditor")}
                         className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
                     >
                         <Ionicons name="arrow-back" size={18} color="#ffffff" />

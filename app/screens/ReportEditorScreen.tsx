@@ -33,14 +33,34 @@ type FieldValues = Record<string, string | boolean | number>;
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const MULTILINE_KEYWORDS = [
-    "notes", "description", "statement", "content", "observations",
-    "comments", "recommendations", "actions", "feedback", "goals",
-    "reason", "transcript", "items", "findings", "summary",
+    "notes",
+    "description",
+    "statement",
+    "content",
+    "observations",
+    "comments",
+    "recommendations",
+    "actions",
+    "feedback",
+    "goals",
+    "reason",
+    "transcript",
+    "items",
+    "findings",
+    "summary",
 ];
 
 const DATE_KEYWORDS = [
-    "date", "dob", "birth", "issued", "expiry", "expires",
-    "scheduled", "inspection", "visited", "completed",
+    "date",
+    "dob",
+    "birth",
+    "issued",
+    "expiry",
+    "expires",
+    "scheduled",
+    "inspection",
+    "visited",
+    "completed",
 ];
 
 function isMultiline(label: string) {
@@ -55,14 +75,22 @@ function isDateField(label: string) {
 
 function statusColor(status: SectionStatus) {
     if (status === "completed") return "#22c55e";
+    if (status === "partial") return "#eab308";
     if (status === "inprogress") return "#f2a72f";
     return "#3f3f46";
 }
 
 function statusDetail(status: SectionStatus) {
     if (status === "completed") return "Completed — tap to edit";
+    if (status === "partial") return "Partially completed — tap to continue";
     if (status === "inprogress") return "In progress — tap to continue";
     return "Not started";
+}
+
+function isFieldFilled(type: string, value: string | boolean | number | undefined): boolean {
+    if (value === undefined) return false;
+    if (type === "checkbox") return true; // false (No) is a valid answer
+    return value !== "" && value !== false;
 }
 
 // ─── Signature pad ───────────────────────────────────────────────────────────
@@ -265,8 +293,7 @@ function FieldRow({
             allowsEditing: true,
             quality: 0.8,
         });
-        if (!result.canceled)
-            commitPhotos([...photos, result.assets[0].uri]);
+        if (!result.canceled) commitPhotos([...photos, result.assets[0].uri]);
     };
 
     const launchGallery = async () => {
@@ -370,9 +397,7 @@ function FieldRow({
                         animationType="slide"
                         onRequestClose={() => setShowDatePicker(false)}
                     >
-                        <View
-                            style={{ flex: 1, justifyContent: "flex-end" }}
-                        >
+                        <View style={{ flex: 1, justifyContent: "flex-end" }}>
                             <View
                                 style={{
                                     backgroundColor: "#1e293b",
@@ -392,9 +417,7 @@ function FieldRow({
                                     }}
                                 >
                                     <TouchableOpacity
-                                        onPress={() =>
-                                            setShowDatePicker(false)
-                                        }
+                                        onPress={() => setShowDatePicker(false)}
                                     >
                                         <Text
                                             style={{
@@ -511,11 +534,7 @@ function FieldRow({
                         }`}
                     >
                         {value === true && (
-                            <Ionicons
-                                name="checkmark"
-                                size={13}
-                                color="#fff"
-                            />
+                            <Ionicons name="checkmark" size={13} color="#fff" />
                         )}
                     </View>
                     <Text className="text-zinc-400 text-sm">
@@ -586,7 +605,9 @@ function FieldRow({
 
             {/* PHOTO — multi-photo grid */}
             {field.type === "photo" && (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                >
                     {photos.map((uri, idx) => (
                         <View
                             key={idx}
@@ -617,11 +638,7 @@ function FieldRow({
                                     justifyContent: "center",
                                 }}
                             >
-                                <Ionicons
-                                    name="close"
-                                    size={13}
-                                    color="#fff"
-                                />
+                                <Ionicons name="close" size={13} color="#fff" />
                             </TouchableOpacity>
                         </View>
                     ))}
@@ -643,7 +660,11 @@ function FieldRow({
                             gap: 4,
                         }}
                     >
-                        <Ionicons name="camera-outline" size={22} color="#52525b" />
+                        <Ionicons
+                            name="camera-outline"
+                            size={22}
+                            color="#52525b"
+                        />
                         <Text style={{ color: "#52525b", fontSize: 12 }}>
                             {photos.length === 0 ? "Add photo" : "Add more"}
                         </Text>
@@ -822,6 +843,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
     });
 
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+    const prevStatusRef = useRef<Record<string, SectionStatus>>({});
 
     if (!template) {
         return (
@@ -854,7 +876,9 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
     const progress = total > 0 ? completed / total : 0;
 
     const openSection = (sectionId: string) => {
-        if (sectionStatuses[sectionId] !== "completed") {
+        prevStatusRef.current[sectionId] = sectionStatuses[sectionId] ?? "notstarted";
+        const cur = sectionStatuses[sectionId] ?? "notstarted";
+        if (cur !== "completed" && cur !== "partial") {
             setSectionStatuses((prev) => ({
                 ...prev,
                 [sectionId]: "inprogress",
@@ -864,11 +888,33 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
         setActiveSectionId(sectionId);
     };
 
+    const handleCloseSection = () => {
+        if (activeSectionId) {
+            const prev = prevStatusRef.current[activeSectionId];
+            if (prev !== undefined) {
+                setSectionStatuses((p) => ({ ...p, [activeSectionId]: prev }));
+                store.setSectionStatus(activeSectionId, prev);
+            }
+        }
+        setActiveSectionId(null);
+    };
+
     const handleSaveSection = (sectionId: string, values: FieldValues) => {
+        const section = sections.find((s) => s.id === sectionId)!;
+        const filledCount = section.fields.filter((f) =>
+            isFieldFilled(f.type, values[f.id]),
+        ).length;
+        const newStatus: SectionStatus =
+            filledCount === section.fields.length
+                ? "completed"
+                : filledCount > 0
+                  ? "partial"
+                  : "notstarted";
+
         setAllFieldValues((prev) => ({ ...prev, [sectionId]: values }));
-        setSectionStatuses((prev) => ({ ...prev, [sectionId]: "completed" }));
+        setSectionStatuses((prev) => ({ ...prev, [sectionId]: newStatus }));
         store.setFieldValues(sectionId, values);
-        store.setSectionStatus(sectionId, "completed");
+        store.setSectionStatus(sectionId, newStatus);
         setActiveSectionId(null);
     };
 
@@ -892,34 +938,13 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                     >
                         {setup?.title ?? template.name}
                     </Text>
-                    <Text
-                        className="text-zinc-500 text-xs"
-                        numberOfLines={1}
-                    >
+                    <Text className="text-zinc-500 text-xs" numberOfLines={1}>
                         {template.name}
                         {setup?.inspectorName
                             ? ` · ${setup.inspectorName}`
                             : ""}
                     </Text>
                 </View>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => onNavigate("mediaHandler")}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                >
-                    <Ionicons
-                        name="camera-outline"
-                        size={18}
-                        color="#f2a72f"
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => onNavigate("mapsRoutes")}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                >
-                    <Ionicons name="map-outline" size={18} color="#f2a72f" />
-                </TouchableOpacity>
                 <View className="px-2.5 py-1 rounded-full bg-tagInprogress/20">
                     <Text className="text-tagInprogress text-xs font-semibold">
                         In Progress
@@ -954,6 +979,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                         const status =
                             sectionStatuses[section.id] ?? "notstarted";
                         const isCompleted = status === "completed";
+                        const isPartial = status === "partial";
                         const isInProgress = status === "inprogress";
 
                         return (
@@ -961,11 +987,14 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                 key={section.id}
                                 activeOpacity={0.75}
                                 onPress={() => openSection(section.id)}
-                                className={`flex-row items-center rounded-2xl px-4 py-3.5 ${
+                                className="flex-row items-center rounded-2xl px-4 py-3.5"
+                                style={
                                     isInProgress
-                                        ? "bg-primary/10 border border-primary/30"
-                                        : "bg-slate-900"
-                                }`}
+                                        ? { backgroundColor: "#f2a72f1a", borderWidth: 1, borderColor: "#f2a72f4d" }
+                                        : isPartial
+                                          ? { backgroundColor: "#eab3080d", borderWidth: 1, borderColor: "#eab30833" }
+                                          : { backgroundColor: "#0f172a" }
+                                }
                             >
                                 {isCompleted ? (
                                     <View className="w-8 h-8 rounded-full bg-green-500/20 items-center justify-center">
@@ -973,6 +1002,17 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                             name="checkmark-circle"
                                             size={22}
                                             color="#22c55e"
+                                        />
+                                    </View>
+                                ) : isPartial ? (
+                                    <View
+                                        className="w-8 h-8 rounded-full items-center justify-center"
+                                        style={{ backgroundColor: "#eab30820" }}
+                                    >
+                                        <Ionicons
+                                            name="checkmark-circle-outline"
+                                            size={22}
+                                            color="#eab308"
                                         />
                                     </View>
                                 ) : (
@@ -1007,13 +1047,17 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                         {section.name}
                                     </Text>
                                     <Text
-                                        className={`text-xs mt-0.5 ${
-                                            isInProgress
-                                                ? "text-primary"
-                                                : isCompleted
-                                                  ? "text-green-500"
-                                                  : "text-zinc-600"
-                                        }`}
+                                        style={{
+                                            fontSize: 12,
+                                            marginTop: 2,
+                                            color: isCompleted
+                                                ? "#22c55e"
+                                                : isPartial
+                                                  ? "#eab308"
+                                                  : isInProgress
+                                                    ? "#f2a72f"
+                                                    : "#52525b",
+                                        }}
                                     >
                                         {statusDetail(status)}
                                     </Text>
@@ -1027,7 +1071,13 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                     }
                                     size={16}
                                     color={
-                                        isInProgress ? "#f2a72f" : "#3f3f46"
+                                        isCompleted
+                                            ? "#3f3f46"
+                                            : isPartial
+                                              ? "#eab308"
+                                              : isInProgress
+                                                ? "#f2a72f"
+                                                : "#3f3f46"
                                     }
                                 />
                             </TouchableOpacity>
@@ -1062,7 +1112,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                 visible={activeSectionId !== null}
                 animationType="slide"
                 presentationStyle="pageSheet"
-                onRequestClose={() => setActiveSectionId(null)}
+                onRequestClose={handleCloseSection}
             >
                 {activeSection && (
                     <SectionEditor
@@ -1071,7 +1121,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                         onSave={(values) =>
                             handleSaveSection(activeSectionId!, values)
                         }
-                        onClose={() => setActiveSectionId(null)}
+                        onClose={handleCloseSection}
                     />
                 )}
             </Modal>
