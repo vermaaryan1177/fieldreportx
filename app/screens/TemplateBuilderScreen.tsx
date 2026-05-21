@@ -286,13 +286,11 @@ function SectionsEditor({
                     [{ text: "OK", onPress: onSaved }],
                 );
             }
-        } catch {
+        } catch (e) {
             clearTimeout(timer);
             if (!timedOut) {
-                Alert.alert(
-                    "Error",
-                    "Failed to save template. Please try again.",
-                );
+                const detail = e instanceof Error ? e.message : String(e);
+                Alert.alert("Error saving template", detail);
             }
         } finally {
             if (!timedOut) setSaving(false);
