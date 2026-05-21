@@ -1,10 +1,13 @@
-// import AppHeader from "@/components/header";
+
+
+import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    onOpenSidebar: () => void;
 }
 
 type NotificationItem = {
@@ -28,7 +31,13 @@ const initialEarlier: NotificationItem[] = [
     { id: "6", title: "System: FieldReportX updated to v2.1", description: "", time: "5 days ago", icon: "" },
 ];
 
-const NotificationCard = ({ item, onPress }: { item: NotificationItem; onPress: (id: string) => void }) => (
+const NotificationCard = ({
+    item,
+    onPress,
+}: {
+    item: NotificationItem;
+    onPress: (id: string) => void;
+}) => (
     <TouchableOpacity
         activeOpacity={0.7}
         className={`mx-5 mb-3 flex-row items-center justify-between rounded-2xl border p-4 ${
@@ -37,67 +46,116 @@ const NotificationCard = ({ item, onPress }: { item: NotificationItem; onPress: 
         onPress={() => onPress(item.id)}
     >
         <View className="flex-1 flex-row items-start">
-            {item.unread && <View className="mr-3 mt-1 h-2.5 w-2.5 rounded-full bg-amber-500" />}
-            <View className={`mr-3 h-11 w-11 items-center justify-center rounded-xl ${item.unread ? "bg-amber-500/20" : "bg-zinc-700"}`}>
-                <Text className="text-base font-bold text-white">{item.icon || "•"}</Text>
+            {item.unread && (
+                <View className="mr-3 mt-1 h-2.5 w-2.5 rounded-full bg-amber-500" />
+            )}
+
+            <View
+                className={`mr-3 h-11 w-11 items-center justify-center rounded-xl ${
+                    item.unread ? "bg-amber-500/20" : "bg-zinc-700"
+                }`}
+            >
+                <Text className="text-base font-bold text-white">
+                    {item.icon || "•"}
+                </Text>
             </View>
 
             <View className="flex-1">
-                <Text className="text-white text-[15px] font-semibold">{item.title}</Text>
-                {item.description && <Text className="mt-1 text-[13px] text-zinc-400">{item.description}</Text>}
-                <Text className="mt-1 text-[12px] text-zinc-500">{item.time}</Text>
+                <Text className="text-white text-[15px] font-semibold">
+                    {item.title}
+                </Text>
+
+                {item.description && (
+                    <Text className="mt-1 text-[13px] text-zinc-400">
+                        {item.description}
+                    </Text>
+                )}
+
+                <Text className="mt-1 text-[12px] text-zinc-500">
+                    {item.time}
+                </Text>
             </View>
         </View>
+
         <Text className="ml-2 text-lg text-zinc-500">›</Text>
     </TouchableOpacity>
 );
 
-const NotificationsScreen = ({ onNavigate }: Props) => {
-    const [unreadNotifications, setUnreadNotifications] = useState(initialUnread);
-    const [earlierNotifications, setEarlierNotifications] = useState(initialEarlier);
+export default function NotificationsScreen({
+    onNavigate,
+    onOpenSidebar,
+}: Props) {
+    const [unreadNotifications, setUnreadNotifications] =
+        useState(initialUnread);
+
+    const [earlierNotifications, setEarlierNotifications] =
+        useState(initialEarlier);
 
     const handlePress = (id: string) => {
         const updatedUnread = unreadNotifications.filter((n) => n.id !== id);
         const readItem = unreadNotifications.find((n) => n.id === id);
+
         if (readItem) {
-            setEarlierNotifications([{ ...readItem, unread: false }, ...earlierNotifications]);
+            setEarlierNotifications([
+                { ...readItem, unread: false },
+                ...earlierNotifications,
+            ]);
             setUnreadNotifications(updatedUnread);
         }
+
         console.log("Clicked notification:", id);
     };
 
-    // Clear all notifications
     const handleClearAll = () => {
-        setUnreadNotifications([]);
         setEarlierNotifications([]);
     };
 
     return (
-        <View className="flex-1 pt-10 bg-slate-950">
+        <View className="flex-1  bg-background">
+            {/* HEADER (FIXED) */}
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+
             <View className="flex-row items-center justify-between border-b border-zinc-800 px-5 py-4">
-                <Text className="text-2xl font-bold text-white">Notifications</Text>
+                <Text className="text-2xl font-bold text-white">
+                    Notifications
+                </Text>
+
                 <TouchableOpacity onPress={handleClearAll}>
-                    <Text className="text-sm font-medium text-amber-500">Clear all</Text>
+                    <Text className="text-sm font-medium text-amber-500">
+                        Clear all
+                    </Text>
                 </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
                 {unreadNotifications.length > 0 && (
                     <>
-                        <Text className="mb-3 ml-5 mt-5 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                        <Text className="mb-3 ml-5 mt-5 text-xs color-white font-bold uppercase tracking-widest text-zinc-500">
                             Unread · {unreadNotifications.length}
                         </Text>
+
                         {unreadNotifications.map((item) => (
-                            <NotificationCard key={item.id} item={item} onPress={handlePress} />
+                            <NotificationCard 
+                                key={item.id}
+                                item={item}
+                                onPress={handlePress}
+                            />
                         ))}
                     </>
                 )}
 
                 {earlierNotifications.length > 0 && (
                     <>
-                        <Text className="mb-3 ml-5 mt-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Earlier</Text>
+                        <Text className="mb-3 ml-5 mt-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                            Earlier
+                        </Text>
+
                         {earlierNotifications.map((item) => (
-                            <NotificationCard key={item.id} item={item} onPress={handlePress} />
+                            <NotificationCard 
+                                key={item.id}
+                                item={item}
+                                onPress={handlePress}
+                            />
                         ))}
                     </>
                 )}
@@ -108,8 +166,4 @@ const NotificationsScreen = ({ onNavigate }: Props) => {
             <BottomNavBar active="notification" onNavigate={onNavigate} />
         </View>
     );
-};
-
-export default NotificationsScreen;
-
-
+}

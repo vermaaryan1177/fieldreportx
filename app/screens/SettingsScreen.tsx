@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { DeviceMotion } from "expo-sensors";
 import { Audio } from "expo-av";
 import React, { useEffect, useState } from "react";
+import AppHeader from "@/components/Header";
 import {
     Alert,
     Linking,
@@ -20,6 +21,7 @@ import { auth } from "@/lib/firebase";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    onOpenSidebar: () => void;
 }
 
 const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
@@ -34,7 +36,7 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
     </TouchableOpacity>
 );
 
-export default function SettingsScreen({ onNavigate }: Props) {
+export default function SettingsScreen({ onNavigate,onOpenSidebar}: Props) {
     const user = auth.currentUser;
 
     // Real permission status (granted / not-granted)
@@ -106,8 +108,9 @@ export default function SettingsScreen({ onNavigate }: Props) {
 
     return (
         <View className="flex-1 bg-background">
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
             {/* Header */}
-            <View className="px-5 pt-16 pb-4">
+            <View className="px-5 pt-5 pb-4">
                 <Text className="text-white text-2xl font-bold">Settings</Text>
             </View>
 

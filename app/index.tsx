@@ -55,9 +55,9 @@ function ScreenContent({
         case "permissions":
             return <PermissionsScreen onNavigate={navigate} />;
         case "reports":
-            return <ReportListScreen onNavigate={navigate} />;
+            return <ReportListScreen onNavigate={navigate} onOpenSidebar={openSidebar}/>;
         case "templateLibrary":
-            return <TemplateLibraryScreen onNavigate={navigate} />;
+            return <TemplateLibraryScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         case "templateBuilder":
             return <TemplateBuilderScreen onNavigate={navigate} />;
         case "reportSetup":
@@ -77,9 +77,9 @@ function ScreenContent({
         case "reportComparison":
             return <ReportComparisonScreen onNavigate={navigate} />;
         case "settings":
-            return <SettingsScreen onNavigate={navigate} />;
+            return <SettingsScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         case "organisation":
-            return <OrganisationScreen onNavigate={navigate} />;
+            return <OrganisationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         case "notifications":
             return <NotificationScreen onNavigate={navigate} onOpenSidebar={openSidebar} />;
         default:
