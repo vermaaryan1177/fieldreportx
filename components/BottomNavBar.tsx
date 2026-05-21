@@ -11,7 +11,6 @@ export type AppScreen =
     | "mapsRoutes"
     | "reportPreview"
     | "score"
-    | "signature"
     | "reportComparison"
     | "settings"
     | "notification"

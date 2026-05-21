@@ -32,7 +32,6 @@ import ReportPreviewScreen from "./screens/ReportPreviewScreen";
 import ReportSetupScreen from "./screens/ReportSetupScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import SettingsScreen from "./screens/SettingsScreen";
-import SignatureScreen from "./screens/SignatureScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
@@ -86,8 +85,6 @@ function ScreenContent({
             return <ReportPreviewScreen onNavigate={navigate} />;
         case "score":
             return <ScoreScreen onNavigate={navigate} />;
-        case "signature":
-            return <SignatureScreen onNavigate={navigate} />;
         case "reportComparison":
             return <ReportComparisonScreen onNavigate={navigate} />;
         case "settings":
