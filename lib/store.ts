@@ -1,6 +1,6 @@
 // Lightweight module-level store for passing ephemeral state between screens.
 
-import { SectionStatus, Template } from "@/lib/types";
+import { Report, SectionStatus, Template } from "@/lib/types";
 
 export interface ReportSetup {
     title: string;
@@ -10,6 +10,7 @@ export interface ReportSetup {
     gpsEnabled: boolean;
 }
 
+let _selectedReport: Report | null = null;
 let _selectedTemplateId: string | null = null;
 let _selectedUserTemplate: Template | null = null;
 let _reportSetup: ReportSetup | null = null;
@@ -17,6 +18,13 @@ let _fieldValues: Record<string, Record<string, string | boolean | number>> = {}
 let _sectionStatuses: Record<string, SectionStatus> = {};
 
 export const store = {
+    get selectedReport() {
+        return _selectedReport;
+    },
+    setSelectedReport(report: Report | null) {
+        _selectedReport = report;
+    },
+
     get selectedTemplateId() {
         return _selectedTemplateId;
     },

@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { useAuth } from "@/hooks/useAuth";
 import { listReportsByUser } from "@/lib/db/reports";
-import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
 
 interface Props {
@@ -64,25 +65,21 @@ export default function HomeScreen({ onNavigate, onOpenSidebar }: Props) {
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const user = auth.currentUser;
+    const { user } = useAuth();
     const firstName = user?.displayName?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
     const initials = getInitials(user?.displayName ?? user?.email);
 
-    const fetchReports = useCallback(async () => {
+    useEffect(() => {
         if (!user) { setLoading(false); return; }
-        try {
-            const all = await listReportsByUser(user.uid);
-            // Sort most-recent first by updatedAt
-            all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
-            setReports(all);
-        } catch (e) {
-            console.warn("Failed to load reports", e);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(true);
+        listReportsByUser(user.uid)
+            .then((all) => {
+                all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+                setReports(all);
+            })
+            .catch((e) => console.warn("Failed to load reports", e))
+            .finally(() => setLoading(false));
     }, [user?.uid]);
-
-    useEffect(() => { fetchReports(); }, [fetchReports]);
 
     // Stats derived from full list
     const now = new Date();
@@ -163,7 +160,10 @@ export default function HomeScreen({ onNavigate, onOpenSidebar }: Props) {
                                 <TouchableOpacity
                                     key={report.id}
                                     activeOpacity={0.7}
-                                    onPress={() => onNavigate("reports")}
+                                    onPress={() => {
+                                        store.setSelectedReport(report);
+                                        onNavigate("reportDetail");
+                                    }}
                                     className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                                 >
                                     {/* Left color strip */}

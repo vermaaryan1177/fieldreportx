@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -11,8 +11,9 @@ import {
 
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { useAuth } from "@/hooks/useAuth";
 import { listReportsByUser } from "@/lib/db/reports";
-import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
 
 interface Props {
@@ -84,23 +85,20 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
 
-    const user = auth.currentUser;
+    const { user } = useAuth();
     const initials = getInitials(user?.displayName ?? user?.email);
 
-    const fetchReports = useCallback(async () => {
+    useEffect(() => {
         if (!user) { setLoading(false); return; }
-        try {
-            const all = await listReportsByUser(user.uid);
-            all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
-            setReports(all);
-        } catch (e) {
-            console.warn("Failed to load reports", e);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(true);
+        listReportsByUser(user.uid)
+            .then((all) => {
+                all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+                setReports(all);
+            })
+            .catch((e) => console.warn("Failed to load reports", e))
+            .finally(() => setLoading(false));
     }, [user?.uid]);
-
-    useEffect(() => { fetchReports(); }, [fetchReports]);
 
     const filtered = reports.filter((r) => {
         const statusFilter = FILTER_TO_STATUS[activeFilter];
@@ -210,11 +208,14 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                                 <TouchableOpacity
                                     key={report.id}
                                     activeOpacity={0.7}
-                                    onPress={() =>
-                                        comparing.length > 0
-                                            ? toggleCompare(report.id)
-                                            : onNavigate("reports")
-                                    }
+                                    onPress={() => {
+                                        if (comparing.length > 0) {
+                                            toggleCompare(report.id);
+                                        } else {
+                                            store.setSelectedReport(report);
+                                            onNavigate("reportDetail");
+                                        }
+                                    }}
                                     onLongPress={() => toggleCompare(report.id)}
                                     className={`flex-row items-center bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
                                 >

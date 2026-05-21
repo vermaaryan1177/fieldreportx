@@ -1,0 +1,450 @@
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useState } from "react";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Path, Svg } from "react-native-svg";
+
+import { AppScreen } from "@/components/BottomNavBar";
+import { getTemplate } from "@/lib/db/templates";
+import { store } from "@/lib/store";
+import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
+import { FieldType, Report, ReportPhoto, Template, TemplateSection } from "@/lib/types";
+
+interface Props {
+    onNavigate: (screen: AppScreen) => void;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function toMs(ts: any): number {
+    if (!ts) return 0;
+    if (typeof ts === "number") return ts;
+    if (typeof ts.toMillis === "function") return ts.toMillis();
+    if (ts.seconds !== undefined) return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
+    return 0;
+}
+
+function fmtDate(ts: any): string {
+    const ms = toMs(ts);
+    if (!ms) return "";
+    return new Date(ms).toLocaleDateString("en-AU", {
+        day: "numeric", month: "short", year: "numeric",
+    });
+}
+
+function fmtDuration(sec: number): string {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return h > 0
+        ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+        : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Inspects any field value for photo-like structure (has `url` or `localUri`)
+ * without needing the template type. Returns display-ready URIs.
+ */
+function extractFieldPhotoUris(value: string | boolean | number): string[] {
+    if (typeof value !== "string") return [];
+    try {
+        const parsed = JSON.parse(value);
+        const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
+        return items
+            .filter((p) => p && typeof p === "object" && (p.url || p.localUri || p.uri))
+            .map((p) => p.url || p.localUri || p.uri)
+            .filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
+function formatFieldValue(type: FieldType, value: string | boolean | number): string | null {
+    if (value === undefined || value === null || value === "" || value === false) return null;
+    switch (type) {
+        case "text":
+        case "select":
+            return String(value).trim() || null;
+        case "number":
+            return String(value);
+        case "checkbox":
+            return "Yes";
+        case "signature":
+            return "Signed";
+        case "timer": {
+            const sec = Number(value);
+            return sec > 0 ? fmtDuration(sec) : null;
+        }
+        case "route": {
+            try {
+                const d = JSON.parse(String(value));
+                const dur = Math.floor((d.endTime - d.startTime) / 1000);
+                return `${d.distanceKm} km · ${fmtDuration(dur)} · avg ${d.avgSpeedKmh} km/h${(d.stops?.length ?? 0) > 0 ? ` · ${d.stops.length} stops` : ""}`;
+            } catch { return "Route recorded"; }
+        }
+        case "accelerometer": {
+            try {
+                const d = JSON.parse(String(value));
+                return `${d.category} · RMS ${d.rms} g · Peak ${d.peak} g`;
+            } catch { return "Vibration recorded"; }
+        }
+        case "stopwatch": {
+            try {
+                const d = JSON.parse(String(value));
+                const trials: number[] = d.trials ?? [];
+                return `${trials.length} trial${trials.length !== 1 ? "s" : ""} · avg ${d.avg} ms`;
+            } catch { return "Timing recorded"; }
+        }
+        case "joint_angle": {
+            try {
+                const d = JSON.parse(String(value));
+                return `${d.joint} — ${d.angle}° (${Math.round(d.confidence * 100)}% confidence)`;
+            } catch { return "Angle captured"; }
+        }
+        case "photo":
+            return null;
+        default:
+            return String(value) || null;
+    }
+}
+
+const STATUS_CFG = {
+    draft:      { label: "Draft",       color: "#ffff5b", bg: "#ffff5b20" },
+    done:       { label: "Done",        color: "#22c55e", bg: "#22c55e20" },
+    inprogress: { label: "In Progress", color: "#44d2f9", bg: "#44d2f920" },
+} as const;
+
+const SECTION_STATUS_CFG = {
+    completed:  { icon: "checkmark"            as const, color: "#22c55e", bg: "#22c55e20" },
+    partial:    { icon: "remove"               as const, color: "#eab308", bg: "#eab30820" },
+    inprogress: { icon: "ellipsis-horizontal"  as const, color: "#f2a72f", bg: "#f2a72f20" },
+    skipped:    { icon: "remove"               as const, color: "#52525b", bg: "#3f3f4640" },
+    notstarted: { icon: "remove"               as const, color: "#52525b", bg: "#3f3f4640" },
+};
+
+// ─── Signature renderer ───────────────────────────────────────────────────────
+
+function sigViewBox(paths: string): string {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const re = /[ML]([\d.]+),([\d.]+)/g;
+    let m;
+    while ((m = re.exec(paths)) !== null) {
+        const x = parseFloat(m[1]), y = parseFloat(m[2]);
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+    }
+    if (!isFinite(minX)) return "0 0 100 60";
+    const pad = 16;
+    return `${minX - pad} ${minY - pad} ${maxX - minX + pad * 2} ${maxY - minY + pad * 2}`;
+}
+
+function SignatureDisplay({ paths }: { paths: string }) {
+    const pathList = paths.split("|").filter(Boolean);
+    if (!pathList.length) return null;
+    const viewBox = sigViewBox(paths);
+    return (
+        <View className="bg-slate-800 rounded-2xl overflow-hidden border border-zinc-700" style={{ height: 120 }}>
+            <Svg width="100%" height="100%" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
+                {pathList.map((d, i) => (
+                    <Path key={i} d={d} stroke="#f2a72f" strokeWidth={2.5} fill="none"
+                        strokeLinecap="round" strokeLinejoin="round" />
+                ))}
+            </Svg>
+        </View>
+    );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
+export default function ReportDetailScreen({ onNavigate }: Props) {
+    const report = store.selectedReport;
+    const [template, setTemplate] = useState<Template | null>(null);
+    const [expanded, setExpanded] = useState<string | null>(null);
+
+    // Resolve the template: system first, then Firestore
+    useEffect(() => {
+        if (!report) return;
+        const sys = SYSTEM_TEMPLATES.find((t) => t.id === report.templateId);
+        if (sys) { setTemplate(sys as unknown as Template); return; }
+        getTemplate(report.templateId).then((t) => { if (t) setTemplate(t); });
+    }, [report?.templateId]);
+
+    // Build fieldId → {label, type} lookup from the template
+    const fieldMap = useMemo(() => {
+        const map: Record<string, { label: string; type: FieldType }> = {};
+        if (template) {
+            for (const sec of template.sections) {
+                for (const f of sec.fields) {
+                    map[f.id] = { label: f.label, type: f.type };
+                }
+            }
+        }
+        return map;
+    }, [template]);
+
+    // Photos grouped by sectionId (from the uploaded Storage array)
+    const photosBySec = useMemo(() => {
+        const map: Record<string, ReportPhoto[]> = {};
+        for (const p of (report?.photos ?? [])) {
+            (map[p.sectionId] ??= []).push(p);
+        }
+        return map;
+    }, [report]);
+
+    // Signature is stored directly on the report — no template needed
+    const signaturePaths = report?.signatureUrl ?? null;
+
+    if (!report) {
+        return (
+            <View className="flex-1 bg-background items-center justify-center gap-3">
+                <Ionicons name="document-outline" size={40} color="#3f3f46" />
+                <Text className="text-zinc-500 text-sm">Report not found</Text>
+                <TouchableOpacity onPress={() => onNavigate("reports")} className="mt-2">
+                    <Text className="text-primary text-sm font-semibold">Back to Reports</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    const statusCfg = STATUS_CFG[report.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.draft;
+    const scoreColor = !report.score ? "#52525b"
+        : report.score >= 80 ? "#22c55e"
+        : report.score >= 50 ? "#f2a72f"
+        : "#ef4444";
+
+    const completedSections = report.sections.filter(
+        (s) => s.status === "completed" || s.status === "partial",
+    ).length;
+
+
+    return (
+        <View className="flex-1 bg-background">
+            {/* Header */}
+            <View className="flex-row items-center justify-between px-5 pt-16 pb-4">
+                <View className="flex-row items-center gap-3">
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => onNavigate("reports")}
+                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    >
+                        <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    </TouchableOpacity>
+                    <Text className="text-white text-lg font-bold" numberOfLines={1} style={{ maxWidth: 220 }}>
+                        {report.title}
+                    </Text>
+                </View>
+                <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: statusCfg.bg }}>
+                    <Text className="text-xs font-semibold" style={{ color: statusCfg.color }}>
+                        {statusCfg.label}
+                    </Text>
+                </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+
+                {/* ── Meta card ─────────────────────────────────────────── */}
+                <View className="mx-5 bg-slate-900 rounded-2xl p-4 gap-3">
+                    <View className="flex-row items-start justify-between">
+                        <View className="flex-1 pr-3">
+                            <Text className="text-white text-base font-bold" numberOfLines={2}>
+                                {report.title}
+                            </Text>
+                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                {report.templateName} · {fmtDate(report.createdAt)}
+                            </Text>
+                        </View>
+                        {/* Score ring */}
+                        <View style={{ width: 56, height: 56, borderRadius: 28, borderWidth: 2.5, borderColor: scoreColor, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ color: scoreColor, fontSize: 16, fontWeight: "800", lineHeight: 18 }}>
+                                {report.score ?? "—"}
+                            </Text>
+                            <Text style={{ color: scoreColor, fontSize: 8, fontWeight: "600" }}>/ 100</Text>
+                        </View>
+                    </View>
+
+                    {[
+                        { label: "Inspector", value: report.inspectorName },
+                        report.gps ? { label: "GPS", value: `${report.gps.lat.toFixed(5)}, ${report.gps.lng.toFixed(5)}` } : null,
+                        report.routeData ? { label: "Route", value: `${report.routeData.distanceKm} km · ${report.routeData.duration}` } : null,
+                    ].filter(Boolean).map((row) => (
+                        <View key={row!.label} className="flex-row items-start justify-between border-t border-zinc-800 pt-2 gap-4">
+                            <Text className="text-zinc-500 text-xs shrink-0">{row!.label}</Text>
+                            <Text className="text-white text-xs font-medium text-right flex-1" numberOfLines={2}>{row!.value}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* ── Stats row ─────────────────────────────────────────── */}
+                <View className="flex-row mx-5 mt-3 gap-2">
+                    {[
+                        { value: `${completedSections}/${report.sections.length}`, label: "Sections" },
+                        { value: String(report.photos.length),                      label: "Photos"   },
+                        { value: report.score != null ? `${report.score}%` : "—",  label: "Score"    },
+                    ].map((s) => (
+                        <View key={s.label} className="flex-1 bg-slate-900 rounded-2xl py-3 items-center">
+                            <Text className="text-white text-xl font-bold">{s.value}</Text>
+                            <Text className="text-zinc-500 text-xs mt-0.5">{s.label}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* ── Sections ──────────────────────────────────────────── */}
+                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-4 mb-2">
+                    Sections
+                </Text>
+
+                <View className="mx-5 gap-2">
+                    {report.sections.map((sec) => {
+                        const cfg = SECTION_STATUS_CFG[sec.status] ?? SECTION_STATUS_CFG.notstarted;
+                        const isExpanded = expanded === sec.id;
+                        const isInactive = sec.status === "notstarted" || sec.status === "skipped";
+
+                        // Primary: photos from the Storage upload array
+                        const storedPhotos = photosBySec[sec.id] ?? [];
+                        const storedUris = storedPhotos.map((p) => p.url || p.localUri).filter(Boolean);
+
+                        // Fallback: scan every field value for photo-like objects (no template needed)
+                        const fieldUris = Object.values(sec.fieldValues)
+                            .flatMap(extractFieldPhotoUris)
+                            .filter((u) => !storedUris.includes(u)); // deduplicate
+
+                        const allPhotoUris = [...storedUris, ...fieldUris];
+
+                        // Collect displayable text fields (skip photo type — shown as thumbnails)
+                        const textFields = Object.entries(sec.fieldValues).filter(([fid, val]) => {
+                            const meta = fieldMap[fid];
+                            if (!meta || meta.type === "photo") return false;
+                            return formatFieldValue(meta.type, val) !== null;
+                        });
+
+                        return (
+                            <TouchableOpacity
+                                key={sec.id}
+                                activeOpacity={0.7}
+                                onPress={() => setExpanded(isExpanded ? null : sec.id)}
+                                className="bg-slate-900 rounded-2xl px-4 pt-3.5 pb-3.5"
+                            >
+                                <View className="flex-row items-center">
+                                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: cfg.bg, alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                                        <Ionicons name={cfg.icon} size={14} color={cfg.color} />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className={`text-sm font-semibold ${isInactive ? "text-zinc-500" : "text-white"}`}>
+                                            {sec.name}
+                                        </Text>
+                                        {!isInactive && (
+                                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                                {textFields.length} field{textFields.length !== 1 ? "s" : ""}
+                                                {allPhotoUris.length > 0 ? ` · ${allPhotoUris.length} photo${allPhotoUris.length !== 1 ? "s" : ""}` : ""}
+                                                {" · "}<Text style={{ color: cfg.color }}>{sec.status === "completed" ? "Completed" : sec.status === "partial" ? "Partial" : "In Progress"}</Text>
+                                            </Text>
+                                        )}
+                                    </View>
+                                    <Ionicons
+                                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                                        size={16}
+                                        color="#52525b"
+                                    />
+                                </View>
+
+                                {/* Expanded content */}
+                                {isExpanded && !isInactive && (
+                                    <View className="mt-3 pt-3 border-t border-zinc-800 gap-2.5">
+                                        {/* Field rows */}
+                                        {textFields.map(([fid, val]) => {
+                                            const meta = fieldMap[fid] ?? { label: fid, type: "text" as FieldType };
+                                            const display = formatFieldValue(meta.type, val);
+                                            if (!display) return null;
+                                            return (
+                                                <View key={fid} className="flex-row gap-3 items-start">
+                                                    <Text className="text-zinc-500 text-xs w-28 shrink-0 pt-0.5 leading-relaxed" numberOfLines={2}>
+                                                        {meta.label}
+                                                    </Text>
+                                                    <Text className="text-zinc-200 text-xs flex-1 leading-relaxed">
+                                                        {display}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+
+                                        {/* Photo thumbnails */}
+                                        {allPhotoUris.length > 0 && (
+                                            <View className="flex-row flex-wrap gap-2 mt-1">
+                                                {allPhotoUris.map((uri, pi) => (
+                                                    <Image
+                                                        key={uri + pi}
+                                                        source={{ uri }}
+                                                        style={{ width: 72, height: 72, borderRadius: 10, backgroundColor: "#1e293b" }}
+                                                        resizeMode="cover"
+                                                    />
+                                                ))}
+                                            </View>
+                                        )}
+
+                                        {textFields.length === 0 && allPhotoUris.length === 0 && (
+                                            <Text className="text-zinc-600 text-xs italic">No data recorded</Text>
+                                        )}
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {/* ── Route card ────────────────────────────────────────── */}
+                {report.routeData && (
+                    <View className="mx-5 mt-3 bg-slate-900 rounded-2xl p-4 gap-3">
+                        <View className="flex-row items-center gap-3">
+                            <View className="w-10 h-10 rounded-xl bg-primary/20 items-center justify-center">
+                                <Ionicons name="map" size={20} color="#f2a72f" />
+                            </View>
+                            <Text className="text-white font-semibold text-sm">Route Summary</Text>
+                        </View>
+                        {[
+                            { label: "Distance",  value: `${report.routeData.distanceKm} km` },
+                            { label: "Duration",  value: report.routeData.duration },
+                            { label: "Waypoints", value: String(report.routeData.waypoints.length) },
+                            { label: "Stops",     value: String(report.routeData.markers) },
+                        ].map((row, i, arr) => (
+                            <View key={row.label} className={`flex-row justify-between ${i < arr.length - 1 ? "border-b border-zinc-800 pb-2" : ""}`}>
+                                <Text className="text-zinc-500 text-xs">{row.label}</Text>
+                                <Text className="text-white text-xs font-medium">{row.value}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                {/* ── Signature ─────────────────────────────────────────── */}
+                {signaturePaths && (
+                    <View className="mx-5 mt-3 bg-slate-900 rounded-2xl p-4 gap-3">
+                        <View className="flex-row items-center gap-2 mb-1">
+                            <Ionicons name="create-outline" size={16} color="#22c55e" />
+                            <Text className="text-white font-semibold text-sm">Signature</Text>
+                        </View>
+                        <SignatureDisplay paths={signaturePaths} />
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* ── Bottom actions ────────────────────────────────────────── */}
+            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3 flex-row gap-3">
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => onNavigate("reportComparison")}
+                    className="flex-1 border border-zinc-700 bg-slate-900 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                >
+                    <Ionicons name="git-compare-outline" size={16} color="#f2a72f" />
+                    <Text className="text-primary font-semibold text-sm">Compare</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    className="flex-1 bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                >
+                    <Ionicons name="share-outline" size={16} color="#ffffff" />
+                    <Text className="text-white font-semibold text-sm">Export</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
