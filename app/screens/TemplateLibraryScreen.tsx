@@ -40,13 +40,13 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar }: Pro
 
     const handleSelectSystem = (template: SystemTemplate) => {
         store.setSelectedTemplate(template.id);
+        store.setSelectedUserTemplate(null);
         onNavigate("reportSetup");
     };
 
     const handleSelectUser = (template: Template) => {
-        // User templates use a special prefix so the report editor
-        // can distinguish them from system templates
         store.setSelectedTemplate(`user_${template.id}`);
+        store.setSelectedUserTemplate(template);
         onNavigate("reportSetup");
     };
 

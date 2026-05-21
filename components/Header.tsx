@@ -52,24 +52,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
-// 🔥 AppScreen defined locally (NO IMPORT NEEDED)
-export type AppScreen =
-    | "home"
-    | "reports"
-    | "templateLibrary"
-    | "templateBuilder"
-    | "reportSetup"
-    | "reportEditor"
-    | "mediaHandler"
-    | "mapsRoutes"
-    | "reportPreview"
-    | "score"
-    | "signature"
-    | "reportComparison"
-    | "settings"
-    | "notifications"
-    | "organisation"
-    | "permissions";
+import { AppScreen } from "@/components/BottomNavBar";
 
 interface HeaderProps {
     onOpenSidebar: () => void;
@@ -98,7 +81,7 @@ export default function AppHeader({
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                    onPress={() => onNavigate("notifications")}
+                    onPress={() => onNavigate("notification")}
                 >
                     <Ionicons
                         name="notifications-outline"

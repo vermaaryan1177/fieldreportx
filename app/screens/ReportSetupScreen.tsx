@@ -27,15 +27,44 @@ function todayLabel() {
     });
 }
 
+// Normalised shape used only for display — covers both system and user templates.
+interface DisplayTemplate {
+    name: string;
+    category: string;
+    icon: string;
+    color: string;
+    sections: { id: string }[];
+    gpsValidation: boolean;
+}
+
+function resolveTemplate(): DisplayTemplate | null {
+    const id = store.selectedTemplateId;
+    if (!id) return null;
+
+    if (!id.startsWith("user_")) {
+        const sys = SYSTEM_TEMPLATES.find((t) => t.id === id);
+        return sys ?? null;
+    }
+
+    const user = store.selectedUserTemplate;
+    if (!user) return null;
+    return {
+        name: user.name,
+        category: user.category,
+        icon: "document-text-outline",
+        color: "#94a3b8",
+        sections: user.sections,
+        gpsValidation: user.gpsValidation,
+    };
+}
+
 export default function ReportSetupScreen({ onNavigate }: Props) {
-    const template = SYSTEM_TEMPLATES.find(
-        (t) => t.id === store.selectedTemplateId,
-    );
+    const template = resolveTemplate();
 
     const [reportTitle, setReportTitle] = useState("");
     const [description, setDescription] = useState("");
     const [association, setAssociation] = useState<Association>("individual");
-    const [reportDate, setReportDate] = useState(todayLabel);
+    const reportDate = todayLabel();
     const [inspectorName, setInspectorName] = useState(
         auth.currentUser?.displayName ?? "",
     );
@@ -210,21 +239,18 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     />
                 </View>
 
-                {/* Report Date */}
+                {/* Report Date — auto-set to today, not editable */}
                 <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Report date
                 </Text>
                 <View className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-5">
-                    <TextInput
-                        className="text-white text-sm flex-1"
-                        value={reportDate}
-                        onChangeText={setReportDate}
-                        placeholderTextColor="#52525b"
-                    />
+                    <Text className="text-zinc-400 text-sm flex-1">
+                        {reportDate}
+                    </Text>
                     <Ionicons
                         name="calendar-outline"
                         size={18}
-                        color="#52525b"
+                        color="#3f3f46"
                     />
                 </View>
 

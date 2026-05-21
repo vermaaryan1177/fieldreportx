@@ -1,6 +1,6 @@
 // Lightweight module-level store for passing ephemeral state between screens.
 
-import { SectionStatus } from "@/lib/types";
+import { SectionStatus, Template } from "@/lib/types";
 
 export interface ReportSetup {
     title: string;
@@ -11,6 +11,7 @@ export interface ReportSetup {
 }
 
 let _selectedTemplateId: string | null = null;
+let _selectedUserTemplate: Template | null = null;
 let _reportSetup: ReportSetup | null = null;
 let _fieldValues: Record<string, Record<string, string | boolean | number>> = {};
 let _sectionStatuses: Record<string, SectionStatus> = {};
@@ -21,6 +22,13 @@ export const store = {
     },
     setSelectedTemplate(id: string | null) {
         _selectedTemplateId = id;
+    },
+
+    get selectedUserTemplate() {
+        return _selectedUserTemplate;
+    },
+    setSelectedUserTemplate(template: Template | null) {
+        _selectedUserTemplate = template;
     },
 
     get reportSetup() {
@@ -46,6 +54,7 @@ export const store = {
 
     clearReport() {
         _selectedTemplateId = null;
+        _selectedUserTemplate = null;
         _reportSetup = null;
         _fieldValues = {};
         _sectionStatuses = {};
