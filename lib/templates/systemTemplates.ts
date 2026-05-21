@@ -343,34 +343,14 @@ const deliverySections: TemplateSection[] = [
         field("f3", "Service type", "select", true, ["Rideshare", "Delivery", "Trades", "Other"]),
         field("f4", "Shift start time", "text", true),
     ]),
-    section("s2", "Route Details", [
-        field("f5", "Start location", "text", true),
-        field("f6", "Planned end location", "text"),
-        field("f7", "Expected duration", "text"),
-        field("f8", "Route notes", "text"),
+    section("s2", "Route & GPS", [
+        field("f5", "Route tracking", "route"),
+        field("f6", "Route notes", "text"),
     ]),
-    section("s3", "Stops Log", [
-        field("f9",  "Stop 1 — address", "text"),
-        field("f10", "Stop 1 — arrival time", "text"),
-        field("f11", "Stop 1 — departure time", "text"),
-        field("f12", "Stop 1 — status", "select", false, ["Completed", "Missed", "Delayed"]),
-        field("f13", "Stop 1 — notes", "text"),
-        field("f14", "Stop 1 — photo", "photo"),
-        field("f15", "Stop 2 — address", "text"),
-        field("f16", "Stop 2 — arrival time", "text"),
-        field("f17", "Stop 2 — departure time", "text"),
-        field("f18", "Stop 2 — status", "select", false, ["Completed", "Missed", "Delayed"]),
-    ]),
-    section("s4", "Performance Metrics", [
-        field("f19", "Total distance (km)", "number"),
-        field("f20", "Average speed (km/h)", "number"),
-        field("f21", "Stops completed", "number"),
-        field("f22", "Total time", "text"),
-    ]),
-    section("s5", "Summary", [
-        field("f23", "Notes", "text"),
-        field("f24", "Issues encountered", "text"),
-        field("f25", "Driver signature", "signature"),
+    section("s3", "Summary", [
+        field("f7", "Notes", "text"),
+        field("f8", "Issues encountered", "text"),
+        field("f9", "Driver signature", "signature"),
     ]),
 ];
 
@@ -451,7 +431,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         icon: "navigate-outline",
         color: "#06b6d4",
         gpsValidation: true,
-        features: ["GPS route & markers", "Stop time logging", "Average speed"],
+        features: ["Live GPS route tracking", "Tap-to-record stops", "ETA & speed metrics"],
         sections: deliverySections,
     },
 ];

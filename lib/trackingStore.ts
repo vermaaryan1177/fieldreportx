@@ -7,11 +7,17 @@ export interface RouteWaypoint {
     lat: number; lng: number; speedKmh: number; ts: number;
 }
 
+export interface RouteStop {
+    lat: number; lng: number; ts: number; index: number;
+}
+
 export interface RouteFieldData {
     startTime: number; endTime: number;
     distanceKm: number;
     avgSpeedKmh: number; topSpeedKmh: number; minSpeedKmh: number;
     waypoints: RouteWaypoint[];
+    stops: RouteStop[];
+    destination: { lat: number; lng: number } | null;
 }
 
 export interface AccelFieldData {
@@ -20,7 +26,7 @@ export interface AccelFieldData {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
     const R = 6371;
     const dLat = (b.lat - a.lat) * (Math.PI / 180);
     const dLng = (b.lng - a.lng) * (Math.PI / 180);
@@ -45,6 +51,11 @@ class TrackingStore {
     routeWaypoints: RouteWaypoint[] = [];
     routeResult: RouteFieldData | null = null;
 
+    // Stop & destination state
+    routeStops: RouteStop[] = [];
+    routeDestination: { lat: number; lng: number } | null = null;
+    routeEtaSec: number | null = null;
+
     private _routeSpeeds: number[] = [];
     private _routeLastPos: { lat: number; lng: number } | null = null;
     private _routeSub: Location.LocationSubscription | null = null;
@@ -54,7 +65,7 @@ class TrackingStore {
     timerStatus: "idle" | "running" | "done" = "idle";
     timerStartTime = 0;
     timerElapsed = 0;
-    timerResult: number | null = null; // elapsed seconds
+    timerResult: number | null = null;
 
     private _timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -96,6 +107,8 @@ class TrackingStore {
         this.routeStartTime = Date.now();
         this.routeElapsed = 0;
         this.routeResult = null;
+        this.routeStops = [];
+        this.routeEtaSec = null;
         this.routeStatus = "tracking";
         this.notify();
 
@@ -114,6 +127,21 @@ class TrackingStore {
                     );
                 }
                 this._routeLastPos = { lat: latitude, lng: longitude };
+
+                // ETA: remaining distance / current avg speed
+                if (this.routeDestination && this._routeLastPos) {
+                    const remainKm = haversineKm(this._routeLastPos, this.routeDestination);
+                    const moving = this._routeSpeeds.filter((s) => s > 0.5);
+                    const avgKmh = moving.length
+                        ? moving.reduce((a, b) => a + b, 0) / moving.length
+                        : 0;
+                    this.routeEtaSec = avgKmh > 0.5
+                        ? Math.round((remainKm / avgKmh) * 3600)
+                        : null;
+                } else {
+                    this.routeEtaSec = null;
+                }
+
                 this.notify();
             },
         );
@@ -124,6 +152,28 @@ class TrackingStore {
         }, 1000);
 
         return true;
+    }
+
+    recordStop() {
+        if (!this._routeLastPos) return;
+        this.routeStops.push({
+            ...this._routeLastPos,
+            ts: Date.now(),
+            index: this.routeStops.length + 1,
+        });
+        this.notify();
+    }
+
+    setDestination(lat: number, lng: number) {
+        this.routeDestination = { lat, lng };
+        this.routeEtaSec = null;
+        this.notify();
+    }
+
+    clearDestination() {
+        this.routeDestination = null;
+        this.routeEtaSec = null;
+        this.notify();
     }
 
     stopRoute(): RouteFieldData {
@@ -139,6 +189,8 @@ class TrackingStore {
             topSpeedKmh: moving.length ? Math.round(Math.max(...moving)) : 0,
             minSpeedKmh: moving.length ? Math.round(Math.min(...moving)) : 0,
             waypoints: this.routeWaypoints,
+            stops: this.routeStops,
+            destination: this.routeDestination,
         };
         this.routeStatus = "done";
         this.notify();
@@ -150,6 +202,8 @@ class TrackingStore {
         if (this._routeTimer) { clearInterval(this._routeTimer); this._routeTimer = null; }
         this.routeStatus = "idle";
         this.routeResult = null;
+        this.routeStops = [];
+        this.routeEtaSec = null;
         this.notify();
     }
 
@@ -160,6 +214,7 @@ class TrackingStore {
         this.routeElapsed = 0;
         this.routeWaypoints = [];
         this._routeSpeeds = [];
+        this.routeDestination = null;
         this.notify();
     }
 
