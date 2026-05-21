@@ -3,7 +3,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Audio } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import React, { useRef, useState } from "react";
+import { DeviceMotion } from "expo-sensors";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     ActionSheetIOS,
@@ -76,6 +77,20 @@ function isDateField(label: string) {
     return DATE_KEYWORDS.some((kw) => l.includes(kw));
 }
 
+const DATETIME_KEYWORDS = [
+    "time started",
+    "time completed",
+    "start time",
+    "arrival time",
+    "departure time",
+    "shift start time",
+];
+
+function isDateTimeField(label: string) {
+    const l = label.toLowerCase();
+    return DATETIME_KEYWORDS.some((kw) => l.includes(kw));
+}
+
 function statusColor(status: SectionStatus) {
     if (status === "completed") return "#22c55e";
     if (status === "partial") return "#eab308";
@@ -99,10 +114,34 @@ function isFieldFilled(
     return value !== "" && value !== false;
 }
 
+interface AnnotationStroke {
+    path: string;
+    color: string;
+}
+
 interface TaggedPhoto {
     uri: string;
     lat?: number;
     lng?: number;
+    pitch?: number;
+    roll?: number;
+    azimuth?: number;
+    capturedAt?: number;
+    annotations?: AnnotationStroke[];
+}
+
+function azimuthLabel(deg: number): string {
+    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
+function formatTimestamp(ms: number): string {
+    return new Date(ms).toLocaleString("en-AU", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
 }
 
 // ─── Signature pad ───────────────────────────────────────────────────────────
@@ -253,6 +292,157 @@ function SignaturePad({
     );
 }
 
+// ─── Annotation editor ───────────────────────────────────────────────────────
+
+const ANNOTATION_COLORS = ["#ffffff", "#ef4444", "#facc15", "#22c55e", "#60a5fa"];
+
+function AnnotationEditor({
+    photo,
+    onSave,
+    onCancel,
+}: {
+    photo: TaggedPhoto;
+    onSave: (annotations: AnnotationStroke[]) => void;
+    onCancel: () => void;
+}) {
+    const [strokes, setStrokes] = useState<AnnotationStroke[]>(photo.annotations ?? []);
+    const [activeColor, setActiveColor] = useState(ANNOTATION_COLORS[0]);
+    const [livePath, setLivePath] = useState("");
+    const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+    const livePathRef = useRef("");
+    const activeColorRef = useRef(ANNOTATION_COLORS[0]);
+
+    const handleColorChange = (c: string) => {
+        setActiveColor(c);
+        activeColorRef.current = c;
+    };
+
+    const pan = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (e) => {
+                const { locationX, locationY } = e.nativeEvent;
+                livePathRef.current = `M${locationX.toFixed(1)},${locationY.toFixed(1)}`;
+                setLivePath(livePathRef.current);
+            },
+            onPanResponderMove: (e) => {
+                const { locationX, locationY } = e.nativeEvent;
+                livePathRef.current += ` L${locationX.toFixed(1)},${locationY.toFixed(1)}`;
+                setLivePath(livePathRef.current);
+            },
+            onPanResponderRelease: () => {
+                const saved = livePathRef.current;
+                const color = activeColorRef.current;
+                livePathRef.current = "";
+                setLivePath("");
+                if (saved) setStrokes((prev) => [...prev, { path: saved, color }]);
+            },
+        }),
+    ).current;
+
+    const timestamp = photo.capturedAt ? formatTimestamp(photo.capturedAt) : null;
+
+    return (
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+            {/* Header */}
+            <View style={{
+                flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+                paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+                backgroundColor: "rgba(0,0,0,0.85)",
+            }}>
+                <TouchableOpacity
+                    onPress={onCancel}
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" }}
+                >
+                    <Ionicons name="close" size={18} color="#fff" />
+                </TouchableOpacity>
+                <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Annotate</Text>
+                <TouchableOpacity
+                    onPress={() => onSave(strokes)}
+                    style={{ backgroundColor: "#f2a72f", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
+                >
+                    <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>Save</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Drawing canvas */}
+            <View
+                style={{ flex: 1 }}
+                onLayout={(e) => setCanvasSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+                {...pan.panHandlers}
+            >
+                <Image
+                    source={{ uri: photo.uri }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                />
+                {canvasSize.width > 0 && (
+                    <Svg
+                        width={canvasSize.width}
+                        height={canvasSize.height}
+                        style={{ position: "absolute", top: 0, left: 0 }}
+                    >
+                        {strokes.map((s, i) => (
+                            <Path key={i} d={s.path} stroke={s.color} strokeWidth={3}
+                                fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        ))}
+                        {livePath !== "" && (
+                            <Path d={livePath} stroke={activeColor} strokeWidth={3}
+                                fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        )}
+                    </Svg>
+                )}
+                {/* Timestamp watermark */}
+                {timestamp && (
+                    <View style={{
+                        position: "absolute", bottom: 12, right: 12,
+                        backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 6,
+                        paddingHorizontal: 8, paddingVertical: 4,
+                    }}>
+                        <Text style={{ color: "#fff", fontSize: 11, fontWeight: "600" }}>{timestamp}</Text>
+                    </View>
+                )}
+            </View>
+
+            {/* Toolbar */}
+            <View style={{
+                backgroundColor: "rgba(0,0,0,0.9)", paddingHorizontal: 20,
+                paddingVertical: 16, paddingBottom: 36,
+                flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+            }}>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                    {ANNOTATION_COLORS.map((c) => (
+                        <TouchableOpacity
+                            key={c}
+                            onPress={() => handleColorChange(c)}
+                            style={{
+                                width: 28, height: 28, borderRadius: 14, backgroundColor: c,
+                                borderWidth: activeColor === c ? 2.5 : 1,
+                                borderColor: activeColor === c ? "#f2a72f" : "rgba(255,255,255,0.25)",
+                            }}
+                        />
+                    ))}
+                </View>
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                    <TouchableOpacity
+                        onPress={() => setStrokes((prev) => prev.slice(0, -1))}
+                        style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" }}
+                    >
+                        <Ionicons name="arrow-undo" size={16} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setStrokes([])}
+                        style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" }}
+                    >
+                        <Ionicons name="trash-outline" size={16} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    );
+}
+
 // ─── Field renderer ───────────────────────────────────────────────────────────
 
 interface FieldRowProps {
@@ -274,7 +464,27 @@ function FieldRow({
 }: FieldRowProps) {
     const isSelectOpen = openSelect === field.id;
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
     const [tempDate, setTempDate] = useState(new Date());
+    const [annotatingIdx, setAnnotatingIdx] = useState<number | null>(null);
+
+    // ── Gyroscope ─────────────────────────────────────────────────────────────
+    const motionRef = useRef<{ pitch: number; roll: number; azimuth: number } | null>(null);
+
+    useEffect(() => {
+        if (!field.gyroCapture) return;
+        DeviceMotion.setUpdateInterval(100);
+        const sub = DeviceMotion.addListener(({ rotation }) => {
+            if (!rotation) return;
+            const toDeg = (r: number) => Math.round(r * (180 / Math.PI));
+            motionRef.current = {
+                pitch: toDeg(rotation.beta ?? 0),
+                roll: toDeg(rotation.gamma ?? 0),
+                azimuth: ((toDeg(rotation.alpha ?? 0)) + 360) % 360,
+            };
+        });
+        return () => sub.remove();
+    }, [field.gyroCapture]);
 
     // ── Photo helpers ─────────────────────────────────────────────────────────
 
@@ -325,7 +535,14 @@ function FieldRow({
         } catch {
             // GPS unavailable — photo saved without coordinates
         }
-        commitPhotos([...photos, { uri, lat, lng }]);
+        const motion = field.gyroCapture ? motionRef.current : null;
+        commitPhotos([...photos, {
+            uri,
+            lat,
+            lng,
+            capturedAt: Date.now(),
+            ...(motion ? { pitch: motion.pitch, roll: motion.roll, azimuth: motion.azimuth } : {}),
+        }]);
     };
 
     const launchGallery = async () => {
@@ -344,7 +561,7 @@ function FieldRow({
             quality: 0.8,
         });
         if (!result.canceled)
-            commitPhotos([...photos, ...result.assets.map((a) => ({ uri: a.uri }))]);
+            commitPhotos([...photos, ...result.assets.map((a) => ({ uri: a.uri, capturedAt: Date.now() }))]);
     };
 
     const removePhoto = (index: number) =>
@@ -459,8 +676,121 @@ function FieldRow({
                 )}
             </View>
 
+            {/* TEXT — datetime (date + time picker) */}
+            {field.type === "text" && isDateTimeField(field.label) && (
+                <>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            if (value) {
+                                const parsed = new Date(String(value));
+                                setTempDate(isNaN(parsed.getTime()) ? new Date() : parsed);
+                            }
+                            setShowDatePicker(true);
+                        }}
+                        className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                    >
+                        <Text className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}>
+                            {value ? String(value) : "Select date & time…"}
+                        </Text>
+                        <Ionicons name="time-outline" size={16} color="#52525b" />
+                    </TouchableOpacity>
+
+                    {Platform.OS === "ios" ? (
+                        <Modal
+                            visible={showDatePicker}
+                            transparent
+                            animationType="slide"
+                            onRequestClose={() => setShowDatePicker(false)}
+                        >
+                            <View style={{ flex: 1, justifyContent: "flex-end" }}>
+                                <View style={{
+                                    backgroundColor: "#1e293b",
+                                    borderTopLeftRadius: 20,
+                                    borderTopRightRadius: 20,
+                                    paddingBottom: 32,
+                                }}>
+                                    <View style={{
+                                        flexDirection: "row",
+                                        justifyContent: "space-between",
+                                        paddingHorizontal: 20,
+                                        paddingVertical: 14,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: "#27272a",
+                                    }}>
+                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                            <Text style={{ color: "#71717a", fontSize: 15 }}>Cancel</Text>
+                                        </TouchableOpacity>
+                                        <Text style={{ color: "#ffffff", fontWeight: "bold", fontSize: 15 }}>
+                                            Date & Time
+                                        </Text>
+                                        <TouchableOpacity onPress={() => {
+                                            onChange(tempDate.toLocaleString("en-AU", {
+                                                day: "numeric",
+                                                month: "short",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            }));
+                                            setShowDatePicker(false);
+                                        }}>
+                                            <Text style={{ color: "#f2a72f", fontWeight: "bold", fontSize: 15 }}>Done</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        value={tempDate}
+                                        mode="datetime"
+                                        display="spinner"
+                                        themeVariant="dark"
+                                        onChange={(_, date) => { if (date) setTempDate(date); }}
+                                        style={{ height: 200 }}
+                                    />
+                                </View>
+                            </View>
+                        </Modal>
+                    ) : (
+                        <>
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={tempDate}
+                                    mode="date"
+                                    display="default"
+                                    onChange={(_, date) => {
+                                        setShowDatePicker(false);
+                                        if (date) {
+                                            setTempDate(date);
+                                            setShowTimePicker(true);
+                                        }
+                                    }}
+                                />
+                            )}
+                            {showTimePicker && (
+                                <DateTimePicker
+                                    value={tempDate}
+                                    mode="time"
+                                    display="default"
+                                    onChange={(_, date) => {
+                                        setShowTimePicker(false);
+                                        if (date) {
+                                            setTempDate(date);
+                                            onChange(date.toLocaleString("en-AU", {
+                                                day: "numeric",
+                                                month: "short",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            }));
+                                        }
+                                    }}
+                                />
+                            )}
+                        </>
+                    )}
+                </>
+            )}
+
             {/* TEXT — date detected by label keyword */}
-            {field.type === "text" && isDateField(field.label) && (
+            {field.type === "text" && isDateField(field.label) && !isDateTimeField(field.label) && (
                 <>
                     <TouchableOpacity
                         activeOpacity={0.7}
@@ -561,7 +891,7 @@ function FieldRow({
             )}
 
             {/* TEXT — single-line (mic icon at right) */}
-            {field.type === "text" && !isDateField(field.label) && !isMultiline(field.label) && (
+            {field.type === "text" && !isDateTimeField(field.label) && !isDateField(field.label) && !isMultiline(field.label) && (
                 <View className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
                     <TextInput
                         className="text-white text-sm flex-1"
@@ -590,7 +920,7 @@ function FieldRow({
             )}
 
             {/* TEXT — multiline (Dictate button below textarea) */}
-            {field.type === "text" && !isDateField(field.label) && isMultiline(field.label) && (
+            {field.type === "text" && !isDateTimeField(field.label) && !isDateField(field.label) && isMultiline(field.label) && (
                 <View className="bg-slate-800 rounded-xl px-3 py-3">
                     <TextInput
                         className="text-white text-sm"
@@ -778,6 +1108,28 @@ function FieldRow({
                                 }}
                                 resizeMode="cover"
                             />
+                            {/* Gyro badge */}
+                            {photo.pitch !== undefined && (
+                                <View
+                                    style={{
+                                        position: "absolute",
+                                        bottom: photo.lat !== undefined ? 28 : 5,
+                                        left: 5,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        backgroundColor: "rgba(0,0,0,0.65)",
+                                        borderRadius: 6,
+                                        paddingHorizontal: 5,
+                                        paddingVertical: 2,
+                                        gap: 3,
+                                    }}
+                                >
+                                    <Ionicons name="compass-outline" size={9} color="#60a5fa" />
+                                    <Text style={{ color: "#60a5fa", fontSize: 8, fontWeight: "600" }}>
+                                        {azimuthLabel(photo.azimuth ?? 0)} · {photo.pitch}° · {photo.roll}°
+                                    </Text>
+                                </View>
+                            )}
                             {/* GPS badge */}
                             {photo.lat !== undefined && (
                                 <View
@@ -800,6 +1152,42 @@ function FieldRow({
                                     </Text>
                                 </View>
                             )}
+                            {/* Timestamp watermark */}
+                            {photo.capturedAt !== undefined && (
+                                <View style={{
+                                    position: "absolute",
+                                    bottom: 5,
+                                    right: 5,
+                                    backgroundColor: "rgba(0,0,0,0.55)",
+                                    borderRadius: 4,
+                                    paddingHorizontal: 4,
+                                    paddingVertical: 2,
+                                }}>
+                                    <Text style={{ color: "#fff", fontSize: 7, fontWeight: "600" }}>
+                                        {formatTimestamp(photo.capturedAt)}
+                                    </Text>
+                                </View>
+                            )}
+                            {/* Annotate button */}
+                            <TouchableOpacity
+                                onPress={() => setAnnotatingIdx(idx)}
+                                activeOpacity={0.8}
+                                style={{
+                                    position: "absolute",
+                                    top: 5,
+                                    left: 5,
+                                    width: 22,
+                                    height: 22,
+                                    borderRadius: 11,
+                                    backgroundColor: (photo.annotations?.length ?? 0) > 0
+                                        ? "rgba(242,167,47,0.85)"
+                                        : "rgba(0,0,0,0.65)",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <Ionicons name="pencil" size={11} color="#fff" />
+                            </TouchableOpacity>
                             {/* Delete button */}
                             <TouchableOpacity
                                 onPress={() => removePhoto(idx)}
@@ -848,6 +1236,28 @@ function FieldRow({
                         </Text>
                     </TouchableOpacity>
                 </View>
+            )}
+
+            {/* ANNOTATION EDITOR */}
+            {field.type === "photo" && annotatingIdx !== null && annotatingIdx < photos.length && (
+                <Modal
+                    visible
+                    animationType="slide"
+                    presentationStyle="fullScreen"
+                    onRequestClose={() => setAnnotatingIdx(null)}
+                >
+                    <AnnotationEditor
+                        photo={photos[annotatingIdx]}
+                        onSave={(annotations) => {
+                            const updated = photos.map((p, i) =>
+                                i === annotatingIdx ? { ...p, annotations } : p,
+                            );
+                            commitPhotos(updated);
+                            setAnnotatingIdx(null);
+                        }}
+                        onCancel={() => setAnnotatingIdx(null)}
+                    />
+                </Modal>
             )}
 
             {/* SIGNATURE */}

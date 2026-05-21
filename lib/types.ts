@@ -40,6 +40,7 @@ export interface TemplateField {
     type: FieldType;
     required: boolean;
     options?: string[]; // used when type === 'select'
+    gyroCapture?: boolean; // capture device angle/alignment when photo is taken
 }
 
 export interface TemplateSection {

@@ -20,8 +20,9 @@ function field(
     type: "text" | "number" | "checkbox" | "select" | "photo" | "signature",
     required = false,
     options?: string[],
+    gyroCapture = false,
 ) {
-    return { id, label, type, required, ...(options ? { options } : {}) };
+    return { id, label, type, required, ...(options ? { options } : {}), ...(gyroCapture ? { gyroCapture } : {}) };
 }
 
 function section(id: string, name: string, fields: ReturnType<typeof field>[]): TemplateSection {
@@ -109,7 +110,7 @@ const tradesSections: TemplateSection[] = [
     ]),
     section("s2", "Before Work", [
         field("f7", "Pre-work condition description", "text"),
-        field("f8", "Pre-work photos", "photo", true),
+        field("f8", "Pre-work photos", "photo", true, undefined, true),
         field("f9", "Hazards identified", "checkbox"),
         field("f10", "Hazard description", "text"),
     ]),
@@ -118,8 +119,8 @@ const tradesSections: TemplateSection[] = [
         field("f12", "Materials used", "text"),
         field("f13", "Time started", "text"),
         field("f14", "Time completed", "text"),
-        field("f15", "After work photos", "photo", true),
-        field("f16", "Annotated diagram / sketch", "photo"),
+        field("f15", "After work photos", "photo", true, undefined, true),
+        field("f16", "Annotated diagram / sketch", "photo", false, undefined, true),
     ]),
     section("s4", "Measurements & Compliance", [
         field("f17", "Measurement label", "text"),
