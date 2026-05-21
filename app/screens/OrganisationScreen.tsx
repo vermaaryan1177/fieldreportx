@@ -9,16 +9,21 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons";
+
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 import {
   createOrganisation,
   getUserOrganisation,
-  removeMember,
+  addMember,
 } from "@/lib/db/organisations";
 
 import { auth } from "@/lib/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
+import { db as firestoreDb } from "@/lib/firebase";
 
 interface Props {
   onNavigate: (screen: AppScreen) => void;
@@ -32,362 +37,365 @@ interface Member {
   role: "Admin" | "Member";
 }
 
-export default function OrganisationScreen({ onNavigate, onOpenSidebar }: Props) {
+export default function OrganisationScreen({
+  onNavigate,
+  onOpenSidebar,
+}: Props) {
   const user = auth.currentUser;
 
-  const [organisation, setOrganisation] = useState<any>(null);
+  const [organisations, setOrganisations] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
   const [orgName, setOrgName] = useState("");
   const [orgAbn, setOrgAbn] = useState("");
   const [orgAddress, setOrgAddress] = useState("");
 
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
   useEffect(() => {
-    loadOrganisation();
+    if (!user?.uid) return;
+    loadOrgs();
   }, []);
 
-  const loadOrganisation = async () => {
-    if (!user?.uid) return;
-
+  const loadOrgs = async () => {
     try {
       setLoading(true);
 
-      const org = await getUserOrganisation(user.uid);
+      const orgs = await getUserOrganisation(user!.uid);
+      const safe = Array.isArray(orgs) ? orgs : [];
 
-      if (!org) {
-        setOrganisation(null);
+      setOrganisations(safe);
+
+      if (safe.length > 0) {
+        setSelectedOrg(safe[0]);
+        buildMembers(safe[0]);
+      } else {
+        setSelectedOrg(null);
         setMembers([]);
-        setLoading(false);
-        return;
       }
-
-      setOrganisation(org);
-
-      const tempMembers: Member[] = org.memberUids.map((uid: string) => ({
-        uid,
-        name: uid === org.adminUid ? "Admin User" : "Member User",
-        email: `${uid}@mail.com`,
-        role: uid === org.adminUid ? "Admin" : "Member",
-      }));
-
-      setMembers(tempMembers);
-      setLoading(false);
     } catch (e) {
-      console.log("LOAD ORG ERROR:", e);
+      console.log("LOAD ORGS ERROR:", e);
+    } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FIXED CREATE FLOW (important fix here)
+  const buildMembers = (org: any) => {
+    if (!org?.memberUids) {
+      setMembers([]);
+      return;
+    }
+
+    const list: Member[] = org.memberUids.map((uid: string) => ({
+      uid,
+      name: uid === org.adminUid ? "Admin" : uid,
+      email: uid,
+      role: uid === org.adminUid ? "Admin" : "Member",
+    }));
+
+    setMembers(list);
+  };
+
   const handleCreateOrganisation = async () => {
     if (!user?.uid) return;
 
     if (!orgName || !orgAbn || !orgAddress) {
-      Alert.alert("Please fill all fields");
+      Alert.alert("Fill all fields");
       return;
     }
 
     try {
-      setLoading(true);
-
       await createOrganisation(user.uid, {
         name: orgName,
         abn: orgAbn,
         address: orgAddress,
       });
 
-      setShowCreateModal(false);
-
       setOrgName("");
       setOrgAbn("");
       setOrgAddress("");
+      setShowCreateModal(false);
 
-      // 🔥 IMPORTANT: ensure Firestore propagation + cache update
-      await new Promise((res) => setTimeout(res, 500));
-
-      await loadOrganisation();
+      await loadOrgs();
     } catch (e) {
       console.log("CREATE ORG ERROR:", e);
       Alert.alert("Failed to create organisation");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleInvite = () => {
-    setShowInviteModal(true);
-  };
+  const handleInvite = async () => {
+    if (!selectedOrg?.id) return;
 
-  const addMemberToList = () => {
     if (!inviteEmail) {
-      Alert.alert("Enter email");
+      Alert.alert("Enter UID/email");
       return;
     }
 
-    const newMember: Member = {
-      uid: Date.now().toString(),
-      name: inviteEmail.split("@")[0],
-      email: inviteEmail,
-      role: "Member",
-    };
+    try {
+      await addMember(selectedOrg.id, inviteEmail.trim());
 
-    setMembers((prev) => [...prev, newMember]);
+      await loadOrgs();
 
-    setInviteEmail("");
-    setShowInviteModal(false);
+      const refreshed = await getUserOrganisation(user!.uid);
+      const safe = Array.isArray(refreshed) ? refreshed : [];
+
+      const updated = safe.find((o) => o.id === selectedOrg.id);
+
+      if (updated) {
+        setSelectedOrg(updated);
+        buildMembers(updated);
+      }
+
+      setInviteEmail("");
+      setShowInviteModal(false);
+    } catch (e) {
+      console.log("INVITE ERROR:", e);
+      Alert.alert("Failed to add member");
+    }
   };
 
-  const handleMemberMenu = (member: Member) => {
-    Alert.alert(member.name, "Choose an action", [
-      {
-        text: member.role === "Admin" ? "Make Member" : "Make Admin",
-        onPress: () => {
-          setMembers((prev) =>
-            prev.map((m) =>
-              m.uid === member.uid
-                ? {
-                    ...m,
-                    role: m.role === "Admin" ? "Member" : "Admin",
-                  }
-                : m
-            )
-          );
-        },
-      },
-      {
-        text: "Remove Member",
-        style: "destructive",
-        onPress: async () => {
-          if (organisation) {
-            await removeMember(organisation.id, member.uid);
-          }
+  const deleteOrganisation = async (orgId: string) => {
+    try {
+      await deleteDoc(doc(firestoreDb, "organisations", orgId));
 
-          setMembers((prev) =>
-            prev.filter((m) => m.uid !== member.uid)
-          );
-        },
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
+      const updated = organisations.filter((o) => o.id !== orgId);
+      setOrganisations(updated);
+
+      if (selectedOrg?.id === orgId) {
+        const next = updated[0] || null;
+        setSelectedOrg(next);
+        if (next) buildMembers(next);
+        else setMembers([]);
+      }
+    } catch (e) {
+      console.log("DELETE ORG ERROR:", e);
+      Alert.alert("Failed to delete organisation");
+    }
   };
 
-  if (loading) {
+  const switchOrg = (org: any) => {
+    setSelectedOrg(org);
+    buildMembers(org);
+  };
+
+  if (!user?.uid) {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">Loading organisation...</Text>
+        <Text className="text-white">Please login again</Text>
       </SafeAreaView>
     );
   }
 
-  if (!organisation) {
+  if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-white text-3xl font-bold mb-4">
-            No Organisation
-          </Text>
-
-          <Text className="text-zinc-400 text-center mb-8">
-            Create an organisation to manage team members and reports.
-          </Text>
-
-          <TouchableOpacity
-            className="bg-primary px-6 py-4 rounded-2xl"
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Text className="text-white font-semibold">
-              Create Organisation
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Modal visible={showCreateModal} transparent animationType="fade">
-          <View
-            className="flex-1 items-center justify-center px-6"
-            style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-          >
-            <View className="w-full rounded-2xl bg-slate-900 p-5">
-              <Text className="text-white text-xl font-bold mb-4">
-                Create Organisation
-              </Text>
-
-              <TextInput
-                placeholder="Organisation name"
-                placeholderTextColor="#71717a"
-                value={orgName}
-                onChangeText={setOrgName}
-                className="bg-slate-800 text-white rounded-xl px-4 py-3 mb-3"
-              />
-
-              <TextInput
-                placeholder="ABN"
-                placeholderTextColor="#71717a"
-                value={orgAbn}
-                onChangeText={setOrgAbn}
-                className="bg-slate-800 text-white rounded-xl px-4 py-3 mb-3"
-              />
-
-              <TextInput
-                placeholder="Address"
-                placeholderTextColor="#71717a"
-                value={orgAddress}
-                onChangeText={setOrgAddress}
-                className="bg-slate-800 text-white rounded-xl px-4 py-3"
-              />
-
-              <View className="flex-row justify-end mt-5">
-                <TouchableOpacity
-                  onPress={() => setShowCreateModal(false)}
-                  className="mr-3 px-4 py-2"
-                >
-                  <Text className="text-zinc-400">Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleCreateOrganisation}
-                  className="bg-primary px-4 py-2 rounded-xl"
-                >
-                  <Text className="text-white font-semibold">
-                    Create
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        <BottomNavBar active="settings" onNavigate={onNavigate} />
+      <SafeAreaView className="flex-1 bg-background items-center justify-center">
+        <Text className="text-white">Loading...</Text>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
-      
-      <ScrollView className="flex-1 px-4 pt-6">
-        <View className="mb-6 flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-white">
-            Organisation
+      <AppHeader
+        onOpenSidebar={onOpenSidebar}
+        onNavigate={onNavigate}
+      />
+
+      <ScrollView className="px-4 pt-6">
+
+        {/* HEADER */}
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-white text-2xl font-bold">
+            Organisations
           </Text>
 
-          <TouchableOpacity onPress={handleInvite}>
-            <Text className="text-primary text-base">+ Invite</Text>
+          <TouchableOpacity onPress={() => setShowCreateModal(true)}>
+            <Text className="text-primary">+ Create</Text>
           </TouchableOpacity>
         </View>
 
-        <View className="bg-slate-900 rounded-2xl p-4 mb-6">
-          <View className="flex-row items-center">
-            <View className="h-14 w-14 rounded-full bg-primary items-center justify-center mr-4">
-              <Text className="text-white font-bold">
-                {organisation.name?.[0]}
-              </Text>
-            </View>
+        {/* ORGANISATIONS */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {organisations.map((org) => (
+            <View key={org.id} className="relative mr-3">
 
-            <View>
-              <Text className="text-white text-lg font-semibold">
-                {organisation.name}
-              </Text>
+              {/* CARD */}
+              <TouchableOpacity
+                onPress={() => switchOrg(org)}
+                className={`p-4 rounded-2xl w-64 ${
+                  selectedOrg?.id === org.id
+                    ? "bg-primary"
+                    : "bg-slate-900"
+                }`}
+              >
+                <Text className="text-white font-bold">
+                  {org.name}
+                </Text>
 
-              <Text className="text-zinc-400 text-sm mt-1">
-                {members.length} members
-              </Text>
+                <Text className="text-zinc-400">
+                  {(org.memberUids || []).length} members
+                </Text>
+              </TouchableOpacity>
+
+              {/* 3 DOT MENU (BIG TOUCH TARGET) */}
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert(
+                    "Organisation Actions",
+                    "Choose an option",
+                    [
+                      {
+                        text: "Delete Organisation",
+                        style: "destructive",
+                        onPress: () =>
+                          Alert.alert(
+                            "Confirm Delete",
+                            "This cannot be undone.",
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Delete",
+                                style: "destructive",
+                                onPress: () =>
+                                  deleteOrganisation(org.id),
+                              },
+                            ]
+                          ),
+                      },
+                      { text: "Cancel", style: "cancel" },
+                    ]
+                  )
+                }
+                className="absolute top-2 right-2 bg-slate-800 rounded-full items-center justify-center"
+                style={{
+                  width: 44,
+                  height: 44,
+                }}
+              >
+                <Ionicons
+                  name="ellipsis-vertical"
+                  size={22}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+
             </View>
-          </View>
+          ))}
+        </ScrollView>
+
+        {/* MEMBERS */}
+        <View className="mt-6 flex-row justify-between">
+          <Text className="text-zinc-400">Members</Text>
+
+          <TouchableOpacity onPress={() => setShowInviteModal(true)}>
+            <Text className="text-primary">+ Invite</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text className="text-zinc-400 uppercase text-xs font-bold mb-3">
-          Members
-        </Text>
-
-        {members.map((member) => (
+        {members.map((m) => (
           <View
-            key={member.uid}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-3"
+            key={m.uid}
+            className="bg-slate-900 p-4 rounded-2xl mt-3"
           >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <View className="h-12 w-12 rounded-full bg-primary items-center justify-center mr-3">
-                  <Text className="text-white font-bold">
-                    {member.name[0]}
-                  </Text>
-                </View>
+            <Text className="text-white font-semibold">
+              {m.name}
+            </Text>
 
-                <View>
-                  <Text className="text-white font-semibold">
-                    {member.name}
-                  </Text>
+            <Text className="text-zinc-400 text-sm">
+              {m.email}
+            </Text>
 
-                  <Text className="text-zinc-400 text-sm">
-                    {member.email}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center">
-                <View className="bg-primary px-3 py-1 rounded-full mr-2">
-                  <Text className="text-white text-xs">
-                    {member.role}
-                  </Text>
-                </View>
-
-                <TouchableOpacity onPress={() => handleMemberMenu(member)}>
-                  <Text className="text-zinc-400 text-lg">⋮</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <Text className="text-primary text-xs mt-1">
+              {m.role}
+            </Text>
           </View>
         ))}
+
       </ScrollView>
 
-      <Modal visible={showInviteModal} transparent animationType="fade">
-        <View
-          className="flex-1 items-center justify-center px-6"
-          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-        >
-          <View className="w-full rounded-2xl bg-slate-900 p-5">
-            <Text className="text-white text-xl font-bold mb-4">
-              Invite Member
+      <BottomNavBar active="settings" onNavigate={onNavigate} />
+
+      {/* CREATE MODAL */}
+      <Modal visible={showCreateModal} transparent>
+        <View className="flex-1 bg-black/70 justify-center px-6">
+          <View className="bg-slate-900 p-5 rounded-2xl">
+
+            <Text className="text-white mb-3">
+              Create Organisation
             </Text>
 
             <TextInput
-              placeholder="Enter email"
-              placeholderTextColor="#71717a"
-              value={inviteEmail}
-              onChangeText={setInviteEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+              placeholder="Name"
+              placeholderTextColor="#777"
+              value={orgName}
+              onChangeText={setOrgName}
+              className="bg-slate-800 text-white p-3 rounded-xl mb-3"
             />
 
-            <View className="mt-5 flex-row justify-end">
-              <TouchableOpacity
-                onPress={() => {
-                  setShowInviteModal(false);
-                  setInviteEmail("");
-                }}
-                className="mr-3 px-4 py-2"
-              >
-                <Text className="text-zinc-400">Cancel</Text>
-              </TouchableOpacity>
+            <TextInput
+              placeholder="ABN"
+              placeholderTextColor="#777"
+              value={orgAbn}
+              onChangeText={setOrgAbn}
+              className="bg-slate-800 text-white p-3 rounded-xl mb-3"
+            />
 
-              <TouchableOpacity
-                onPress={addMemberToList}
-                className="rounded-xl bg-primary px-4 py-2"
-              >
-                <Text className="font-semibold text-white">Add</Text>
-              </TouchableOpacity>
-            </View>
+            <TextInput
+              placeholder="Address"
+              placeholderTextColor="#777"
+              value={orgAddress}
+              onChangeText={setOrgAddress}
+              className="bg-slate-800 text-white p-3 rounded-xl"
+            />
+
+            <TouchableOpacity
+              onPress={handleCreateOrganisation}
+              className="bg-primary mt-4 p-3 rounded-xl"
+            >
+              <Text className="text-white text-center">
+                Create
+              </Text>
+            </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
 
-      <BottomNavBar active="settings" onNavigate={onNavigate} />
+      {/* INVITE MODAL */}
+      <Modal visible={showInviteModal} transparent>
+        <View className="flex-1 bg-black/70 justify-center px-6">
+          <View className="bg-slate-900 p-5 rounded-2xl">
+
+            <Text className="text-white mb-3">
+              Add Member
+            </Text>
+
+            <TextInput
+              placeholder="UID or email"
+              placeholderTextColor="#777"
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              className="bg-slate-800 text-white p-3 rounded-xl"
+            />
+
+            <TouchableOpacity
+              onPress={handleInvite}
+              className="bg-primary mt-4 p-3 rounded-xl"
+            >
+              <Text className="text-white text-center">
+                Add
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
