@@ -522,6 +522,9 @@ export default function App() {
     };
 
     const navigate = (target: AppScreen) => {
+        // Drop the call if we're already on this screen or mid-transition
+        if (target === currentScreen || incomingScreen !== null) return;
+
         const REPORT_SCREENS: AppScreen[] = [
             "reportSetup",
             "reportEditor",

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import React, { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 export type AppScreen =
@@ -67,6 +68,16 @@ export default function BottomNavBar({
     onNavigate,
     hasOrganisation = false,
 }: BottomNavBarProps) {
+    const lastNav = useRef(0);
+
+    const safeNavigate = (id: AppScreen) => {
+        if (active === id) return;
+        const now = Date.now();
+        if (now - lastNav.current < 500) return;
+        lastNav.current = now;
+        onNavigate(id);
+    };
+
     const navItems: NavItem[] = hasOrganisation
         ? [
               ...BASE_NAV_ITEMS,
@@ -93,7 +104,7 @@ export default function BottomNavBar({
                 return (
                     <TouchableOpacity
                         key={item.id}
-                        onPress={() => onNavigate(item.id)}
+                        onPress={() => safeNavigate(item.id)}
                         activeOpacity={0.7}
                         className="flex-1 items-center gap-1"
                     >

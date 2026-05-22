@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Location from "expo-location";
+import * as Sharing from "expo-sharing";
 import { DeviceMotion } from "expo-sensors";
 import { Audio } from "expo-av";
 import React, { useEffect, useState } from "react";
@@ -26,6 +28,9 @@ import {
     leaveOrganisation,
     makeAdmin,
 } from "@/lib/db/organisations";
+import { listReportsByUser } from "@/lib/db/reports";
+import { listTemplates } from "@/lib/db/templates";
+import { sqliteDb } from "@/lib/db/database";
 import { getUserProfile } from "@/lib/db/users";
 import { store } from "@/lib/store";
 
@@ -47,8 +52,79 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
     </TouchableOpacity>
 );
 
+function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisation }: Props) {
     const user = auth.currentUser;
+
+    const [localStorageUsed, setLocalStorageUsed] = useState<string>("—");
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const dbPath = `${FileSystem.documentDirectory}SQLite/fieldreportx.db`;
+                const info = await FileSystem.getInfoAsync(dbPath, { size: true });
+                if (info.exists && !info.isDirectory && (info as any).size != null) {
+                    setLocalStorageUsed(formatBytes((info as any).size));
+                } else {
+                    setLocalStorageUsed("0 B");
+                }
+            } catch {
+                setLocalStorageUsed("—");
+            }
+        })();
+    }, []);
+
+    const [exporting, setExporting] = useState(false);
+
+    const handleExportBackup = async () => {
+        if (!user?.uid) return;
+        setExporting(true);
+        try {
+            const [reports, templates] = await Promise.all([
+                listReportsByUser(user.uid),
+                listTemplates(user.uid, null),
+            ]);
+
+            const cachedUsers = sqliteDb.getAllSync("SELECT * FROM users") ?? [];
+            const cachedOrgs  = sqliteDb.getAllSync("SELECT * FROM organisations") ?? [];
+
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                version: "1.0",
+                userId: user.uid,
+                reports,
+                templates,
+                localCache: { users: cachedUsers, organisations: cachedOrgs },
+            };
+
+            const filename = `fieldreportx_backup_${Date.now()}.json`;
+            const path = `${FileSystem.cacheDirectory}${filename}`;
+            await FileSystem.writeAsStringAsync(path, JSON.stringify(payload, null, 2), {
+                encoding: FileSystem.EncodingType.UTF8,
+            });
+
+            const canShare = await Sharing.isAvailableAsync();
+            if (canShare) {
+                await Sharing.shareAsync(path, {
+                    mimeType: "application/json",
+                    dialogTitle: filename,
+                    UTI: "public.json",
+                });
+            } else {
+                Alert.alert("Backup saved", `File written to:\n${path}`);
+            }
+        } catch (e: any) {
+            Alert.alert("Export failed", e?.message ?? "Could not create backup.");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     // Org state
     const [currentOrg, setCurrentOrg] = useState<any | null>(null);
@@ -186,7 +262,7 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" active="settings" />
             {/* Header */}
             <View className="px-5 pt-5 pb-4">
                 <Text className="text-white text-2xl font-bold">Settings</Text>
@@ -278,10 +354,16 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                     </View>
                     <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
                         <Text className="text-white text-sm">Local storage used</Text>
-                        <Text className="text-zinc-400 text-sm">1.2 GB</Text>
+                        <Text className="text-zinc-400 text-sm">{localStorageUsed}</Text>
                     </View>
-                    <TouchableOpacity activeOpacity={0.7} className="py-4">
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        disabled={exporting}
+                        onPress={handleExportBackup}
+                        className="py-4 flex-row items-center justify-between"
+                    >
                         <Text className="text-white text-sm">Export &amp; backup data</Text>
+                        {exporting && <Ionicons name="hourglass-outline" size={16} color="#f2a72f" />}
                     </TouchableOpacity>
                 </View>
 

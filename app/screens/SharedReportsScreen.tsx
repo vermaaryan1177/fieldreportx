@@ -89,7 +89,7 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="sharedReports" />
 
             <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
                 <View>

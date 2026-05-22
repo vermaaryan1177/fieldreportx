@@ -265,7 +265,7 @@ export default function OrganisationScreen({
 
   return (
       <SafeAreaView edges={['bottom']} className="flex-1 bg-background" >
-        <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
+        <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="organisation" />
 
         <ScrollView className="px-4 pt-6">
           {/* Organisations Header */}

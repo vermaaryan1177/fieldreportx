@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
+import React, { useRef, useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -9,6 +9,7 @@ interface HeaderProps {
     onOpenSidebar: () => void;
     onNavigate: (screen: AppScreen) => void;
     profileInitials?: string;
+    active?: AppScreen;
 }
 
 function getInitials(name?: string | null, email?: string | null) {
@@ -31,14 +32,23 @@ export default function AppHeader({
     onOpenSidebar,
     onNavigate,
     profileInitials,
+    active,
 }: HeaderProps) {
     const user = auth.currentUser;
+    const lastNav = useRef(0);
 
     const initials = useMemo(() => {
         if (profileInitials) return profileInitials.toUpperCase();
-
         return getInitials(user?.displayName, user?.email);
     }, [profileInitials, user]);
+
+    const safeNavigate = (screen: AppScreen) => {
+        if (active === screen) return;
+        const now = Date.now();
+        if (now - lastNav.current < 500) return;
+        lastNav.current = now;
+        onNavigate(screen);
+    };
 
     return (
         <View className="flex-row items-center justify-between px-5 pt-12 pb-5 bg-slate-900">
@@ -56,7 +66,7 @@ export default function AppHeader({
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
-                    onPress={() => onNavigate("notification")}
+                    onPress={() => safeNavigate("notification")}
                 >
                     <Ionicons
                         name="notifications-outline"
@@ -67,7 +77,7 @@ export default function AppHeader({
 
                 <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => onNavigate("settings")}
+                    onPress={() => safeNavigate("settings")}
                     className="w-10 h-10 rounded-full bg-primary items-center justify-center"
                 >
                     <Text className="text-white font-bold text-sm">

@@ -407,6 +407,7 @@ export default function HomeScreen({
                 onOpenSidebar={onOpenSidebar}
                 onNavigate={onNavigate}
                 profileInitials={initials}
+                active="home"
             />
 
             {/* Greeting */}

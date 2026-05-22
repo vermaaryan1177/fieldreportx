@@ -131,7 +131,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} active="reports" />
 
             <View className="px-5 pt-5 pb-4">
                 <View className="flex-row items-center justify-between mb-4">

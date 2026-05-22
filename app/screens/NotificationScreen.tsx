@@ -120,7 +120,7 @@ export default function NotificationsScreen({
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="notification" />
 
             <View className="flex-row items-center justify-between border-b border-zinc-800 px-5 py-4">
                 <Text className="text-2xl font-bold text-white">Notifications</Text>
