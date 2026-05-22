@@ -8,9 +8,11 @@ import AppHeader from "@/components/Header";
 import {
     Alert,
     Linking,
+    Modal,
     Platform,
     ScrollView,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -18,6 +20,14 @@ import {
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
+import {
+    createOrganisation,
+    getUserOrganisation,
+    leaveOrganisation,
+    makeAdmin,
+} from "@/lib/db/organisations";
+import { getUserProfile } from "@/lib/db/users";
+import { store } from "@/lib/store";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -37,8 +47,75 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
     </TouchableOpacity>
 );
 
-export default function SettingsScreen({ onNavigate,onOpenSidebar,hasOrganisation}: Props) {
+export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisation }: Props) {
     const user = auth.currentUser;
+
+    // Org state
+    const [currentOrg, setCurrentOrg] = useState<any | null>(null);
+    const [orgModalVisible, setOrgModalVisible] = useState(false);
+    const [newOrgName, setNewOrgName] = useState("");
+    const [creatingOrg, setCreatingOrg] = useState(false);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        getUserOrganisation(user.uid).then((orgs) => {
+            const active = orgs.find((o) => o.id === store.currentOrgId) ?? orgs[0] ?? null;
+            setCurrentOrg(active);
+        });
+    }, [user?.uid]);
+
+    const handleCreateOrg = async () => {
+        if (!newOrgName.trim() || !user?.uid) return;
+        setCreatingOrg(true);
+        try {
+            const orgId = await createOrganisation(user.uid, { name: newOrgName.trim() });
+            store.setCurrentOrgId(orgId);
+            const orgs = await getUserOrganisation(user.uid);
+            setCurrentOrg(orgs.find((o) => o.id === orgId) ?? null);
+            setNewOrgName("");
+            setOrgModalVisible(false);
+            Alert.alert("Organisation created", `"${newOrgName.trim()}" is ready.`);
+        } catch {
+            Alert.alert("Error", "Failed to create organisation.");
+        } finally {
+            setCreatingOrg(false);
+        }
+    };
+
+    const handleLeaveOrg = async () => {
+        if (!currentOrg || !user?.uid) return;
+        const isAdmin = currentOrg.adminUid === user.uid;
+        const otherMembers = (currentOrg.memberUids as string[]).filter((id: string) => id !== user.uid);
+
+        if (isAdmin && otherMembers.length > 0) {
+            Alert.alert(
+                "Transfer admin first",
+                "You're the admin. Please make another member admin in the Organisation tab before leaving.",
+            );
+            return;
+        }
+
+        Alert.alert(
+            `Leave "${currentOrg.name}"`,
+            "Are you sure? You will lose access to shared resources.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Leave",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await leaveOrganisation(currentOrg.id, user.uid);
+                            store.setCurrentOrgId(null);
+                            setCurrentOrg(null);
+                        } catch {
+                            Alert.alert("Error", "Failed to leave organisation.");
+                        }
+                    },
+                },
+            ],
+        );
+    };
 
     // Real permission status (granted / not-granted)
     const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -226,6 +303,37 @@ export default function SettingsScreen({ onNavigate,onOpenSidebar,hasOrganisatio
                     </TouchableOpacity>
                 </View>
 
+                {/* Organisation */}
+                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                    Organisation
+                </Text>
+                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
+                    {currentOrg ? (
+                        <>
+                            <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
+                                <Text className="text-white text-sm">Current org</Text>
+                                <Text className="text-zinc-400 text-sm">{currentOrg.name}</Text>
+                            </View>
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={handleLeaveOrg}
+                                className="py-4"
+                            >
+                                <Text className="text-red-400 text-sm">Leave "{currentOrg.name}"</Text>
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => setOrgModalVisible(true)}
+                            className="flex-row items-center justify-between py-4"
+                        >
+                            <Text className="text-white text-sm">Create Organisation</Text>
+                            <Ionicons name="chevron-forward" size={16} color="#3f3f46" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
                 {/* Sign out */}
                 <TouchableOpacity
                     activeOpacity={0.8}
@@ -238,6 +346,40 @@ export default function SettingsScreen({ onNavigate,onOpenSidebar,hasOrganisatio
                         {signingOut ? "Signing out…" : "Sign out"}
                     </Text>
                 </TouchableOpacity>
+
+                {/* Create Org Modal */}
+                <Modal visible={orgModalVisible} transparent animationType="fade">
+                    <View className="flex-1 bg-black/70 justify-center px-6">
+                        <View className="bg-slate-900 rounded-2xl p-5">
+                            <Text className="text-white font-bold text-base mb-4">Create Organisation</Text>
+                            <TextInput
+                                placeholder="Organisation name"
+                                placeholderTextColor="#52525b"
+                                value={newOrgName}
+                                onChangeText={setNewOrgName}
+                                className="bg-slate-800 text-white px-4 py-3 rounded-xl mb-4"
+                            />
+                            <View className="flex-row gap-3">
+                                <TouchableOpacity
+                                    onPress={() => { setOrgModalVisible(false); setNewOrgName(""); }}
+                                    className="flex-1 py-3 rounded-xl bg-slate-800 items-center"
+                                >
+                                    <Text className="text-zinc-400 font-semibold">Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={handleCreateOrg}
+                                    disabled={creatingOrg || !newOrgName.trim()}
+                                    className="flex-1 py-3 rounded-xl bg-primary items-center"
+                                    style={(!newOrgName.trim() || creatingOrg) ? { opacity: 0.5 } : undefined}
+                                >
+                                    <Text className="text-white font-semibold">
+                                        {creatingOrg ? "Creating…" : "Create"}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </ScrollView>
 
             <BottomNavBar active="settings" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>

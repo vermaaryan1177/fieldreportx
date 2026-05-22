@@ -17,8 +17,8 @@ export interface UserProfile {
 export interface Organisation {
     id: string;
     name: string;
-    abn: string;
-    address: string;
+    abn?: string;
+    address?: string;
     adminUid: string;
     memberUids: string[];
     createdAt: number; // Unix ms

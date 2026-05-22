@@ -222,7 +222,6 @@ import {
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
-import { getUserOrganisation } from "@/lib/db/organisations";
 import { listReportsByUser } from "@/lib/db/reports";
 
 import { auth } from "@/lib/firebase";
@@ -338,12 +337,10 @@ function getInitials(name: string | null | undefined): string {
 export default function HomeScreen({
     onNavigate,
     onOpenSidebar,
+    hasOrganisation = false,
 }: Props) {
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // NEW
-    const [hasOrganisation, setHasOrganisation] = useState(false);
 
     const user = auth.currentUser;
 
@@ -383,27 +380,6 @@ export default function HomeScreen({
     useEffect(() => {
         fetchReports();
     }, [fetchReports]);
-
-    // ─── Organisations ────────────────────────────────────────────────────────
-
-    useEffect(() => {
-        if (!user?.uid) return;
-
-        (async () => {
-            try {
-                const orgs = await getUserOrganisation(user.uid);
-
-                setHasOrganisation(
-                    Array.isArray(orgs) && orgs.length > 0
-                );
-            } catch (e) {
-                console.warn(
-                    "Failed to load organisations",
-                    e
-                );
-            }
-        })();
-    }, [user?.uid]);
 
     // ─── Stats ────────────────────────────────────────────────────────────────
 

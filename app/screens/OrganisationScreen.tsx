@@ -17,10 +17,13 @@ import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { auth, db } from "@/lib/firebase";
 import {
   createOrganisation,
+  deleteOrganisation as deleteOrganisationFromDB,
   getUserOrganisation,
   inviteMember,
+  makeAdmin,
   removeMember,
 } from "@/lib/db/organisations";
+import { store } from "@/lib/store";
 import { getUserProfile } from "@/lib/db/users";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
@@ -52,8 +55,6 @@ export default function OrganisationScreen({
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const [orgName, setOrgName] = useState("");
-  const [orgAbn, setOrgAbn] = useState("");
-  const [orgAddress, setOrgAddress] = useState("");
 
   const [inviteEmail, setInviteEmail] = useState("");
 
@@ -73,8 +74,10 @@ export default function OrganisationScreen({
       setOrganisations(orgs);
 
       if (orgs.length > 0) {
-        setSelectedOrg(orgs[0]);
-        await buildMembers(orgs[0]);
+        const active = orgs.find((o) => o.id === store.currentOrgId) ?? orgs[0];
+        setSelectedOrg(active);
+        store.setCurrentOrgId(active.id);
+        await buildMembers(active);
       } else {
         setSelectedOrg(null);
         setMembers([]);
@@ -117,20 +120,15 @@ export default function OrganisationScreen({
 
   const handleCreateOrganisation = async () => {
     if (!user?.uid) return;
-    if (!orgName || !orgAbn || !orgAddress) {
-      Alert.alert("Fill all fields");
+    if (!orgName.trim()) {
+      Alert.alert("Enter organisation name");
       return;
     }
 
     try {
-      await createOrganisation(user.uid, {
-        name: orgName,
-        abn: orgAbn,
-        address: orgAddress,
-      });
+      const orgId = await createOrganisation(user.uid, { name: orgName.trim() });
+      store.setCurrentOrgId(orgId);
       setOrgName("");
-      setOrgAbn("");
-      setOrgAddress("");
       setShowCreateModal(false);
       await loadOrgs();
     } catch {
@@ -171,19 +169,27 @@ export default function OrganisationScreen({
 
   const switchOrg = async (org: any) => {
     setSelectedOrg(org);
+    store.setCurrentOrgId(org.id);
     await buildMembers(org);
   };
 
   const deleteOrganisation = async (orgId: string) => {
     try {
+      await deleteOrganisationFromDB(orgId);
+      if (store.currentOrgId === orgId) store.setCurrentOrgId(null);
+
       const updated = organisations.filter((o) => o.id !== orgId);
       setOrganisations(updated);
 
       if (selectedOrg?.id === orgId) {
         const next = updated[0] || null;
         setSelectedOrg(next);
-        if (next) await buildMembers(next);
-        else setMembers([]);
+        if (next) {
+          store.setCurrentOrgId(next.id);
+          await buildMembers(next);
+        } else {
+          setMembers([]);
+        }
       }
     } catch {
       Alert.alert("Failed to delete organisation");
@@ -202,7 +208,6 @@ export default function OrganisationScreen({
 
   const handleRemoveMember = async () => {
     if (!selectedOrg?.id || !menuMember) return;
-
     try {
       await removeMember(selectedOrg.id, menuMember.uid);
       closeMemberMenu();
@@ -210,6 +215,29 @@ export default function OrganisationScreen({
     } catch {
       Alert.alert("Failed to remove member");
     }
+  };
+
+  const handleMakeAdmin = async () => {
+    if (!selectedOrg?.id || !menuMember) return;
+    Alert.alert(
+      "Make Admin",
+      `Make ${menuMember.username} the admin of "${selectedOrg.name}"? You will become a regular member.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            try {
+              await makeAdmin(selectedOrg.id, menuMember.uid);
+              closeMemberMenu();
+              await loadOrgs();
+            } catch {
+              Alert.alert("Failed to transfer admin");
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (!user?.uid) {
@@ -317,21 +345,6 @@ export default function OrganisationScreen({
                 value={orgName}
                 onChangeText={setOrgName}
               />
-              <TextInput
-                placeholder="ABN"
-                placeholderTextColor="#888"
-                className="bg-zinc-800 text-white p-3 rounded mb-3"
-                value={orgAbn}
-                onChangeText={setOrgAbn}
-              />
-              <TextInput
-                placeholder="Address"
-                placeholderTextColor="#888"
-                className="bg-zinc-800 text-white p-3 rounded mb-3"
-                value={orgAddress}
-                onChangeText={setOrgAddress}
-              />
-
               <View className="flex-row justify-end mt-4">
                 <TouchableOpacity onPress={() => setShowCreateModal(false)} className="mr-3">
                   <Text className="text-zinc-400">Cancel</Text>
@@ -377,7 +390,10 @@ export default function OrganisationScreen({
           >
             <View className="bg-zinc-900 p-4 rounded-2xl w-64">
               <Text className="text-white font-bold mb-4">Member Options</Text>
-              <TouchableOpacity onPress={handleRemoveMember} className="py-2">
+              <TouchableOpacity onPress={handleMakeAdmin} className="py-2 border-b border-zinc-800">
+                <Text className="text-primary font-semibold">Make Admin</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleRemoveMember} className="py-2 border-b border-zinc-800">
                 <Text className="text-red-500 font-semibold">Remove Member</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={closeMemberMenu} className="py-2">

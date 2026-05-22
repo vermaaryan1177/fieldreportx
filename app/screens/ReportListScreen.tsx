@@ -301,7 +301,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                 </View>
             )}
 
-            <BottomNavBar active="reports" onNavigate={onNavigate} />
+            <BottomNavBar active="reports" onNavigate={onNavigate} hasOrganisation={hasOrganisation} />
         </View>
     );
 }

@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { doc, updateDoc } from "firebase/firestore";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import SignaturePad from "@/components/SignaturePad";
+import { db } from "@/lib/firebase";
 import { submitReport } from "@/lib/db/submitReport";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
@@ -106,6 +108,8 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
     const [sigVisible, setSigVisible] = useState(false);
     const [renderTick, setRenderTick] = useState(0);
     const [submitting, setSubmitting] = useState(false);
+    const [showOrgShareModal, setShowOrgShareModal] = useState(false);
+    const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
 
     const setup = store.reportSetup;
     const template = store.selectedUserTemplate
@@ -145,14 +149,40 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
     const handleSubmit = async () => {
         setSubmitting(true);
         try {
-            await submitReport();
-            store.clearReport();
-            onNavigate("reports");
+            const reportId = await submitReport();
+            if (store.currentOrgId) {
+                setSubmittedReportId(reportId);
+                setShowOrgShareModal(true);
+            } else {
+                store.clearReport();
+                onNavigate("reports");
+            }
         } catch (e: any) {
             Alert.alert("Submit failed", e?.message ?? "Something went wrong. Please try again.");
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleShareWithOrg = async () => {
+        if (submittedReportId && store.currentOrgId) {
+            try {
+                await updateDoc(doc(db, "reports", submittedReportId), {
+                    organisationId: store.currentOrgId,
+                });
+            } catch (e) {
+                console.warn("Failed to share report with org", e);
+            }
+        }
+        setShowOrgShareModal(false);
+        store.clearReport();
+        onNavigate("reports");
+    };
+
+    const handleSkipOrgShare = () => {
+        setShowOrgShareModal(false);
+        store.clearReport();
+        onNavigate("reports");
     };
 
     const handleSignatureDone = (paths: string) => {
@@ -199,6 +229,35 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
 
     return (
         <View className="flex-1 bg-background">
+            {/* Org share modal */}
+            <Modal visible={showOrgShareModal} transparent animationType="fade">
+                <View className="flex-1 bg-black/70 justify-center px-6">
+                    <View className="bg-slate-900 rounded-2xl p-5">
+                        <View className="w-12 h-12 rounded-2xl bg-primary/20 items-center justify-center mb-4">
+                            <Ionicons name="business-outline" size={24} color="#f2a72f" />
+                        </View>
+                        <Text className="text-white font-bold text-base mb-1">Share with Organisation?</Text>
+                        <Text className="text-zinc-400 text-sm mb-5">
+                            Your report has been saved. Would you like to share it with your organisation so other members can view it?
+                        </Text>
+                        <View className="flex-row gap-3">
+                            <TouchableOpacity
+                                onPress={handleSkipOrgShare}
+                                className="flex-1 py-3 rounded-xl bg-slate-800 items-center"
+                            >
+                                <Text className="text-zinc-400 font-semibold">Keep Private</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={handleShareWithOrg}
+                                className="flex-1 py-3 rounded-xl bg-primary items-center"
+                            >
+                                <Text className="text-white font-semibold">Share</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Signature modal */}
             <Modal visible={sigVisible} animationType="slide" onRequestClose={() => setSigVisible(false)}>
                 <SignaturePad

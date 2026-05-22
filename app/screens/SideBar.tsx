@@ -16,6 +16,7 @@ import { fnv1a32 } from "@/lib/checksum";
 import { AppScreen } from "@/components/BottomNavBar";
 import { auth } from "@/lib/firebase";
 import { getUserOrganisation } from "@/lib/db/organisations";
+import { store } from "@/lib/store";
 // import { getUserNotifications } from "@/lib/db/notifications";
 
 type SidebarItem = {
@@ -37,6 +38,7 @@ const OTHER_ITEMS: SidebarItem[] = [
 interface SidebarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
+    onOrgSwitch?: (orgId: string) => void;
 }
 
 /* helpers */
@@ -95,7 +97,7 @@ function SidebarButton({
     );
 }
 
-export default function Sidebar({ active, onNavigate }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, onOrgSwitch }: SidebarProps) {
     const user = auth.currentUser;
 
     const deviceHash = useMemo(
@@ -120,7 +122,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             const safe = Array.isArray(orgs) ? orgs : [];
 
             setOrganisations(safe);
-            setCurrentOrg(safe.length > 0 ? safe[0] : null);
+            const active = safe.find((o) => o.id === store.currentOrgId) ?? safe[0] ?? null;
+            setCurrentOrg(active);
+            if (active) store.setCurrentOrgId(active.id);
         })();
     }, [user?.uid]);
 
@@ -165,6 +169,8 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
 
     const switchOrg = (org: any) => {
         setCurrentOrg(org);
+        store.setCurrentOrgId(org.id);
+        onOrgSwitch?.(org.id);
         setOrgModalVisible(false);
     };
 

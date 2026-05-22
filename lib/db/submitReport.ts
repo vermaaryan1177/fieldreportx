@@ -8,7 +8,6 @@ import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 import { ReportPhoto, ReportSection, RouteData } from "@/lib/types";
 import { uploadFile } from "./storage";
-import { getUserProfile } from "./users";
 
 function randomId(): string {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -62,10 +61,6 @@ export async function submitReport(): Promise<string> {
 
     const setup = store.reportSetup;
     if (!setup) throw new Error("No report setup found");
-
-    // Fetch org membership (best-effort; null is fine)
-    const profile = await getUserProfile(user.uid);
-    const orgId = profile?.organisationId ?? null;
 
     // Reserve a Firestore doc ID before uploading so paths are stable
     const reportRef = doc(collection(db, "reports"));
@@ -220,7 +215,7 @@ export async function submitReport(): Promise<string> {
         templateId: template.id,
         templateName: template.name,
         templateVersion,
-        organisationId: orgId,
+        organisationId: null,
         inspectorId: user.uid,
         inspectorName: setup.inspectorName || user.displayName || user.email || "Unknown",
         status: "done",

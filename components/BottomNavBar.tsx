@@ -16,6 +16,8 @@ export type AppScreen =
     | "settings"
     | "notification"
     | "organisation"
+    | "sharedReports"
+    | "sharedTemplates"
     | "permissions";
 
 type NavItem = {
@@ -68,6 +70,12 @@ export default function BottomNavBar({
     const navItems: NavItem[] = hasOrganisation
         ? [
               ...BASE_NAV_ITEMS,
+              {
+                  id: "sharedReports",
+                  label: "Shared",
+                  icon: "people-outline",
+                  activeIcon: "people",
+              },
               {
                   id: "organisation",
                   label: "Org",

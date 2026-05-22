@@ -321,6 +321,7 @@ import ReportPreviewScreen from "./screens/ReportPreviewScreen";
 import ReportSetupScreen from "./screens/ReportSetupScreen";
 import ScoreScreen from "./screens/ScoreScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import SharedReportsScreen from "./screens/SharedReportsScreen";
 import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
 import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
@@ -338,11 +339,15 @@ function ScreenContent({
     navigate,
     openSidebar,
     hasOrganisation,
+    userId,
+    currentOrgId,
 }: {
     screen: AppScreen;
     navigate: (s: AppScreen) => void;
     openSidebar: () => void;
     hasOrganisation: boolean;
+    userId?: string;
+    currentOrgId?: string | null;
 }) {
     switch (screen) {
         case "permissions":
@@ -454,6 +459,18 @@ function ScreenContent({
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
                     hasOrganisation={hasOrganisation}
+                    userId={userId}
+                />
+            );
+
+        case "sharedReports":
+        case "sharedTemplates":
+            return (
+                <SharedReportsScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
+                    currentOrgId={currentOrgId ?? null}
                 />
             );
 
@@ -482,9 +499,8 @@ export default function App() {
     // sidebar
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // NEW
-    const [hasOrganisation, setHasOrganisation] =
-        useState(false);
+    const [hasOrganisation, setHasOrganisation] = useState(false);
+    const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
 
     const pendingPermissions = useRef(false);
 
@@ -585,19 +601,16 @@ export default function App() {
 
         (async () => {
             try {
-                const orgs = await getUserOrganisation(
-                    user.uid
-                );
-
-                setHasOrganisation(
-                    Array.isArray(orgs) &&
-                        orgs.length > 0
-                );
+                const orgs = await getUserOrganisation(user.uid);
+                const hasOrg = Array.isArray(orgs) && orgs.length > 0;
+                setHasOrganisation(hasOrg);
+                if (hasOrg) {
+                    const orgId = store.currentOrgId ?? orgs[0].id;
+                    store.setCurrentOrgId(orgId);
+                    setCurrentOrgId(orgId);
+                }
             } catch (e) {
-                console.warn(
-                    "Failed to load organisations",
-                    e
-                );
+                console.warn("Failed to load organisations", e);
             }
         })();
     }, [user?.uid]);
@@ -633,6 +646,8 @@ export default function App() {
                 navigate={navigate}
                 openSidebar={() => setSidebarOpen(true)}
                 hasOrganisation={hasOrganisation}
+                userId={user.uid}
+                currentOrgId={currentOrgId}
             />
 
             {/* Transition Screen */}
@@ -641,12 +656,10 @@ export default function App() {
                     <ScreenContent
                         screen={incomingScreen}
                         navigate={navigate}
-                        openSidebar={() =>
-                            setSidebarOpen(true)
-                        }
-                        hasOrganisation={
-                            hasOrganisation
-                        }
+                        openSidebar={() => setSidebarOpen(true)}
+                        hasOrganisation={hasOrganisation}
+                        userId={user.uid}
+                        currentOrgId={currentOrgId}
                     />
                 </Animated.View>
             )}
@@ -697,9 +710,8 @@ export default function App() {
                                 setSidebarOpen(false);
                                 navigate(screen);
                             }}
-                            onSignOut={() =>
-                                setSidebarOpen(false)
-                            }
+                            onSignOut={() => setSidebarOpen(false)}
+                            onOrgSwitch={(orgId) => setCurrentOrgId(orgId)}
                         />
                     </View>
                 </>

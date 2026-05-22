@@ -12,6 +12,7 @@ export interface ReportSetup {
 
 let _selectedReport: Report | null = null;
 let _comparisonReports: [Report, Report] | null = null;
+let _currentOrgId: string | null = null;
 let _selectedTemplateId: string | null = null;
 let _selectedUserTemplate: Template | null = null;
 let _reportSetup: ReportSetup | null = null;
@@ -31,6 +32,13 @@ export const store = {
     },
     setComparisonReports(pair: [Report, Report] | null) {
         _comparisonReports = pair;
+    },
+
+    get currentOrgId() {
+        return _currentOrgId;
+    },
+    setCurrentOrgId(id: string | null) {
+        _currentOrgId = id;
     },
 
     get selectedTemplateId() {

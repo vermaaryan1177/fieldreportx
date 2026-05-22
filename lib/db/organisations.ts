@@ -207,6 +207,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -275,15 +276,15 @@ async function cacheOrg(org: Organisation) {
 
 export async function createOrganisation(
   adminUid: string,
-  data: Pick<Organisation, "name" | "abn" | "address">
+  data: { name: string; abn?: string; address?: string }
 ): Promise<string> {
   const ref = doc(collection(firestoreDb, col));
 
   const org: Organisation = {
     id: ref.id,
     name: data.name,
-    abn: data.abn,
-    address: data.address,
+    abn: data.abn ?? "",
+    address: data.address ?? "",
     adminUid,
     memberUids: [adminUid],
     createdAt: Date.now(),
@@ -293,6 +294,23 @@ export async function createOrganisation(
   await cacheOrg(org);
 
   return ref.id;
+}
+
+export async function makeAdmin(orgId: string, uid: string): Promise<void> {
+  await updateDoc(doc(firestoreDb, col, orgId), { adminUid: uid });
+}
+
+export async function leaveOrganisation(orgId: string, uid: string): Promise<void> {
+  await updateDoc(doc(firestoreDb, col, orgId), {
+    memberUids: arrayRemove(uid),
+  });
+}
+
+export async function deleteOrganisation(orgId: string): Promise<void> {
+  await deleteDoc(doc(firestoreDb, col, orgId));
+  try {
+    await sqliteDb.runAsync("DELETE FROM organisations WHERE id = ?", [orgId]);
+  } catch {}
 }
 
 export async function getOrganisation(orgId: string) {
