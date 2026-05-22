@@ -80,17 +80,8 @@
 // };
 
 
-
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-  serverTimestamp,
-  addDoc,
-} from "firebase/firestore";
+// lib/db/notifications.ts
+import { collection, doc, onSnapshot, orderBy, query, updateDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export type NotificationItem = {
@@ -120,11 +111,12 @@ export const NotificationDB = {
           description: data.description || "",
           icon: data.icon || "",
           unread: data.unread ?? true,
-          createdAt: data.createdAt,
+          createdAt: data.createdAt ?? new Date(),
           time: data.time || "",
           inviteId: data.inviteId || null,
         };
       });
+      console.log("🔥 Notifications:", items);
       callback(items);
     });
   },
@@ -137,7 +129,14 @@ export const NotificationDB = {
   async create(userId: string, data: any) {
     await addDoc(getPath(userId), {
       ...data,
-      createdAt: serverTimestamp(),
+      createdAt: data.createdAt || new Date(), // client timestamp for instant visibility
     });
+  },
+
+  // Optional: Mark all notifications as read
+  async markAllAsRead(userId: string, notifications: NotificationItem[]) {
+    await Promise.all(
+      notifications.map((n) => n.unread && this.markAsRead(userId, n.id))
+    );
   },
 };

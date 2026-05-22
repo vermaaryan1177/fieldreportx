@@ -1,7 +1,8 @@
+// screens/NotificationsScreen.tsx
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, Button } from "react-native";
 
 import { NotificationDB, NotificationItem } from "@/lib/db/notifications";
 import { OrganisationInvitesDB } from "@/lib/db/organisationInvites";
@@ -70,6 +71,29 @@ export default function NotificationsScreen({
         }
     };
 
+    // --- Test Notification Button ---
+    const createTestNotification = async () => {
+        if (!userId) return;
+
+        try {
+            await NotificationDB.create(userId, {
+                title: "🔥 Test Notification",
+                description: "This notification was created for testing!",
+                icon: "🔔",
+                unread: true,
+                time: new Date().toLocaleTimeString(),
+            });
+            console.log("✅ Test notification created!");
+        } catch (error) {
+            console.error("❌ Failed to create test notification:", error);
+        }
+    };
+
+    // --- Optional: Mark All Read Button ---
+    const markAllRead = async () => {
+        await NotificationDB.markAllAsRead(userId, notifications);
+    };
+
     return (
         <View className="flex-1 bg-background">
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" />
@@ -77,6 +101,12 @@ export default function NotificationsScreen({
             <View className="flex-row items-center justify-between border-b border-zinc-800 px-5 py-4">
                 <Text className="text-2xl font-bold text-white">Notifications</Text>
                 <Text className="text-amber-500">{unread.length ?? 0} unread</Text>
+            </View>
+
+            {/* --- Test Buttons --- */}
+            <View className="px-5 py-2 flex-row space-x-2">
+                <Button title="Create Test Notification" onPress={createTestNotification} />
+                <Button title="Mark All Read" onPress={markAllRead} />
             </View>
 
             <ScrollView>
