@@ -419,7 +419,7 @@ export default function OrganisationScreen({
       </ScrollView>
 
       <BottomNavBar
-        active="settings"
+        active="organisation"
         onNavigate={onNavigate}
         hasOrganisation={hasOrganisation}
       />
