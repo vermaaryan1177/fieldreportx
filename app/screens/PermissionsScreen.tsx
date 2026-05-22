@@ -19,6 +19,7 @@ import { auth } from "@/lib/firebase";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 type PermKey = "camera" | "location" | "microphone" | "motion";

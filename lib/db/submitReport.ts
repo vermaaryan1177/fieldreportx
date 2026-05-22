@@ -1,7 +1,9 @@
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
+import { Platform } from "react-native";
 
 import { auth, db } from "@/lib/firebase";
+import { computeReportChecksum, fnv1a32 } from "@/lib/checksum";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 import { ReportPhoto, ReportSection, RouteData } from "@/lib/types";
@@ -55,6 +57,8 @@ export async function submitReport(): Promise<string> {
         SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId) ??
         null;
     if (!template) throw new Error("No template selected");
+
+    const templateVersion: number = (template as any).version ?? 1;
 
     const setup = store.reportSetup;
     if (!setup) throw new Error("No report setup found");
@@ -199,11 +203,23 @@ export async function submitReport(): Promise<string> {
         ? Math.round((completedCount / sections.length) * 100)
         : 0;
 
+    const deviceHash = fnv1a32(user.uid + Platform.OS);
+
+    const checksum = computeReportChecksum({
+        title: setup.title || "Untitled Report",
+        templateId: template.id,
+        templateVersion,
+        inspectorId: user.uid,
+        sections,
+        score,
+    });
+
     await setDoc(reportRef, deepClean({
         id: reportId,
         title: setup.title || "Untitled Report",
         templateId: template.id,
         templateName: template.name,
+        templateVersion,
         organisationId: orgId,
         inspectorId: user.uid,
         inspectorName: setup.inspectorName || user.displayName || user.email || "Unknown",
@@ -212,6 +228,8 @@ export async function submitReport(): Promise<string> {
         gps,
         routeData,
         signatureUrl: signatureValue,
+        checksum,
+        deviceHash,
         sections,
         photos: allPhotos,
         createdAt: serverTimestamp(),

@@ -111,6 +111,7 @@ export interface Report {
     title: string;
     templateId: string;
     templateName: string;
+    templateVersion?: number;
     organisationId: string | null;
     inspectorId: string;
     inspectorName: string;
@@ -119,6 +120,8 @@ export interface Report {
     gps: { lat: number; lng: number } | null;
     routeData: RouteData | null;
     signatureUrl: string | null;
+    checksum?: string;
+    deviceHash?: string;
     sections: ReportSection[];
     photos: ReportPhoto[];
     createdAt: Timestamp;

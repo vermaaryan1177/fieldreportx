@@ -6,6 +6,7 @@ import { AppScreen } from "@/components/BottomNavBar";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 const OVERALL = 87;

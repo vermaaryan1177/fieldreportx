@@ -10,6 +10,7 @@ export interface SystemTemplate {
     gpsValidation: boolean;
     features: string[];
     sections: TemplateSection[];
+    version: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -367,6 +368,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: true,
         features: ["Room-by-room photos", "GPS-tagged images", "Condition scoring"],
         sections: rentalSections,
+        version: 1,
     },
     {
         id: "sys_trades",
@@ -378,6 +380,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: true,
         features: ["Before & after photos", "Measurement capture", "Compliance check"],
         sections: tradesSections,
+        version: 1,
     },
     {
         id: "sys_legal",
@@ -389,6 +392,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: true,
         features: ["Chain of custody", "Audio transcript", "GPS & timestamp verification"],
         sections: legalSections,
+        version: 1,
     },
     {
         id: "sys_driving",
@@ -400,6 +404,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: true,
         features: ["Accelerometer analysis", "GPS route tracking", "Stability scoring"],
         sections: drivingSections,
+        version: 1,
     },
     {
         id: "sys_rehab",
@@ -411,6 +416,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: false,
         features: ["Camera + gyro joint capture", "Rep & reflex timing", "Movement sensor analysis", "Session progress comparison"],
         sections: rehabSections,
+        version: 1,
     },
     {
         id: "sys_general",
@@ -422,6 +428,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: false,
         features: ["Speech-to-text notes", "Photo attachments", "Free-form content"],
         sections: generalSections,
+        version: 1,
     },
     {
         id: "sys_delivery",
@@ -433,6 +440,7 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
         gpsValidation: true,
         features: ["Live GPS route tracking", "Tap-to-record stops", "ETA & speed metrics"],
         sections: deliverySections,
+        version: 1,
     },
 ];
 

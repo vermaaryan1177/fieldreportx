@@ -27,6 +27,7 @@ import { TemplateField } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 interface EditableSection {

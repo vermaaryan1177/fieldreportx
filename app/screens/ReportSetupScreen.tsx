@@ -18,6 +18,7 @@ import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 type Association = "organisation" | "individual";

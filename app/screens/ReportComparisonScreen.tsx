@@ -8,6 +8,7 @@ import { Report, SectionStatus } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

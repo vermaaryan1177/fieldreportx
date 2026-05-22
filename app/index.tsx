@@ -419,6 +419,9 @@ function ScreenContent({
                 />
             );
 
+        case "reportDetail":
+            return <ReportDetailScreen onNavigate={navigate} />;
+
         case "reportComparison":
             return (
                 <ReportComparisonScreen

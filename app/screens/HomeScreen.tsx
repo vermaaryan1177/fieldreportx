@@ -226,11 +226,13 @@ import { getUserOrganisation } from "@/lib/db/organisations";
 import { listReportsByUser } from "@/lib/db/reports";
 
 import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
+    hasOrganisation?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

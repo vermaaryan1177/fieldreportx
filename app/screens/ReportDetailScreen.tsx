@@ -483,6 +483,10 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                         { label: "Inspector", value: report.inspectorName },
                         report.gps ? { label: "GPS", value: `${report.gps.lat.toFixed(5)}, ${report.gps.lng.toFixed(5)}` } : null,
                         report.routeData ? { label: "Route", value: `${report.routeData.distanceKm} km · ${report.routeData.duration}` } : null,
+                        { label: "Created", value: fmtDate(report.createdAt) || "—" },
+                        { label: "Template version", value: report.templateVersion != null ? `v${report.templateVersion}` : "—" },
+                        report.checksum ? { label: "Checksum", value: report.checksum } : null,
+                        report.deviceHash ? { label: "Device hash", value: report.deviceHash } : null,
                     ].filter(Boolean).map((row) => (
                         <View key={row!.label} className="flex-row items-start justify-between border-t border-zinc-800 pt-2 gap-4">
                             <Text className="text-zinc-500 text-xs shrink-0">{row!.label}</Text>

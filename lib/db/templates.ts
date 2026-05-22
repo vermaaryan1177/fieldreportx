@@ -4,6 +4,7 @@ import {
     doc,
     getDoc,
     getDocs,
+    increment,
     or,
     query,
     serverTimestamp,
@@ -70,8 +71,7 @@ export async function updateTemplate(
     await updateDoc(doc(db, col, templateId), {
         ...data,
         updatedAt: serverTimestamp(),
-        // bump version on every save
-        version: (await getDoc(doc(db, col, templateId))).data()?.version + 1,
+        version: increment(1),
     });
 }
 

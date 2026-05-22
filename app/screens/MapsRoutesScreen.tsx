@@ -11,6 +11,7 @@ import { AppScreen } from "@/components/BottomNavBar";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 // Route waypoints (px within a 250-tall map container)

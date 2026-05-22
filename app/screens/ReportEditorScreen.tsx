@@ -35,6 +35,7 @@ import { SectionStatus, Template, TemplateField, TemplateSection } from "@/lib/t
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
+    hasOrganisation?: boolean;
 }
 
 type FieldValues = Record<string, string | boolean | number>;
@@ -2593,7 +2594,7 @@ function SectionEditor({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportEditorScreen({ onNavigate }: Props) {
-    const template: Template | undefined =
+    const template =
         store.selectedTemplateId?.startsWith("user_")
             ? (store.selectedUserTemplate ?? undefined)
             : SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId);

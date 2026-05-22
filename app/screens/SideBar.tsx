@@ -5,16 +5,18 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
     Alert,
     Modal,
+    Platform,
     ScrollView,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { fnv1a32 } from "@/lib/checksum";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { auth } from "@/lib/firebase";
 import { getUserOrganisation } from "@/lib/db/organisations";
-import { getUserNotifications } from "@/lib/db/notifications"; // <- add your real function
+// import { getUserNotifications } from "@/lib/db/notifications";
 
 type SidebarItem = {
     id: AppScreen;
@@ -95,6 +97,11 @@ function SidebarButton({
 
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const user = auth.currentUser;
+
+    const deviceHash = useMemo(
+        () => fnv1a32((user?.uid ?? "anon") + Platform.OS),
+        [user?.uid],
+    );
 
     const [signingOut, setSigningOut] = useState(false);
 
@@ -345,6 +352,16 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
                 <Text className="text-zinc-500 text-sm mt-1">
                     Version {Constants.expoConfig?.version ?? "1.0.0"}
                 </Text>
+
+                <View className="mt-3 bg-slate-800 rounded-xl px-3 py-2.5 flex-row items-center gap-2">
+                    <Ionicons name="hardware-chip-outline" size={14} color="#52525b" />
+                    <View className="flex-1">
+                        <Text className="text-zinc-500 text-xs">Device ID</Text>
+                        <Text className="text-zinc-300 text-xs font-mono mt-0.5">
+                            {Platform.OS} · {deviceHash}
+                        </Text>
+                    </View>
+                </View>
 
                 <TouchableOpacity
                     className="mt-3 flex-row items-center"

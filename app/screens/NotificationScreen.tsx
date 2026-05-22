@@ -10,8 +10,8 @@ import { OrganisationInvitesDB } from "@/lib/db/organisationInvites";
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
-    hasOrganisation: boolean;
-    userId: string;
+    hasOrganisation?: boolean;
+    userId?: string;
 }
 
 const NotificationCard = ({ item, onPress }: any) => (
@@ -63,11 +63,11 @@ export default function NotificationsScreen({
 
     const handlePress = async (item: NotificationItem) => {
         if (!item?.id) return;
-        await NotificationDB.markAsRead(userId, item.id);
+        await NotificationDB.markAsRead(userId ?? "", item.id);
 
         if (item?.inviteId) {
             // SIMPLE AUTO-ACCEPT
-            await OrganisationInvitesDB.acceptInvite(userId, item.inviteId);
+            await OrganisationInvitesDB.acceptInvite(userId ?? "", item.inviteId);
         }
     };
 
@@ -91,7 +91,7 @@ export default function NotificationsScreen({
 
     // --- Optional: Mark All Read Button ---
     const markAllRead = async () => {
-        await NotificationDB.markAllAsRead(userId, notifications);
+        await NotificationDB.markAllAsRead(userId ?? "", notifications);
     };
 
     return (
