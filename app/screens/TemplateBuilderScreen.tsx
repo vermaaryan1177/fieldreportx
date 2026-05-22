@@ -18,6 +18,7 @@ import {
 import { AppScreen } from "@/components/BottomNavBar";
 import { createTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
 import { parseImportText, ParsedImport } from "@/lib/importTemplate";
 import {
     SYSTEM_TEMPLATES,
@@ -131,7 +132,7 @@ function ImportModal({
                 category: preview.category,
                 sections: preview.sections,
                 gpsValidation: preview.gpsValidation,
-                organisationId: null,
+                organisationId: store.orgTemplateMode ? (store.currentOrgId ?? null) : null,
             });
             Alert.alert(
                 "Template imported",
@@ -576,7 +577,7 @@ function SectionsEditor({
                     fields: s.fields,
                 })),
                 gpsValidation,
-                organisationId: null,
+                organisationId: store.orgTemplateMode ? (store.currentOrgId ?? null) : null,
             });
             clearTimeout(timer);
             if (!timedOut) {
@@ -803,8 +804,13 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
     const [importVisible, setImportVisible] = useState(false);
 
     const handleBack = () => {
-        if (step === 2) setStep(1);
-        else onNavigate("templateLibrary");
+        if (step === 2) { setStep(1); return; }
+        if (store.orgTemplateMode) {
+            store.setOrgTemplateMode(false);
+            onNavigate("sharedReports");
+        } else {
+            onNavigate("templateLibrary");
+        }
     };
 
     return (
@@ -812,7 +818,12 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
             <ImportModal
                 visible={importVisible}
                 onClose={() => setImportVisible(false)}
-                onSaved={() => { setImportVisible(false); onNavigate("templateLibrary"); }}
+                onSaved={() => {
+                    setImportVisible(false);
+                    const dest = store.orgTemplateMode ? "sharedReports" : "templateLibrary";
+                    store.setOrgTemplateMode(false);
+                    onNavigate(dest);
+                }}
             />
 
             {/* Top bar */}
@@ -857,7 +868,11 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
                 baseTemplate && (
                     <SectionsEditor
                         baseTemplate={baseTemplate}
-                        onSaved={() => onNavigate("templateLibrary")}
+                        onSaved={() => {
+                            const dest = store.orgTemplateMode ? "sharedReports" : "templateLibrary";
+                            store.setOrgTemplateMode(false);
+                            onNavigate(dest);
+                        }}
                     />
                 )
             )}

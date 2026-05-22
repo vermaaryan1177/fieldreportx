@@ -31,6 +31,7 @@ interface Props {
   onNavigate: (screen: AppScreen) => void;
   onOpenSidebar: () => void;
   hasOrganisation: boolean;
+  onOrgSwitch?: (orgId: string) => void;
 }
 
 interface Member {
@@ -43,6 +44,7 @@ export default function OrganisationScreen({
   onNavigate,
   onOpenSidebar,
   hasOrganisation,
+  onOrgSwitch,
 }: Props) {
   const user = auth.currentUser;
 
@@ -77,6 +79,7 @@ export default function OrganisationScreen({
         const active = orgs.find((o) => o.id === store.currentOrgId) ?? orgs[0];
         setSelectedOrg(active);
         store.setCurrentOrgId(active.id);
+        onOrgSwitch?.(active.id);
         await buildMembers(active);
       } else {
         setSelectedOrg(null);
@@ -128,6 +131,7 @@ export default function OrganisationScreen({
     try {
       const orgId = await createOrganisation(user.uid, { name: orgName.trim() });
       store.setCurrentOrgId(orgId);
+      onOrgSwitch?.(orgId);
       setOrgName("");
       setShowCreateModal(false);
       await loadOrgs();
@@ -170,6 +174,7 @@ export default function OrganisationScreen({
   const switchOrg = async (org: any) => {
     setSelectedOrg(org);
     store.setCurrentOrgId(org.id);
+    onOrgSwitch?.(org.id);
     await buildMembers(org);
   };
 
@@ -186,8 +191,10 @@ export default function OrganisationScreen({
         setSelectedOrg(next);
         if (next) {
           store.setCurrentOrgId(next.id);
+          onOrgSwitch?.(next.id);
           await buildMembers(next);
         } else {
+          store.setCurrentOrgId(null);
           setMembers([]);
         }
       }

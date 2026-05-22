@@ -91,9 +91,31 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
         <View className="flex-1 bg-background">
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
 
-            <View className="px-5 pt-5 pb-3">
-                <Text className="text-white text-2xl font-bold">Shared</Text>
-                <Text className="text-zinc-500 text-sm mt-1">Shared with your organisation</Text>
+            <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
+                <View>
+                    <Text className="text-white text-2xl font-bold">Shared</Text>
+                    <Text className="text-zinc-500 text-sm mt-1">Shared with your organisation</Text>
+                </View>
+                {orgId && (
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            if (tab === "reports") {
+                                store.setOrgReportMode(true);
+                                onNavigate("reportSetup");
+                            } else {
+                                store.setOrgTemplateMode(true);
+                                onNavigate("templateBuilder");
+                            }
+                        }}
+                        className="flex-row items-center gap-1 bg-primary/15 rounded-xl px-3 py-2"
+                    >
+                        <Ionicons name="add" size={16} color="#f2a72f" />
+                        <Text className="text-primary text-sm font-semibold">
+                            {tab === "reports" ? "New Report" : "New Template"}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Tabs */}

@@ -150,7 +150,12 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
         setSubmitting(true);
         try {
             const reportId = await submitReport();
-            if (store.currentOrgId) {
+            if (store.orgReportMode && store.currentOrgId) {
+                // Created from Shared tab — auto-share, no prompt
+                await updateDoc(doc(db, "reports", reportId), { organisationId: store.currentOrgId });
+                store.clearReport();
+                onNavigate("sharedReports");
+            } else if (store.currentOrgId) {
                 setSubmittedReportId(reportId);
                 setShowOrgShareModal(true);
             } else {

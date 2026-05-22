@@ -18,6 +18,8 @@ let _selectedUserTemplate: Template | null = null;
 let _reportSetup: ReportSetup | null = null;
 let _fieldValues: Record<string, Record<string, string | boolean | number>> = {};
 let _sectionStatuses: Record<string, SectionStatus> = {};
+let _orgReportMode: boolean = false;
+let _orgTemplateMode: boolean = false;
 
 export const store = {
     get selectedReport() {
@@ -76,11 +78,26 @@ export const store = {
         _sectionStatuses[sectionId] = status;
     },
 
+    get orgReportMode() {
+        return _orgReportMode;
+    },
+    setOrgReportMode(v: boolean) {
+        _orgReportMode = v;
+    },
+
+    get orgTemplateMode() {
+        return _orgTemplateMode;
+    },
+    setOrgTemplateMode(v: boolean) {
+        _orgTemplateMode = v;
+    },
+
     clearReport() {
         _selectedTemplateId = null;
         _selectedUserTemplate = null;
         _reportSetup = null;
         _fieldValues = {};
         _sectionStatuses = {};
+        _orgReportMode = false;
     },
 };

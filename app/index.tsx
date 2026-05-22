@@ -341,6 +341,7 @@ function ScreenContent({
     hasOrganisation,
     userId,
     currentOrgId,
+    onOrgSwitch,
 }: {
     screen: AppScreen;
     navigate: (s: AppScreen) => void;
@@ -348,6 +349,7 @@ function ScreenContent({
     hasOrganisation: boolean;
     userId?: string;
     currentOrgId?: string | null;
+    onOrgSwitch?: (orgId: string) => void;
 }) {
     switch (screen) {
         case "permissions":
@@ -450,6 +452,7 @@ function ScreenContent({
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
                     hasOrganisation={hasOrganisation}
+                    onOrgSwitch={onOrgSwitch}
                 />
             );
 
@@ -648,6 +651,7 @@ export default function App() {
                 hasOrganisation={hasOrganisation}
                 userId={user.uid}
                 currentOrgId={currentOrgId}
+                onOrgSwitch={setCurrentOrgId}
             />
 
             {/* Transition Screen */}
@@ -660,6 +664,7 @@ export default function App() {
                         hasOrganisation={hasOrganisation}
                         userId={user.uid}
                         currentOrgId={currentOrgId}
+                        onOrgSwitch={setCurrentOrgId}
                     />
                 </Animated.View>
             )}
