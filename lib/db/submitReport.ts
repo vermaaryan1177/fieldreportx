@@ -94,10 +94,11 @@ export async function submitReport(): Promise<string> {
                     const uploaded = await Promise.all(
                         parsed.map(async (p: any) => {
                             const photoId = randomId();
-                            let url: string = p.localUri;
+                            const localUri: string = p.uri ?? p.localUri ?? "";
+                            let url: string = localUri;
                             try {
                                 url = await uploadFile(
-                                    p.localUri,
+                                    localUri,
                                     `reports/${reportId}/photos/${photoId}`,
                                 );
                             } catch (e) {
@@ -106,7 +107,7 @@ export async function submitReport(): Promise<string> {
                             const rp: ReportPhoto = {
                                 id: photoId,
                                 url,
-                                localUri: p.localUri,
+                                localUri,
                                 sectionId: sec.id,
                                 gps: p.gps ?? null,
                                 annotations: p.annotations ?? [],
@@ -114,7 +115,7 @@ export async function submitReport(): Promise<string> {
                             };
                             allPhotos.push(rp);
                             photoIds.push(photoId);
-                            return { ...p, url, id: photoId };
+                            return { ...p, url, localUri, id: photoId };
                         }),
                     );
 

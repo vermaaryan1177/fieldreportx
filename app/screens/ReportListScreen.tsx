@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -11,8 +11,9 @@ import {
 
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import { useAuth } from "@/hooks/useAuth";
 import { listReportsByUser } from "@/lib/db/reports";
-import { auth } from "@/lib/firebase";
+import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
 
 interface Props {
@@ -85,23 +86,20 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
 
-    const user = auth.currentUser;
+    const { user } = useAuth();
     const initials = getInitials(user?.displayName ?? user?.email);
 
-    const fetchReports = useCallback(async () => {
+    useEffect(() => {
         if (!user) { setLoading(false); return; }
-        try {
-            const all = await listReportsByUser(user.uid);
-            all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
-            setReports(all);
-        } catch (e) {
-            console.warn("Failed to load reports", e);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(true);
+        listReportsByUser(user.uid)
+            .then((all) => {
+                all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
+                setReports(all);
+            })
+            .catch((e) => console.warn("Failed to load reports", e))
+            .finally(() => setLoading(false));
     }, [user?.uid]);
-
-    useEffect(() => { fetchReports(); }, [fetchReports]);
 
     const filtered = reports.filter((r) => {
         const statusFilter = FILTER_TO_STATUS[activeFilter];
@@ -121,6 +119,14 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                   ? [...prev, id]
                   : prev,
         );
+    };
+
+    const handleCompare = () => {
+        const a = reports.find((r) => r.id === comparing[0]);
+        const b = reports.find((r) => r.id === comparing[1]);
+        if (!a || !b) return;
+        store.setComparisonReports([a, b]);
+        onNavigate("reportComparison");
     };
 
     return (
@@ -179,6 +185,18 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                 ))}
             </ScrollView>
 
+            {/* Compare mode banner */}
+            {comparing.length > 0 && (
+                <View className="mx-5 mb-3 bg-slate-800 rounded-2xl px-4 py-3 flex-row items-center justify-between">
+                    <Text className="text-white text-sm font-semibold">
+                        {comparing.length === 1 ? "1 selected — pick one more" : "2 selected"}
+                    </Text>
+                    <TouchableOpacity onPress={() => setComparing([])}>
+                        <Text className="text-primary text-sm font-semibold">Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             {/* Report List */}
             <ScrollView
                 style={{ flex: 1 }}
@@ -211,11 +229,14 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                                 <TouchableOpacity
                                     key={report.id}
                                     activeOpacity={0.7}
-                                    onPress={() =>
-                                        comparing.length > 0
-                                            ? toggleCompare(report.id)
-                                            : onNavigate("reports")
-                                    }
+                                    onPress={() => {
+                                        if (comparing.length > 0) {
+                                            toggleCompare(report.id);
+                                        } else {
+                                            store.setSelectedReport(report);
+                                            onNavigate("reportDetail");
+                                        }
+                                    }}
                                     onLongPress={() => toggleCompare(report.id)}
                                     className={`flex-row items-center bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
                                 >
@@ -267,7 +288,20 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                 )}
             </ScrollView>
 
-            <BottomNavBar active="reports" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>
+            {comparing.length === 2 && (
+                <View className="px-5 pb-3 bg-background">
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleCompare}
+                        className="bg-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
+                    >
+                        <Ionicons name="git-compare-outline" size={18} color="#fff" />
+                        <Text className="text-white font-bold text-sm">Compare 2 Reports</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            <BottomNavBar active="reports" onNavigate={onNavigate} />
         </View>
     );
 }

@@ -314,6 +314,7 @@ import NotificationScreen from "./screens/NotificationScreen";
 import OrganisationScreen from "./screens/OrganisationScreen";
 import PermissionsScreen from "./screens/PermissionsScreen";
 import ReportComparisonScreen from "./screens/ReportComparisonScreen";
+import ReportDetailScreen from "./screens/ReportDetailScreen";
 import ReportEditorScreen from "./screens/ReportEditorScreen";
 import ReportListScreen from "./screens/ReportListScreen";
 import ReportPreviewScreen from "./screens/ReportPreviewScreen";

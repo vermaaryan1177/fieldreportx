@@ -537,9 +537,10 @@ export default function HomeScreen({
                                 <TouchableOpacity
                                     key={report.id}
                                     activeOpacity={0.7}
-                                    onPress={() =>
-                                        onNavigate("reports")
-                                    }
+                                    onPress={() => {
+                                        store.setSelectedReport(report);
+                                        onNavigate("reportDetail");
+                                    }}
                                     className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                                 >
                                     {/* Left Color Strip */}
