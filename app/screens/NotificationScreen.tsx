@@ -8,6 +8,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
+    hasOrganisation: boolean;
 }
 
 type NotificationItem = {
@@ -84,6 +85,7 @@ const NotificationCard = ({
 export default function NotificationsScreen({
     onNavigate,
     onOpenSidebar,
+    hasOrganisation,
 }: Props) {
     const [unreadNotifications, setUnreadNotifications] =
         useState(initialUnread);
@@ -163,7 +165,7 @@ export default function NotificationsScreen({
                 <View className="h-10" />
             </ScrollView>
 
-            <BottomNavBar active="notification" onNavigate={onNavigate} />
+            <BottomNavBar active="notification" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>
         </View>
     );
 }

@@ -1,3 +1,285 @@
+// import "./global.css";
+
+// import { useEffect, useRef, useState } from "react";
+// import {
+//     ActivityIndicator,
+//     Dimensions,
+//     StyleSheet,
+//     TouchableOpacity,
+//     View,
+// } from "react-native";
+
+// import Animated, {
+//     Easing,
+//     runOnJS,
+//     useAnimatedStyle,
+//     useSharedValue,
+//     withTiming,
+// } from "react-native-reanimated";
+
+// import { AppScreen } from "@/components/BottomNavBar";
+// import { useAuth } from "@/hooks/useAuth";
+// import HomeScreen from "./screens/HomeScreen";
+// import LoginRegisterScreen from "./screens/LoginRegisterScreen";
+// import MapsRoutesScreen from "./screens/MapsRoutesScreen";
+// import NotificationScreen from "./screens/NotificationScreen";
+// import OrganisationScreen from "./screens/OrganisationScreen";
+// import PermissionsScreen from "./screens/PermissionsScreen";
+// import ReportComparisonScreen from "./screens/ReportComparisonScreen";
+// import ReportEditorScreen from "./screens/ReportEditorScreen";
+// import ReportListScreen from "./screens/ReportListScreen";
+// import ReportPreviewScreen from "./screens/ReportPreviewScreen";
+// import ReportSetupScreen from "./screens/ReportSetupScreen";
+// import ScoreScreen from "./screens/ScoreScreen";
+// import SettingsScreen from "./screens/SettingsScreen";
+// import TemplateBuilderScreen from "./screens/TemplateBuilderScreen";
+// import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
+
+// import Sidebar from "./screens/SideBar";
+
+// import { store } from "@/lib/store";
+// import { trackingStore } from "@/lib/trackingStore";
+
+// const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// const TIMING = {
+//     duration: 420,
+//     easing: Easing.out(Easing.cubic),
+// };
+
+// function ScreenContent({
+//     screen,
+//     navigate,
+//     openSidebar,
+// }: {
+//     screen: AppScreen;
+//     navigate: (s: AppScreen) => void;
+//     openSidebar: () => void;
+// }) {
+//     switch (screen) {
+//         case "permissions":
+//             return <PermissionsScreen onNavigate={navigate} />;
+//         case "reports":
+//             return (
+//                 <ReportListScreen
+//                     onNavigate={navigate}
+//                     onOpenSidebar={openSidebar}
+//                 />
+//             );
+//         case "templateLibrary":
+//             return (
+//                 <TemplateLibraryScreen
+//                     onNavigate={navigate}
+//                     onOpenSidebar={openSidebar}
+//                 />
+//             );
+//         case "templateBuilder":
+//             return <TemplateBuilderScreen onNavigate={navigate} />;
+//         case "reportSetup":
+//             return <ReportSetupScreen onNavigate={navigate} />;
+//         case "reportEditor":
+//             return <ReportEditorScreen onNavigate={navigate} />;
+//         case "mapsRoutes":
+//             return <MapsRoutesScreen onNavigate={navigate} />;
+//         case "reportPreview":
+//             return <ReportPreviewScreen onNavigate={navigate} />;
+//         case "score":
+//             return <ScoreScreen onNavigate={navigate} />;
+//         case "reportComparison":
+//             return <ReportComparisonScreen onNavigate={navigate} />;
+//         case "settings":
+//             return (
+//                 <SettingsScreen
+//                     onNavigate={navigate}
+//                     onOpenSidebar={openSidebar}
+//                 />
+//             );
+//         case "organisation":
+//             return (
+//                 <OrganisationScreen
+//                     onNavigate={navigate}
+//                     onOpenSidebar={openSidebar}
+//                 />
+//             );
+//         case "notification":
+//             return (
+//                 <NotificationScreen
+//                     onNavigate={navigate}
+//                     onOpenSidebar={openSidebar}
+//                 />
+//             );
+//         default:
+//             return (
+//                 <HomeScreen onNavigate={navigate} onOpenSidebar={openSidebar} />
+//             );
+//     }
+// }
+
+// export default function App() {
+//     const { user, loading } = useAuth();
+
+//     // currentScreen is always visible underneath.
+//     // incomingScreen slides in on top, then becomes current when done.
+//     const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
+//     const [incomingScreen, setIncomingScreen] = useState<AppScreen | null>(
+//         null,
+//     );
+
+//     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+//     const pendingPermissions = useRef(false);
+//     const historyRef = useRef<AppScreen[]>(["home"]);
+
+//     // Incoming layer starts off-screen; we animate it to 0.
+//     const incomingX = useSharedValue(SCREEN_WIDTH);
+
+//     const incomingStyle = useAnimatedStyle(() => ({
+//         ...StyleSheet.absoluteFillObject,
+//         transform: [{ translateX: incomingX.value }],
+//     }));
+
+//     const finishTransition = (target: AppScreen) => {
+//         // Promote incoming to current and unmount the transition layer.
+//         // Do NOT touch incomingX here — moving it while the layer is still
+//         // mounted causes the old base screen to flash before React re-renders.
+//         setCurrentScreen(target);
+//         setIncomingScreen(null);
+//     };
+
+//     const navigate = (target: AppScreen) => {
+//         const REPORT_SCREENS: AppScreen[] = ["reportSetup", "reportEditor", "reportPreview"];
+//         if (REPORT_SCREENS.includes(currentScreen) && !REPORT_SCREENS.includes(target)) {
+//             store.clearReport();
+//             trackingStore.cancelRoute();
+//             trackingStore.cancelAccel();
+//             trackingStore.cancelTimer();
+//         }
+
+//         const history = historyRef.current;
+//         const existingIdx = history.lastIndexOf(target);
+//         const isBack = existingIdx !== -1 && existingIdx < history.length - 1;
+
+//         if (isBack) {
+//             historyRef.current = history.slice(0, existingIdx + 1);
+//         } else {
+//             historyRef.current = [...history, target];
+//         }
+
+//         // Reset incomingX to the start position NOW (incoming layer is unmounted
+//         // at this point), then mount the layer and animate it in.
+//         incomingX.value = isBack ? -SCREEN_WIDTH : SCREEN_WIDTH;
+//         setIncomingScreen(target);
+//         incomingX.value = withTiming(0, TIMING, (finished) => {
+//             if (finished) runOnJS(finishTransition)(target);
+//         });
+//     };
+
+//     useEffect(() => {
+//         if (!user) {
+//             pendingPermissions.current = false;
+//             return;
+//         }
+//         // Auth-triggered switches have no animation.
+//         setIncomingScreen(null);
+//         if (pendingPermissions.current) {
+//             pendingPermissions.current = false;
+//             historyRef.current = ["permissions"];
+//             setCurrentScreen("permissions");
+//         } else {
+//             historyRef.current = ["home"];
+//             setCurrentScreen("home");
+//         }
+//     }, [user?.uid]);
+
+//     if (loading) {
+//         return (
+//             <View className="flex-1 bg-background items-center justify-center">
+//                 <ActivityIndicator color="#f2a72f" size="large" />
+//             </View>
+//         );
+//     }
+
+//     if (!user) {
+//         return (
+//             <LoginRegisterScreen
+//                 onStartRegister={() => {
+//                     pendingPermissions.current = true;
+//                 }}
+//             />
+//         );
+//     }
+
+//     return (
+//         <View style={{ flex: 1 }}>
+//             {/* Main Content */}
+//             <ScreenContent
+//                 screen={currentScreen}
+//                 navigate={navigate}
+//                 openSidebar={() => setSidebarOpen(true)}
+//             />
+
+//             {/* Transition layer */}
+//             {incomingScreen !== null && (
+//                 <Animated.View style={incomingStyle}>
+//                     <ScreenContent
+//                         screen={incomingScreen}
+//                         navigate={navigate}
+//                         openSidebar={() => setSidebarOpen(true)}
+//                     />
+//                 </Animated.View>
+//             )}
+
+//             {/* Only render overlay and sidebar if open */}
+//             {sidebarOpen && (
+//                 <>
+//                     {/* Dark semi-transparent overlay */}
+//                     <TouchableOpacity
+//                         style={{
+//                             position: "absolute",
+//                             top: 0,
+//                             left: 0,
+//                             right: 0,
+//                             bottom: 0,
+//                             backgroundColor: "rgba(0,0,0,0.3)",
+//                             zIndex: 998,
+//                         }}
+//                         activeOpacity={1}
+//                         onPress={() => setSidebarOpen(false)}
+//                     />
+
+//                     {/* Sidebar */}
+//                     <View
+//                         style={{
+//                             position: "absolute",
+//                             top: 0,
+//                             left: 0,
+//                             bottom: 0,
+//                             width: 300, // sidebar width
+//                             zIndex: 999,
+//                             shadowColor: "#000",
+//                             shadowOpacity: 0.3,
+//                             shadowOffset: { width: 0, height: 2 },
+//                             shadowRadius: 10,
+//                         }}
+//                     >
+//                         <Sidebar
+//                             active={currentScreen}
+//                             onNavigate={(screen) => {
+//                                 setSidebarOpen(false);
+//                                 navigate(screen);
+//                             }}
+//                             onSignOut={() => setSidebarOpen(false)}
+//                         />
+//                     </View>
+//                 </>
+//             )}
+//         </View>
+//     );
+// }
+
+
+
+
 import "./global.css";
 
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +300,13 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AppScreen } from "@/components/BottomNavBar";
+
 import { useAuth } from "@/hooks/useAuth";
+
+import { getUserOrganisation } from "@/lib/db/organisations";
+import { store } from "@/lib/store";
+import { trackingStore } from "@/lib/trackingStore";
+
 import HomeScreen from "./screens/HomeScreen";
 import LoginRegisterScreen from "./screens/LoginRegisterScreen";
 import MapsRoutesScreen from "./screens/MapsRoutesScreen";
@@ -37,9 +325,6 @@ import TemplateLibraryScreen from "./screens/TemplateLibraryScreen";
 
 import Sidebar from "./screens/SideBar";
 
-import { store } from "@/lib/store";
-import { trackingStore } from "@/lib/trackingStore";
-
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const TIMING = {
@@ -51,66 +336,130 @@ function ScreenContent({
     screen,
     navigate,
     openSidebar,
+    hasOrganisation,
 }: {
     screen: AppScreen;
     navigate: (s: AppScreen) => void;
     openSidebar: () => void;
+    hasOrganisation: boolean;
 }) {
     switch (screen) {
         case "permissions":
-            return <PermissionsScreen onNavigate={navigate} />;
+            return (
+                <PermissionsScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "reports":
             return (
                 <ReportListScreen
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
                 />
             );
+
         case "templateLibrary":
             return (
                 <TemplateLibraryScreen
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
                 />
             );
+
         case "templateBuilder":
-            return <TemplateBuilderScreen onNavigate={navigate} />;
+            return (
+                <TemplateBuilderScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "reportSetup":
-            return <ReportSetupScreen onNavigate={navigate} />;
+            return (
+                <ReportSetupScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "reportEditor":
-            return <ReportEditorScreen onNavigate={navigate} />;
+            return (
+                <ReportEditorScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "mapsRoutes":
-            return <MapsRoutesScreen onNavigate={navigate} />;
+            return (
+                <MapsRoutesScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "reportPreview":
-            return <ReportPreviewScreen onNavigate={navigate} />;
+            return (
+                <ReportPreviewScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "score":
-            return <ScoreScreen onNavigate={navigate} />;
+            return (
+                <ScoreScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "reportComparison":
-            return <ReportComparisonScreen onNavigate={navigate} />;
+            return (
+                <ReportComparisonScreen
+                    onNavigate={navigate}
+                    hasOrganisation={hasOrganisation}
+                />
+            );
+
         case "settings":
             return (
                 <SettingsScreen
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
                 />
             );
+
         case "organisation":
             return (
                 <OrganisationScreen
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
                 />
             );
+
         case "notification":
             return (
                 <NotificationScreen
                     onNavigate={navigate}
                     onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
                 />
             );
+
         default:
             return (
-                <HomeScreen onNavigate={navigate} onOpenSidebar={openSidebar} />
+                <HomeScreen
+                    onNavigate={navigate}
+                    onOpenSidebar={openSidebar}
+                    hasOrganisation={hasOrganisation}
+                />
             );
     }
 }
@@ -118,19 +467,25 @@ function ScreenContent({
 export default function App() {
     const { user, loading } = useAuth();
 
-    // currentScreen is always visible underneath.
-    // incomingScreen slides in on top, then becomes current when done.
-    const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
-    const [incomingScreen, setIncomingScreen] = useState<AppScreen | null>(
-        null,
-    );
+    // current screen
+    const [currentScreen, setCurrentScreen] =
+        useState<AppScreen>("home");
 
+    // animated incoming screen
+    const [incomingScreen, setIncomingScreen] =
+        useState<AppScreen | null>(null);
+
+    // sidebar
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
+    // NEW
+    const [hasOrganisation, setHasOrganisation] =
+        useState(false);
+
     const pendingPermissions = useRef(false);
+
     const historyRef = useRef<AppScreen[]>(["home"]);
 
-    // Incoming layer starts off-screen; we animate it to 0.
     const incomingX = useSharedValue(SCREEN_WIDTH);
 
     const incomingStyle = useAnimatedStyle(() => ({
@@ -139,66 +494,123 @@ export default function App() {
     }));
 
     const finishTransition = (target: AppScreen) => {
-        // Promote incoming to current and unmount the transition layer.
-        // Do NOT touch incomingX here — moving it while the layer is still
-        // mounted causes the old base screen to flash before React re-renders.
         setCurrentScreen(target);
         setIncomingScreen(null);
     };
 
     const navigate = (target: AppScreen) => {
-        const REPORT_SCREENS: AppScreen[] = ["reportSetup", "reportEditor", "reportPreview"];
-        if (REPORT_SCREENS.includes(currentScreen) && !REPORT_SCREENS.includes(target)) {
+        const REPORT_SCREENS: AppScreen[] = [
+            "reportSetup",
+            "reportEditor",
+            "reportPreview",
+        ];
+
+        if (
+            REPORT_SCREENS.includes(currentScreen) &&
+            !REPORT_SCREENS.includes(target)
+        ) {
             store.clearReport();
+
             trackingStore.cancelRoute();
             trackingStore.cancelAccel();
             trackingStore.cancelTimer();
         }
 
         const history = historyRef.current;
+
         const existingIdx = history.lastIndexOf(target);
-        const isBack = existingIdx !== -1 && existingIdx < history.length - 1;
+
+        const isBack =
+            existingIdx !== -1 &&
+            existingIdx < history.length - 1;
 
         if (isBack) {
-            historyRef.current = history.slice(0, existingIdx + 1);
+            historyRef.current = history.slice(
+                0,
+                existingIdx + 1
+            );
         } else {
             historyRef.current = [...history, target];
         }
 
-        // Reset incomingX to the start position NOW (incoming layer is unmounted
-        // at this point), then mount the layer and animate it in.
-        incomingX.value = isBack ? -SCREEN_WIDTH : SCREEN_WIDTH;
+        incomingX.value = isBack
+            ? -SCREEN_WIDTH
+            : SCREEN_WIDTH;
+
         setIncomingScreen(target);
-        incomingX.value = withTiming(0, TIMING, (finished) => {
-            if (finished) runOnJS(finishTransition)(target);
-        });
+
+        incomingX.value = withTiming(
+            0,
+            TIMING,
+            (finished) => {
+                if (finished) {
+                    runOnJS(finishTransition)(target);
+                }
+            }
+        );
     };
 
+    // auth navigation
     useEffect(() => {
         if (!user) {
             pendingPermissions.current = false;
             return;
         }
-        // Auth-triggered switches have no animation.
+
         setIncomingScreen(null);
+
         if (pendingPermissions.current) {
             pendingPermissions.current = false;
+
             historyRef.current = ["permissions"];
+
             setCurrentScreen("permissions");
         } else {
             historyRef.current = ["home"];
+
             setCurrentScreen("home");
         }
     }, [user?.uid]);
 
+    // organisation check
+    useEffect(() => {
+        if (!user?.uid) {
+            setHasOrganisation(false);
+            return;
+        }
+
+        (async () => {
+            try {
+                const orgs = await getUserOrganisation(
+                    user.uid
+                );
+
+                setHasOrganisation(
+                    Array.isArray(orgs) &&
+                        orgs.length > 0
+                );
+            } catch (e) {
+                console.warn(
+                    "Failed to load organisations",
+                    e
+                );
+            }
+        })();
+    }, [user?.uid]);
+
+    // loading
     if (loading) {
         return (
             <View className="flex-1 bg-background items-center justify-center">
-                <ActivityIndicator color="#f2a72f" size="large" />
+                <ActivityIndicator
+                    color="#f2a72f"
+                    size="large"
+                />
             </View>
         );
     }
 
+    // auth screen
     if (!user) {
         return (
             <LoginRegisterScreen
@@ -211,28 +623,34 @@ export default function App() {
 
     return (
         <View style={{ flex: 1 }}>
-            {/* Main Content */}
+            {/* Main Screen */}
             <ScreenContent
                 screen={currentScreen}
                 navigate={navigate}
                 openSidebar={() => setSidebarOpen(true)}
+                hasOrganisation={hasOrganisation}
             />
 
-            {/* Transition layer */}
+            {/* Transition Screen */}
             {incomingScreen !== null && (
                 <Animated.View style={incomingStyle}>
                     <ScreenContent
                         screen={incomingScreen}
                         navigate={navigate}
-                        openSidebar={() => setSidebarOpen(true)}
+                        openSidebar={() =>
+                            setSidebarOpen(true)
+                        }
+                        hasOrganisation={
+                            hasOrganisation
+                        }
                     />
                 </Animated.View>
             )}
 
-            {/* Only render overlay and sidebar if open */}
+            {/* Sidebar */}
             {sidebarOpen && (
                 <>
-                    {/* Dark semi-transparent overlay */}
+                    {/* Overlay */}
                     <TouchableOpacity
                         style={{
                             position: "absolute",
@@ -240,25 +658,32 @@ export default function App() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: "rgba(0,0,0,0.3)",
+                            backgroundColor:
+                                "rgba(0,0,0,0.3)",
                             zIndex: 998,
                         }}
                         activeOpacity={1}
-                        onPress={() => setSidebarOpen(false)}
+                        onPress={() =>
+                            setSidebarOpen(false)
+                        }
                     />
 
-                    {/* Sidebar */}
+                    {/* Sidebar Panel */}
                     <View
                         style={{
                             position: "absolute",
                             top: 0,
                             left: 0,
                             bottom: 0,
-                            width: 300, // sidebar width
+                            width: 300,
                             zIndex: 999,
+
                             shadowColor: "#000",
                             shadowOpacity: 0.3,
-                            shadowOffset: { width: 0, height: 2 },
+                            shadowOffset: {
+                                width: 0,
+                                height: 2,
+                            },
                             shadowRadius: 10,
                         }}
                     >
@@ -268,7 +693,9 @@ export default function App() {
                                 setSidebarOpen(false);
                                 navigate(screen);
                             }}
-                            onSignOut={() => setSidebarOpen(false)}
+                            onSignOut={() =>
+                                setSidebarOpen(false)
+                            }
                         />
                     </View>
                 </>

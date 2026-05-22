@@ -22,6 +22,7 @@ import { auth } from "@/lib/firebase";
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
+    hasOrganisation: boolean;
 }
 
 const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
@@ -36,7 +37,7 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
     </TouchableOpacity>
 );
 
-export default function SettingsScreen({ onNavigate,onOpenSidebar}: Props) {
+export default function SettingsScreen({ onNavigate,onOpenSidebar,hasOrganisation}: Props) {
     const user = auth.currentUser;
 
     // Real permission status (granted / not-granted)
@@ -239,7 +240,7 @@ export default function SettingsScreen({ onNavigate,onOpenSidebar}: Props) {
                 </TouchableOpacity>
             </ScrollView>
 
-            <BottomNavBar active="settings" onNavigate={onNavigate} />
+            <BottomNavBar active="settings" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>
         </View>
     );
 }

@@ -22,9 +22,10 @@ import { Template } from "@/lib/types";
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
+    hasOrganisation: boolean;
 }
 
-export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar }: Props) {
+export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrganisation }: Props) {
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState<string>("All");
     const [userTemplates, setUserTemplates] = useState<Template[]>([]);
@@ -354,7 +355,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar }: Pro
                 )}
             </ScrollView>
 
-            <BottomNavBar active="templateLibrary" onNavigate={onNavigate} />
+            <BottomNavBar active="templateLibrary" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>
         </View>
     );
 }

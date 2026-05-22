@@ -24,8 +24,13 @@ type NavItem = {
     activeIcon: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
-    { id: "home", label: "Home", icon: "home-outline", activeIcon: "home" },
+const BASE_NAV_ITEMS: NavItem[] = [
+    {
+        id: "home",
+        label: "Home",
+        icon: "home-outline",
+        activeIcon: "home",
+    },
     {
         id: "reports",
         label: "Reports",
@@ -49,16 +54,33 @@ const NAV_ITEMS: NavItem[] = [
 interface BottomNavBarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
+
+    // NEW
+    hasOrganisation?: boolean;
 }
 
 export default function BottomNavBar({
     active,
     onNavigate,
+    hasOrganisation = false,
 }: BottomNavBarProps) {
+    const navItems: NavItem[] = hasOrganisation
+        ? [
+              ...BASE_NAV_ITEMS,
+              {
+                  id: "organisation",
+                  label: "Org",
+                  icon: "business-outline",
+                  activeIcon: "business",
+              },
+          ]
+        : BASE_NAV_ITEMS;
+
     return (
         <View className="flex-row bg-slate-900 border-t border-zinc-800 pb-8 pt-3 px-2">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
                 const isActive = active === item.id;
+
                 return (
                     <TouchableOpacity
                         key={item.id}
@@ -68,13 +90,20 @@ export default function BottomNavBar({
                     >
                         <Ionicons
                             name={
-                                (isActive ? item.activeIcon : item.icon) as any
+                                (isActive
+                                    ? item.activeIcon
+                                    : item.icon) as any
                             }
                             size={22}
                             color={isActive ? "#f2a72f" : "#52525b"}
                         />
+
                         <Text
-                            className={`text-xs ${isActive ? "text-primary font-semibold" : "text-zinc-600"}`}
+                            className={`text-xs ${
+                                isActive
+                                    ? "text-primary font-semibold"
+                                    : "text-zinc-600"
+                            }`}
                         >
                             {item.label}
                         </Text>
