@@ -31,7 +31,7 @@ import { detectJointAngle, JointAngleCapture, SKELETON_EDGES, AI_UNSUPPORTED_JOI
 import { store } from "@/lib/store";
 import { trackingStore, RouteFieldData, RouteStop, AccelFieldData, haversineKm } from "@/lib/trackingStore";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
-import { SectionStatus, TemplateField, TemplateSection } from "@/lib/types";
+import { SectionStatus, Template, TemplateField, TemplateSection } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -2593,9 +2593,10 @@ function SectionEditor({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportEditorScreen({ onNavigate }: Props) {
-    const template = SYSTEM_TEMPLATES.find(
-        (t) => t.id === store.selectedTemplateId,
-    );
+    const template: Template | undefined =
+        store.selectedTemplateId?.startsWith("user_")
+            ? (store.selectedUserTemplate ?? undefined)
+            : SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId);
     const setup = store.reportSetup;
 
     const [sectionStatuses, setSectionStatuses] = useState<
