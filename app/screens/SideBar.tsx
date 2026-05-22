@@ -14,7 +14,7 @@ import {
 import { AppScreen } from "@/components/BottomNavBar";
 import { auth } from "@/lib/firebase";
 import { getUserOrganisation } from "@/lib/db/organisations";
-// import { getUserNotifications } from "@/lib/db/notifications"; // <- add your real function
+import { getUserNotifications } from "@/lib/db/notifications"; // <- add your real function
 
 type SidebarItem = {
     id: AppScreen;
@@ -360,3 +360,6 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         </View>
     );
 }
+
+
+

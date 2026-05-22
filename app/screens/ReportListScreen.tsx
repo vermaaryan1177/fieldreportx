@@ -19,6 +19,7 @@ import { Report } from "@/lib/types";
 interface Props {
     onNavigate: (screen: AppScreen) => void;
     onOpenSidebar: () => void;
+    hasOrganisation: boolean;
 }
 
 // ─── Helpers (mirrored from HomeScreen) ──────────────────────────────────────
@@ -78,7 +79,7 @@ const FILTER_TO_STATUS: Record<FilterTab, string | null> = {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
+export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisation }: Props) {
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
