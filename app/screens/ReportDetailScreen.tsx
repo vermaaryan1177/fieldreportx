@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useMemo, useState } from "react";
@@ -9,7 +10,7 @@ import { AppScreen } from "@/components/BottomNavBar";
 import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
-import { FieldType, Report, ReportPhoto, Template, TemplateSection } from "@/lib/types";
+import { FieldType, Report, ReportPhoto, Template } from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -159,6 +160,42 @@ function SignatureDisplay({ paths }: { paths: string }) {
 
 // ─── PDF export ───────────────────────────────────────────────────────────────
 
+async function fetchAsDataUri(uri: string): Promise<string | null> {
+    if (!uri) return null;
+
+    // Local file — read directly without network
+    if (uri.startsWith("file://")) {
+        try {
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+            return `data:image/jpeg;base64,${base64}`;
+        } catch (e) {
+            console.warn("[PDF] local file read error", uri.slice(0, 60), e);
+            return null;
+        }
+    }
+
+    // Remote URL — download to temp file then read as base64
+    const cacheDir = FileSystem.cacheDirectory;
+    if (!cacheDir) { console.warn("[PDF] cacheDirectory is null"); return null; }
+    const tmpPath = cacheDir + "pdf_img_" + Math.random().toString(36).slice(2) + ".jpg";
+    try {
+        const result = await FileSystem.downloadAsync(uri, tmpPath);
+        if (result.status !== 200) { console.warn("[PDF] download status", result.status); return null; }
+        const base64 = await FileSystem.readAsStringAsync(tmpPath, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        const mime = result.mimeType ?? "image/jpeg";
+        return `data:${mime};base64,${base64}`;
+    } catch (e) {
+        console.warn("[PDF] fetchAsDataUri error", String(e).slice(0, 120));
+        return null;
+    } finally {
+        try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch {}
+    }
+}
+
 function esc(s: unknown): string {
     return String(s ?? "")
         .replace(/&/g, "&amp;")
@@ -171,6 +208,7 @@ function buildReportHTML(
     report: Report,
     fieldMap: Record<string, { label: string; type: FieldType }>,
     signaturePaths: string | null,
+    imgMap: Record<string, string> = {},
 ): string {
     const statusLabels: Record<string, string> = { done: "Done", draft: "Draft", inprogress: "In Progress" };
     const statusColors: Record<string, string> = { done: "#15803d", draft: "#92400e", inprogress: "#1d4ed8" };
@@ -231,17 +269,20 @@ function buildReportHTML(
                 </tr>`;
             }).join("");
 
-        const photoUrls = extractFieldPhotoUris
-            ? Object.values(sec.fieldValues).flatMap(extractFieldPhotoUris).filter((u) => u.startsWith("http"))
-            : [];
-        const storedUrls = (report.photos ?? [])
-            .filter((p) => p.sectionId === sec.id && p.url?.startsWith("http"))
-            .map((p) => p.url);
-        const allUrls = [...new Set([...storedUrls, ...photoUrls])];
+        const photoUrisFromFields = Object.values(sec.fieldValues)
+            .flatMap(extractFieldPhotoUris)
+            .filter((u): u is string => typeof u === "string" && u.length > 0);
+        const storedUrisForSec = (report.photos ?? [])
+            .filter((p) => p.sectionId === sec.id)
+            .map((p) => p.url || p.localUri)
+            .filter((u): u is string => typeof u === "string" && u.length > 0);
+        const allUris = [...new Set([...storedUrisForSec, ...photoUrisFromFields])];
+        // Only include images that were successfully pre-fetched as data URIs
+        const resolvedUris = allUris.filter((u) => imgMap[u]);
 
-        const photosHtml = allUrls.length > 0
-            ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
-                ${allUrls.map((u) => `<img src="${esc(u)}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;" />`).join("")}
+        const photosHtml = resolvedUris.length > 0
+            ? `<div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+                ${resolvedUris.map((u) => `<img src="${imgMap[u]}" style="width:100%;max-width:100%;height:auto;border-radius:10px;display:block;" />`).join("")}
                </div>`
             : "";
 
@@ -392,7 +433,20 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
         if (!report) return;
         setExporting(true);
         try {
-            const html = buildReportHTML(report, fieldMap, signaturePaths);
+            // Collect every photo URI: Firebase Storage (https) AND local (file://)
+            const storedUris = (report.photos ?? [])
+                .map((p) => p.url || p.localUri)
+                .filter((u): u is string => typeof u === "string" && u.length > 0);
+            const fieldUris = report.sections.flatMap((sec) =>
+                Object.values(sec.fieldValues).flatMap(extractFieldPhotoUris)
+            ).filter((u): u is string => typeof u === "string" && u.length > 0);
+            const allUris = [...new Set([...storedUris, ...fieldUris])];
+
+            const imgEntries = await Promise.all(
+                allUris.map(async (uri) => [uri, await fetchAsDataUri(uri)] as const)
+            );
+            const imgMap = Object.fromEntries(imgEntries.filter(([, v]) => v !== null)) as Record<string, string>;
+            const html = buildReportHTML(report, fieldMap, signaturePaths, imgMap);
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             const canShare = await Sharing.isAvailableAsync();
             if (canShare) {
