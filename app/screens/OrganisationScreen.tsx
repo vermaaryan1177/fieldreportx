@@ -14,23 +14,15 @@ import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
+import { auth, db } from "@/lib/firebase";
 import {
   createOrganisation,
   getUserOrganisation,
-  addMember,
+  inviteMember,
   removeMember,
 } from "@/lib/db/organisations";
-
-import { auth, db } from "@/lib/firebase";
-import {
-  deleteDoc,
-  doc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
 import { getUserProfile } from "@/lib/db/users";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 interface Props {
   onNavigate: (screen: AppScreen) => void;
@@ -77,15 +69,12 @@ export default function OrganisationScreen({
   const loadOrgs = async () => {
     try {
       setLoading(true);
-
       const orgs = await getUserOrganisation(user!.uid);
-      const safe = Array.isArray(orgs) ? orgs : [];
+      setOrganisations(orgs);
 
-      setOrganisations(safe);
-
-      if (safe.length > 0) {
-        setSelectedOrg(safe[0]);
-        await buildMembers(safe[0]);
+      if (orgs.length > 0) {
+        setSelectedOrg(orgs[0]);
+        await buildMembers(orgs[0]);
       } else {
         setSelectedOrg(null);
         setMembers([]);
@@ -106,25 +95,13 @@ export default function OrganisationScreen({
     const list: Member[] = await Promise.all(
       org.memberUids.map(async (uid: string) => {
         let username = "Unknown User";
-
         try {
           const profile = await getUserProfile(uid);
-
-          if (profile) {
-            username =
-              profile.displayName ||
-              profile.email ||
-              "Unknown User";
-          }
+          if (profile) username = profile.displayName || profile.email || "Unknown User";
         } catch {}
 
-        const authUser = auth.currentUser;
-
-        if (uid === authUser?.uid) {
-          username =
-            authUser.displayName ||
-            authUser.email ||
-            "You";
+        if (uid === user?.uid) {
+          username = user.displayName || user.email || "You";
         }
 
         return {
@@ -140,7 +117,6 @@ export default function OrganisationScreen({
 
   const handleCreateOrganisation = async () => {
     if (!user?.uid) return;
-
     if (!orgName || !orgAbn || !orgAddress) {
       Alert.alert("Fill all fields");
       return;
@@ -152,13 +128,10 @@ export default function OrganisationScreen({
         abn: orgAbn,
         address: orgAddress,
       });
-
       setOrgName("");
       setOrgAbn("");
       setOrgAddress("");
-
       setShowCreateModal(false);
-
       await loadOrgs();
     } catch {
       Alert.alert("Failed to create organisation");
@@ -167,7 +140,6 @@ export default function OrganisationScreen({
 
   const handleInvite = async () => {
     if (!selectedOrg?.id) return;
-
     if (!inviteEmail) {
       Alert.alert("Enter user email");
       return;
@@ -176,30 +148,24 @@ export default function OrganisationScreen({
     try {
       const q = query(
         collection(db, "users"),
-        where(
-          "email",
-          "==",
-          inviteEmail.trim().toLowerCase()
-        )
+        where("email", "==", inviteEmail.trim().toLowerCase())
       );
-
       const snap = await getDocs(q);
-
       if (snap.empty) {
         Alert.alert("User not found in this app");
         return;
       }
 
       const uid = snap.docs[0].id;
-
-      await addMember(selectedOrg.id, uid);
+      await inviteMember(selectedOrg.id, selectedOrg.name, uid, user.uid);
 
       setInviteEmail("");
       setShowInviteModal(false);
-
       await loadOrgs();
-    } catch {
-      Alert.alert("Failed to add member");
+      Alert.alert("Invitation sent!");
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Failed to send invitation");
     }
   };
 
@@ -210,31 +176,20 @@ export default function OrganisationScreen({
 
   const deleteOrganisation = async (orgId: string) => {
     try {
-      await deleteDoc(doc(db, "organisations", orgId));
-
-      const updated = organisations.filter(
-        (o) => o.id !== orgId
-      );
-
+      const updated = organisations.filter((o) => o.id !== orgId);
       setOrganisations(updated);
 
       if (selectedOrg?.id === orgId) {
         const next = updated[0] || null;
-
         setSelectedOrg(next);
-
-        if (next) {
-          await buildMembers(next);
-        } else {
-          setMembers([]);
-        }
+        if (next) await buildMembers(next);
+        else setMembers([]);
       }
     } catch {
       Alert.alert("Failed to delete organisation");
     }
   };
 
-  // MEMBER MENU
   const openMemberMenu = (member: Member) => {
     setMenuMember(member);
     setMemberMenuVisible(true);
@@ -249,13 +204,8 @@ export default function OrganisationScreen({
     if (!selectedOrg?.id || !menuMember) return;
 
     try {
-      await removeMember(
-        selectedOrg.id,
-        menuMember.uid
-      );
-
+      await removeMember(selectedOrg.id, menuMember.uid);
       closeMemberMenu();
-
       await loadOrgs();
     } catch {
       Alert.alert("Failed to remove member");
@@ -265,9 +215,7 @@ export default function OrganisationScreen({
   if (!user?.uid) {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">
-          Please login again
-        </Text>
+        <Text className="text-white">Please login again</Text>
       </SafeAreaView>
     );
   }
@@ -282,62 +230,33 @@ export default function OrganisationScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <AppHeader
-        onOpenSidebar={onOpenSidebar}
-        onNavigate={onNavigate}
-      />
+      <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
 
       <ScrollView className="px-4 pt-6">
-        {/* HEADER */}
+        {/* Organisations Header */}
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-white text-2xl font-bold">
-            Organisations
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Text className="text-primary">
-              + Create
-            </Text>
+          <Text className="text-white text-2xl font-bold">Organisations</Text>
+          <TouchableOpacity onPress={() => setShowCreateModal(true)}>
+            <Text className="text-primary">+ Create</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ORGS */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
+        {/* Organisation List */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {organisations.map((org) => {
-            const isAdmin =
-              org.adminUid === user.uid;
-
+            const isAdmin = org.adminUid === user.uid;
+            const bgColor = selectedOrg?.id === org.id ? "bg-primary" : "bg-slate-900";
             return (
               <View
-                key={org.id}
-                className={`p-4 rounded-2xl w-64 mr-3 ${
-                  selectedOrg?.id === org.id
-                    ? "bg-primary"
-                    : "bg-slate-900"
-                }`}
+                key={org.id ?? Math.random().toString()}
+                className={`p-4 rounded-2xl w-64 mr-3 ${bgColor}`}
               >
                 <View className="flex-row justify-between items-start">
-                  {/* ORG INFO */}
-                  <TouchableOpacity
-                    onPress={() => switchOrg(org)}
-                    className="flex-1"
-                  >
-                    <Text className="text-white font-bold text-base">
-                      {org.name}
-                    </Text>
-
-                    <Text className="text-zinc-400 mt-1">
-                      {(org.memberUids || []).length}{" "}
-                      members
-                    </Text>
+                  <TouchableOpacity onPress={() => switchOrg(org)} className="flex-1">
+                    <Text className="text-white font-bold text-base">{org.name ?? "Unknown"}</Text>
+                    <Text className="text-zinc-400 mt-1">{(org.memberUids?.length ?? 0) + " members"}</Text>
                   </TouchableOpacity>
 
-                  {/* DELETE BUTTON */}
                   {isAdmin && (
                     <TouchableOpacity
                       onPress={() =>
@@ -345,28 +264,14 @@ export default function OrganisationScreen({
                           "Delete Organisation",
                           `Are you sure you want to delete "${org.name}"?`,
                           [
-                            {
-                              text: "Cancel",
-                              style: "cancel",
-                            },
-                            {
-                              text: "Delete",
-                              style: "destructive",
-                              onPress: () =>
-                                deleteOrganisation(
-                                  org.id
-                                ),
-                            },
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => deleteOrganisation(org.id) },
                           ]
                         )
                       }
                       className="ml-3"
                     >
-                      <Ionicons
-                        name="trash-outline"
-                        size={20}
-                        color="#ef4444"
-                      />
+                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -375,195 +280,114 @@ export default function OrganisationScreen({
           })}
         </ScrollView>
 
-        {/* MEMBERS */}
+        {/* Members */}
         <View className="mt-6 flex-row justify-between">
-          <Text className="text-zinc-400">
-            Members
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => setShowInviteModal(true)}
-          >
-            <Text className="text-primary">
-              + Invite
-            </Text>
+          <Text className="text-zinc-400">Members</Text>
+          <TouchableOpacity onPress={() => setShowInviteModal(true)}>
+            <Text className="text-primary">+ Invite</Text>
           </TouchableOpacity>
         </View>
 
         {members.map((m) => (
-          <View
-            key={m.uid}
-            className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center"
-          >
+          <View key={m.uid ?? Math.random().toString()} className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center">
             <View>
-              <Text className="text-white font-semibold">
-                {m.username}
-              </Text>
-
-              <Text className="text-primary text-xs mt-1">
-                {m.role}
-              </Text>
+              <Text className="text-white font-semibold">{m.username}</Text>
+              <Text className="text-zinc-400">{m.role}</Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => openMemberMenu(m)}
-            >
-              <Ionicons
-                name="ellipsis-vertical"
-                size={18}
-                color="#fff"
-              />
-            </TouchableOpacity>
+            {selectedOrg?.adminUid === user.uid && m.uid !== user.uid && (
+              <TouchableOpacity onPress={() => openMemberMenu(m)}>
+                <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
           </View>
         ))}
+
       </ScrollView>
 
-      <BottomNavBar
-        active="organisation"
-        onNavigate={onNavigate}
-        hasOrganisation={hasOrganisation}
-      />
-
-      {/* MEMBER MENU */}
-      <Modal
-        visible={memberMenuVisible}
-        transparent
-        animationType="fade"
-      >
-        <View className="flex-1 bg-black/70 justify-center px-6">
-          <View className="bg-slate-900 p-5 rounded-2xl">
-            <Text className="text-white font-bold mb-4">
-              Member Actions
-            </Text>
-
-            <Text className="text-zinc-400 mb-4">
-              {menuMember?.username}
-            </Text>
-
-            <TouchableOpacity
-              onPress={handleRemoveMember}
-              className="bg-red-600 p-3 rounded-xl mb-2"
-            >
-              <Text className="text-white text-center">
-                Remove Member
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={closeMemberMenu}
-              className="p-3"
-            >
-              <Text className="text-zinc-400 text-center">
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* CREATE MODAL */}
-      <Modal
-        visible={showCreateModal}
-        transparent
-      >
-        <View className="flex-1 bg-black/70 justify-center px-6">
-          <View className="bg-slate-900 p-5 rounded-2xl">
-            <Text className="text-white mb-3">
-              Create Organisation
-            </Text>
-
+      {/* Create Organisation Modal */}
+      <Modal visible={showCreateModal} transparent animationType="slide">
+        <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
+          <View className="bg-zinc-900 p-6 rounded-2xl w-80">
+            <Text className="text-white text-lg font-bold mb-4">Create Organisation</Text>
             <TextInput
               placeholder="Name"
-              placeholderTextColor="#777"
+              placeholderTextColor="#888"
+              className="bg-zinc-800 text-white p-3 rounded mb-3"
               value={orgName}
               onChangeText={setOrgName}
-              className="bg-slate-800 text-white p-3 rounded-xl mb-3"
             />
-
             <TextInput
               placeholder="ABN"
-              placeholderTextColor="#777"
+              placeholderTextColor="#888"
+              className="bg-zinc-800 text-white p-3 rounded mb-3"
               value={orgAbn}
               onChangeText={setOrgAbn}
-              className="bg-slate-800 text-white p-3 rounded-xl mb-3"
             />
-
             <TextInput
               placeholder="Address"
-              placeholderTextColor="#777"
+              placeholderTextColor="#888"
+              className="bg-zinc-800 text-white p-3 rounded mb-3"
               value={orgAddress}
               onChangeText={setOrgAddress}
-              className="bg-slate-800 text-white p-3 rounded-xl"
             />
 
-            <View className="flex-row justify-between mt-4">
-              <TouchableOpacity
-                onPress={() =>
-                  setShowCreateModal(false)
-                }
-                className="bg-slate-700 p-3 rounded-xl flex-1 mr-2"
-              >
-                <Text className="text-white text-center">
-                  Cancel
-                </Text>
+            <View className="flex-row justify-end mt-4">
+              <TouchableOpacity onPress={() => setShowCreateModal(false)} className="mr-3">
+                <Text className="text-zinc-400">Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleCreateOrganisation}
-                className="bg-primary p-3 rounded-xl flex-1 ml-2"
-              >
-                <Text className="text-white text-center">
-                  Create
-                </Text>
+              <TouchableOpacity onPress={handleCreateOrganisation}>
+                <Text className="text-primary font-bold">Create</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* INVITE MODAL */}
-      <Modal
-        visible={showInviteModal}
-        transparent
-      >
-        <View className="flex-1 bg-black/70 justify-center px-6">
-          <View className="bg-slate-900 p-5 rounded-2xl">
-            <Text className="text-white mb-3">
-              Add Member
-            </Text>
-
+      {/* Invite Modal */}
+      <Modal visible={showInviteModal} transparent animationType="slide">
+        <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
+          <View className="bg-zinc-900 p-6 rounded-2xl w-80">
+            <Text className="text-white text-lg font-bold mb-4">Invite Member</Text>
             <TextInput
-              placeholder="Registered user email"
-              placeholderTextColor="#777"
+              placeholder="User Email"
+              placeholderTextColor="#888"
+              className="bg-zinc-800 text-white p-3 rounded mb-3"
               value={inviteEmail}
               onChangeText={setInviteEmail}
-              className="bg-slate-800 text-white p-3 rounded-xl"
             />
 
-            <View className="flex-row justify-between mt-4">
-              <TouchableOpacity
-                onPress={() =>
-                  setShowInviteModal(false)
-                }
-                className="bg-slate-700 p-3 rounded-xl flex-1 mr-2"
-              >
-                <Text className="text-white text-center">
-                  Cancel
-                </Text>
+            <View className="flex-row justify-end mt-4">
+              <TouchableOpacity onPress={() => setShowInviteModal(false)} className="mr-3">
+                <Text className="text-zinc-400">Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleInvite}
-                className="bg-primary p-3 rounded-xl flex-1 ml-2"
-              >
-                <Text className="text-white text-center">
-                  Add
-                </Text>
+              <TouchableOpacity onPress={handleInvite}>
+                <Text className="text-primary font-bold">Invite</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* Member Action Menu */}
+      <Modal visible={memberMenuVisible} transparent animationType="fade">
+        <TouchableOpacity
+          className="flex-1 bg-black bg-opacity-50 justify-center items-center"
+          onPress={closeMemberMenu}
+        >
+          <View className="bg-zinc-900 p-4 rounded-2xl w-64">
+            <Text className="text-white font-bold mb-4">Member Options</Text>
+            <TouchableOpacity onPress={handleRemoveMember} className="py-2">
+              <Text className="text-red-500 font-semibold">Remove Member</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={closeMemberMenu} className="py-2">
+              <Text className="text-white font-semibold">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <BottomNavBar active="organisation" onNavigate={onNavigate} hasOrganisation={hasOrganisation} />
     </SafeAreaView>
   );
 }
