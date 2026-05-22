@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useMemo, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Path, Svg } from "react-native-svg";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -155,12 +157,203 @@ function SignatureDisplay({ paths }: { paths: string }) {
     );
 }
 
+// ─── PDF export ───────────────────────────────────────────────────────────────
+
+function esc(s: unknown): string {
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function buildReportHTML(
+    report: Report,
+    fieldMap: Record<string, { label: string; type: FieldType }>,
+    signaturePaths: string | null,
+): string {
+    const statusLabels: Record<string, string> = { done: "Done", draft: "Draft", inprogress: "In Progress" };
+    const statusColors: Record<string, string> = { done: "#15803d", draft: "#92400e", inprogress: "#1d4ed8" };
+    const statusBgs:   Record<string, string> = { done: "#dcfce7", draft: "#fef3c7", inprogress: "#dbeafe" };
+    const sectionStatusLabels: Record<string, string> = {
+        completed: "Completed", partial: "Partial", inprogress: "In Progress",
+        skipped: "Skipped", notstarted: "Not started",
+    };
+    const sectionStatusColors: Record<string, string> = {
+        completed: "#15803d", partial: "#854d0e", inprogress: "#92400e",
+        skipped: "#6b7280", notstarted: "#6b7280",
+    };
+
+    const generatedAt = new Date().toLocaleString("en-AU", {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+    });
+
+    const toMs = (ts: any): number => {
+        if (!ts) return 0;
+        if (typeof ts === "number") return ts;
+        if (typeof ts.toMillis === "function") return ts.toMillis();
+        if (ts.seconds !== undefined) return ts.seconds * 1000;
+        return 0;
+    };
+    const createdDate = toMs(report.createdAt)
+        ? new Date(toMs(report.createdAt)).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+        : "";
+
+    // Signature inline SVG
+    let sigSvg = "";
+    if (signaturePaths) {
+        const vb = sigViewBox(signaturePaths);
+        const pathEls = signaturePaths.split("|").filter(Boolean)
+            .map((d) => `<path d="${esc(d)}" stroke="#f2a72f" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`)
+            .join("");
+        sigSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100px;display:block;">${pathEls}</svg>`;
+    }
+
+    // Sections HTML
+    const sectionsHtml = report.sections.map((sec) => {
+        const scLabel = sectionStatusLabels[sec.status] ?? sec.status;
+        const scColor = sectionStatusColors[sec.status] ?? "#6b7280";
+
+        const fields = Object.entries(sec.fieldValues)
+            .filter(([fid, val]) => {
+                const meta = fieldMap[fid];
+                if (!meta || meta.type === "photo" || meta.type === "signature") return false;
+                return val !== undefined && val !== null && val !== "" && val !== false;
+            })
+            .map(([fid, val]) => {
+                const meta = fieldMap[fid] ?? { label: fid, type: "text" as FieldType };
+                const display = formatFieldValue(meta.type, val);
+                if (!display) return "";
+                return `<tr>
+                    <td style="width:140px;padding:6px 8px;color:#6b7280;font-size:12px;vertical-align:top;">${esc(meta.label)}</td>
+                    <td style="padding:6px 8px;color:#111827;font-size:12px;font-weight:500;">${esc(display)}</td>
+                </tr>`;
+            }).join("");
+
+        const photoUrls = extractFieldPhotoUris
+            ? Object.values(sec.fieldValues).flatMap(extractFieldPhotoUris).filter((u) => u.startsWith("http"))
+            : [];
+        const storedUrls = (report.photos ?? [])
+            .filter((p) => p.sectionId === sec.id && p.url?.startsWith("http"))
+            .map((p) => p.url);
+        const allUrls = [...new Set([...storedUrls, ...photoUrls])];
+
+        const photosHtml = allUrls.length > 0
+            ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+                ${allUrls.map((u) => `<img src="${esc(u)}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;" />`).join("")}
+               </div>`
+            : "";
+
+        const bodyHtml = fields || photosHtml
+            ? `<div style="padding:12px 16px;border-top:1px solid #f3f4f6;">
+                ${fields ? `<table style="width:100%;border-collapse:collapse;">${fields}</table>` : ""}
+                ${photosHtml}
+               </div>`
+            : "";
+
+        return `
+        <div style="border:1px solid #e5e7eb;border-radius:12px;margin-bottom:14px;overflow:hidden;">
+            <div style="background:#f9fafb;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;font-weight:700;color:#111827;">${esc(sec.name)}</span>
+                <span style="font-size:11px;font-weight:700;color:${scColor};">${esc(scLabel)}</span>
+            </div>
+            ${bodyHtml}
+        </div>`;
+    }).join("");
+
+    const routeHtml = report.routeData ? `
+        <h2 style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px;">Route</h2>
+        <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="padding:5px 8px;color:#6b7280;font-size:12px;width:120px;">Distance</td><td style="padding:5px 8px;font-size:12px;font-weight:600;">${esc(report.routeData.distanceKm)} km</td></tr>
+                <tr><td style="padding:5px 8px;color:#6b7280;font-size:12px;">Duration</td><td style="padding:5px 8px;font-size:12px;font-weight:600;">${esc(report.routeData.duration)}</td></tr>
+                <tr><td style="padding:5px 8px;color:#6b7280;font-size:12px;">Waypoints</td><td style="padding:5px 8px;font-size:12px;font-weight:600;">${report.routeData.waypoints.length}</td></tr>
+                <tr><td style="padding:5px 8px;color:#6b7280;font-size:12px;">Stops</td><td style="padding:5px 8px;font-size:12px;font-weight:600;">${report.routeData.markers}</td></tr>
+            </table>
+        </div>` : "";
+
+    const sigHtml = sigSvg ? `
+        <h2 style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px;">Signature</h2>
+        <div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#f9fafb;">
+            ${sigSvg}
+        </div>` : "";
+
+    const completedCount = report.sections.filter(
+        (s) => s.status === "completed" || s.status === "partial",
+    ).length;
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,Arial,Helvetica,sans-serif; color:#111827; background:#fff; padding:40px 48px; font-size:13px; }
+  @media print { body { padding:20px 28px; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #f2a72f;padding-bottom:18px;margin-bottom:28px;">
+  <div>
+    <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;color:#f2a72f;">Field<span style="color:#111827;">ReportX</span></div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:3px;">Professional Field Inspection Reports</div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:11px;color:#9ca3af;">Generated</div>
+    <div style="font-size:12px;font-weight:600;color:#374151;">${esc(generatedAt)}</div>
+  </div>
+</div>
+
+<!-- Meta card -->
+<div style="background:#f9fafb;border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+    <div style="flex:1;padding-right:16px;">
+      <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:4px;">${esc(report.title)}</div>
+      <div style="font-size:12px;color:#6b7280;">${esc(report.templateName)}${createdDate ? ` &middot; ${createdDate}` : ""}</div>
+    </div>
+    <div style="text-align:right;">
+      <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:${statusBgs[report.status] ?? "#f3f4f6"};color:${statusColors[report.status] ?? "#374151"};">
+        ${esc(statusLabels[report.status] ?? report.status)}
+      </span>
+      ${report.score != null ? `<div style="margin-top:8px;font-size:24px;font-weight:900;color:${report.score >= 80 ? "#15803d" : report.score >= 50 ? "#f59e0b" : "#dc2626"};">${report.score}<span style="font-size:12px;font-weight:500;color:#9ca3af;">/100</span></div>` : ""}
+    </div>
+  </div>
+  <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;gap:24px;flex-wrap:wrap;">
+    <div><span style="color:#6b7280;font-size:11px;">Inspector</span><br><span style="font-weight:600;font-size:12px;">${esc(report.inspectorName)}</span></div>
+    <div><span style="color:#6b7280;font-size:11px;">Sections completed</span><br><span style="font-weight:600;font-size:12px;">${completedCount} / ${report.sections.length}</span></div>
+    <div><span style="color:#6b7280;font-size:11px;">Photos</span><br><span style="font-weight:600;font-size:12px;">${report.photos.length}</span></div>
+    ${report.gps ? `<div><span style="color:#6b7280;font-size:11px;">GPS</span><br><span style="font-weight:600;font-size:12px;">${report.gps.lat.toFixed(5)}, ${report.gps.lng.toFixed(5)}</span></div>` : ""}
+  </div>
+</div>
+
+<!-- Sections -->
+<h2 style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Sections</h2>
+${sectionsHtml}
+
+${routeHtml}
+${sigHtml}
+
+<!-- Footer -->
+<div style="margin-top:40px;border-top:1px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:center;">
+  <div style="font-size:11px;color:#d1d5db;font-weight:700;">FieldReportX</div>
+  <div style="font-size:10px;color:#9ca3af;">Report ID: ${esc(report.id)}</div>
+</div>
+
+</body>
+</html>`;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportDetailScreen({ onNavigate }: Props) {
     const report = store.selectedReport;
     const [template, setTemplate] = useState<Template | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
 
     // Resolve the template: system first, then Firestore
     useEffect(() => {
@@ -194,6 +387,29 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
 
     // Signature is stored directly on the report — no template needed
     const signaturePaths = report?.signatureUrl ?? null;
+
+    const handleExport = async () => {
+        if (!report) return;
+        setExporting(true);
+        try {
+            const html = buildReportHTML(report, fieldMap, signaturePaths);
+            const { uri } = await Print.printToFileAsync({ html, base64: false });
+            const canShare = await Sharing.isAvailableAsync();
+            if (canShare) {
+                await Sharing.shareAsync(uri, {
+                    mimeType: "application/pdf",
+                    dialogTitle: `${report.title}.pdf`,
+                    UTI: "com.adobe.pdf",
+                });
+            } else {
+                Alert.alert("Sharing unavailable", "PDF was saved to: " + uri);
+            }
+        } catch (e: any) {
+            Alert.alert("Export failed", e?.message ?? "Could not generate PDF.");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     if (!report) {
         return (
@@ -439,10 +655,18 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                 </TouchableOpacity>
                 <TouchableOpacity
                     activeOpacity={0.8}
+                    onPress={handleExport}
+                    disabled={exporting}
                     className="flex-1 bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                    style={exporting ? { opacity: 0.6 } : undefined}
                 >
-                    <Ionicons name="share-outline" size={16} color="#ffffff" />
-                    <Text className="text-white font-semibold text-sm">Export</Text>
+                    {exporting
+                        ? <ActivityIndicator size="small" color="#ffffff" />
+                        : <Ionicons name="share-outline" size={16} color="#ffffff" />
+                    }
+                    <Text className="text-white font-semibold text-sm">
+                        {exporting ? "Exporting…" : "Export PDF"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>
