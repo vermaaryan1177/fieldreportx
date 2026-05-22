@@ -229,165 +229,168 @@ export default function OrganisationScreen({
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
+      <SafeAreaView edges={['bottom']} className="flex-1 bg-background" >
+        <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} />
 
-      <ScrollView className="px-4 pt-6">
-        {/* Organisations Header */}
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-white text-2xl font-bold">Organisations</Text>
-          <TouchableOpacity onPress={() => setShowCreateModal(true)}>
-            <Text className="text-primary">+ Create</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView className="px-4 pt-6">
+          {/* Organisations Header */}
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-white text-2xl font-bold">Organisations</Text>
+            <TouchableOpacity onPress={() => setShowCreateModal(true)}>
+              <Text className="text-primary">+ Create</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Organisation List */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {organisations.map((org) => {
-            const isAdmin = org.adminUid === user.uid;
-            const bgColor = selectedOrg?.id === org.id ? "bg-primary" : "bg-slate-900";
-            return (
-              <View
-                key={org.id ?? Math.random().toString()}
-                className={`p-4 rounded-2xl w-64 mr-3 ${bgColor}`}
-              >
-                <View className="flex-row justify-between items-start">
-                  <TouchableOpacity onPress={() => switchOrg(org)} className="flex-1">
-                    <Text className="text-white font-bold text-base">{org.name ?? "Unknown"}</Text>
-                    <Text className="text-zinc-400 mt-1">{(org.memberUids?.length ?? 0) + " members"}</Text>
-                  </TouchableOpacity>
-
-                  {isAdmin && (
-                    <TouchableOpacity
-                      onPress={() =>
-                        Alert.alert(
-                          "Delete Organisation",
-                          `Are you sure you want to delete "${org.name}"?`,
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Delete", style: "destructive", onPress: () => deleteOrganisation(org.id) },
-                          ]
-                        )
-                      }
-                      className="ml-3"
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
+          {/* Organisation List */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {organisations.map((org) => {
+              const isAdmin = org.adminUid === user.uid;
+              const bgColor = selectedOrg?.id === org.id ? "bg-primary" : "bg-slate-900";
+              return (
+                <View
+                  key={org.id ?? Math.random().toString()}
+                  className={`p-4 rounded-2xl w-64 mr-3 ${bgColor}`}
+                >
+                  <View className="flex-row justify-between items-start">
+                    <TouchableOpacity onPress={() => switchOrg(org)} className="flex-1">
+                      <Text className="text-white font-bold text-base">{org.name ?? "Unknown"}</Text>
+                      <Text className="text-zinc-400 mt-1">{(org.memberUids?.length ?? 0) + " members"}</Text>
                     </TouchableOpacity>
-                  )}
+
+                    {isAdmin && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          Alert.alert(
+                            "Delete Organisation",
+                            `Are you sure you want to delete "${org.name}"?`,
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Delete", style: "destructive", onPress: () => deleteOrganisation(org.id) },
+                            ]
+                          )
+                        }
+                        className="ml-3"
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
+              );
+            })}
+          </ScrollView>
+
+          {/* Members */}
+          <View className="mt-6 flex-row justify-between">
+            <Text className="text-zinc-400">Members</Text>
+            <TouchableOpacity onPress={() => setShowInviteModal(true)}>
+              <Text className="text-primary">+ Invite</Text>
+            </TouchableOpacity>
+          </View>
+
+          {members.map((m) => (
+            <View key={m.uid ?? Math.random().toString()} className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center">
+              <View>
+                <Text className="text-white font-semibold">{m.username}</Text>
+                <Text className="text-zinc-400">{m.role}</Text>
               </View>
-            );
-          })}
+
+              {selectedOrg?.adminUid === user.uid && m.uid !== user.uid && (
+                <TouchableOpacity onPress={() => openMemberMenu(m)}>
+                  <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+
         </ScrollView>
 
-        {/* Members */}
-        <View className="mt-6 flex-row justify-between">
-          <Text className="text-zinc-400">Members</Text>
-          <TouchableOpacity onPress={() => setShowInviteModal(true)}>
-            <Text className="text-primary">+ Invite</Text>
+        {/* Create Organisation Modal */}
+        <Modal visible={showCreateModal} transparent animationType="slide">
+          <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
+            <View className="bg-zinc-900 p-6 rounded-2xl w-80">
+              <Text className="text-white text-lg font-bold mb-4">Create Organisation</Text>
+              <TextInput
+                placeholder="Name"
+                placeholderTextColor="#888"
+                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                value={orgName}
+                onChangeText={setOrgName}
+              />
+              <TextInput
+                placeholder="ABN"
+                placeholderTextColor="#888"
+                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                value={orgAbn}
+                onChangeText={setOrgAbn}
+              />
+              <TextInput
+                placeholder="Address"
+                placeholderTextColor="#888"
+                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                value={orgAddress}
+                onChangeText={setOrgAddress}
+              />
+
+              <View className="flex-row justify-end mt-4">
+                <TouchableOpacity onPress={() => setShowCreateModal(false)} className="mr-3">
+                  <Text className="text-zinc-400">Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleCreateOrganisation}>
+                  <Text className="text-primary font-bold">Create</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Invite Modal */}
+        <Modal visible={showInviteModal} transparent animationType="slide">
+          <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
+            <View className="bg-zinc-900 p-6 rounded-2xl w-80">
+              <Text className="text-white text-lg font-bold mb-4">Invite Member</Text>
+              <TextInput
+                placeholder="User Email"
+                placeholderTextColor="#888"
+                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                value={inviteEmail}
+                onChangeText={setInviteEmail}
+              />
+
+              <View className="flex-row justify-end mt-4">
+                <TouchableOpacity onPress={() => setShowInviteModal(false)} className="mr-3">
+                  <Text className="text-zinc-400">Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleInvite}>
+                  <Text className="text-primary font-bold">Invite</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Member Action Menu */}
+        <Modal visible={memberMenuVisible} transparent animationType="fade">
+          <TouchableOpacity
+            className="flex-1 bg-black bg-opacity-50 justify-center items-center"
+            onPress={closeMemberMenu}
+          >
+            <View className="bg-zinc-900 p-4 rounded-2xl w-64">
+              <Text className="text-white font-bold mb-4">Member Options</Text>
+              <TouchableOpacity onPress={handleRemoveMember} className="py-2">
+                <Text className="text-red-500 font-semibold">Remove Member</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={closeMemberMenu} className="py-2">
+                <Text className="text-white font-semibold">Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
+        </Modal>
+          
+        <View className="absolute bottom-0 left-0 right-0">
+          <BottomNavBar active="organisation" onNavigate={onNavigate} hasOrganisation={hasOrganisation} />
         </View>
-
-        {members.map((m) => (
-          <View key={m.uid ?? Math.random().toString()} className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center">
-            <View>
-              <Text className="text-white font-semibold">{m.username}</Text>
-              <Text className="text-zinc-400">{m.role}</Text>
-            </View>
-
-            {selectedOrg?.adminUid === user.uid && m.uid !== user.uid && (
-              <TouchableOpacity onPress={() => openMemberMenu(m)}>
-                <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
-
-      </ScrollView>
-
-      {/* Create Organisation Modal */}
-      <Modal visible={showCreateModal} transparent animationType="slide">
-        <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
-          <View className="bg-zinc-900 p-6 rounded-2xl w-80">
-            <Text className="text-white text-lg font-bold mb-4">Create Organisation</Text>
-            <TextInput
-              placeholder="Name"
-              placeholderTextColor="#888"
-              className="bg-zinc-800 text-white p-3 rounded mb-3"
-              value={orgName}
-              onChangeText={setOrgName}
-            />
-            <TextInput
-              placeholder="ABN"
-              placeholderTextColor="#888"
-              className="bg-zinc-800 text-white p-3 rounded mb-3"
-              value={orgAbn}
-              onChangeText={setOrgAbn}
-            />
-            <TextInput
-              placeholder="Address"
-              placeholderTextColor="#888"
-              className="bg-zinc-800 text-white p-3 rounded mb-3"
-              value={orgAddress}
-              onChangeText={setOrgAddress}
-            />
-
-            <View className="flex-row justify-end mt-4">
-              <TouchableOpacity onPress={() => setShowCreateModal(false)} className="mr-3">
-                <Text className="text-zinc-400">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleCreateOrganisation}>
-                <Text className="text-primary font-bold">Create</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Invite Modal */}
-      <Modal visible={showInviteModal} transparent animationType="slide">
-        <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
-          <View className="bg-zinc-900 p-6 rounded-2xl w-80">
-            <Text className="text-white text-lg font-bold mb-4">Invite Member</Text>
-            <TextInput
-              placeholder="User Email"
-              placeholderTextColor="#888"
-              className="bg-zinc-800 text-white p-3 rounded mb-3"
-              value={inviteEmail}
-              onChangeText={setInviteEmail}
-            />
-
-            <View className="flex-row justify-end mt-4">
-              <TouchableOpacity onPress={() => setShowInviteModal(false)} className="mr-3">
-                <Text className="text-zinc-400">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleInvite}>
-                <Text className="text-primary font-bold">Invite</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Member Action Menu */}
-      <Modal visible={memberMenuVisible} transparent animationType="fade">
-        <TouchableOpacity
-          className="flex-1 bg-black bg-opacity-50 justify-center items-center"
-          onPress={closeMemberMenu}
-        >
-          <View className="bg-zinc-900 p-4 rounded-2xl w-64">
-            <Text className="text-white font-bold mb-4">Member Options</Text>
-            <TouchableOpacity onPress={handleRemoveMember} className="py-2">
-              <Text className="text-red-500 font-semibold">Remove Member</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={closeMemberMenu} className="py-2">
-              <Text className="text-white font-semibold">Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      <BottomNavBar active="organisation" onNavigate={onNavigate} hasOrganisation={hasOrganisation} />
-    </SafeAreaView>
+      </SafeAreaView>
+    
   );
 }
