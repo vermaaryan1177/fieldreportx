@@ -644,20 +644,12 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
             </ScrollView>
 
             {/* ── Bottom actions ────────────────────────────────────────── */}
-            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3 flex-row gap-3">
-                <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => onNavigate("reportComparison")}
-                    className="flex-1 border border-zinc-700 bg-slate-900 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
-                >
-                    <Ionicons name="git-compare-outline" size={16} color="#f2a72f" />
-                    <Text className="text-primary font-semibold text-sm">Compare</Text>
-                </TouchableOpacity>
+            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3">
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={handleExport}
                     disabled={exporting}
-                    className="flex-1 bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                    className="bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
                     style={exporting ? { opacity: 0.6 } : undefined}
                 >
                     {exporting

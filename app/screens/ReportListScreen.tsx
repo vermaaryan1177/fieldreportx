@@ -120,6 +120,14 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
         );
     };
 
+    const handleCompare = () => {
+        const a = reports.find((r) => r.id === comparing[0]);
+        const b = reports.find((r) => r.id === comparing[1]);
+        if (!a || !b) return;
+        store.setComparisonReports([a, b]);
+        onNavigate("reportComparison");
+    };
+
     return (
         <View className="flex-1 bg-background">
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} />
@@ -175,6 +183,18 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
+
+            {/* Compare mode banner */}
+            {comparing.length > 0 && (
+                <View className="mx-5 mb-3 bg-slate-800 rounded-2xl px-4 py-3 flex-row items-center justify-between">
+                    <Text className="text-white text-sm font-semibold">
+                        {comparing.length === 1 ? "1 selected — pick one more" : "2 selected"}
+                    </Text>
+                    <TouchableOpacity onPress={() => setComparing([])}>
+                        <Text className="text-primary text-sm font-semibold">Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Report List */}
             <ScrollView
@@ -266,6 +286,19 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar }: Props) {
                     </Text>
                 )}
             </ScrollView>
+
+            {comparing.length === 2 && (
+                <View className="px-5 pb-3 bg-background">
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleCompare}
+                        className="bg-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
+                    >
+                        <Ionicons name="git-compare-outline" size={18} color="#fff" />
+                        <Text className="text-white font-bold text-sm">Compare 2 Reports</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <BottomNavBar active="reports" onNavigate={onNavigate} />
         </View>

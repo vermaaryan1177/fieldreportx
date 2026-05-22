@@ -11,6 +11,7 @@ export interface ReportSetup {
 }
 
 let _selectedReport: Report | null = null;
+let _comparisonReports: [Report, Report] | null = null;
 let _selectedTemplateId: string | null = null;
 let _selectedUserTemplate: Template | null = null;
 let _reportSetup: ReportSetup | null = null;
@@ -23,6 +24,13 @@ export const store = {
     },
     setSelectedReport(report: Report | null) {
         _selectedReport = report;
+    },
+
+    get comparisonReports() {
+        return _comparisonReports;
+    },
+    setComparisonReports(pair: [Report, Report] | null) {
+        _comparisonReports = pair;
     },
 
     get selectedTemplateId() {
