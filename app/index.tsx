@@ -526,6 +526,7 @@ export default function App() {
         if (target === currentScreen || incomingScreen !== null) return;
 
         const REPORT_SCREENS: AppScreen[] = [
+            "templateLibrary",
             "reportSetup",
             "reportEditor",
             "reportPreview",

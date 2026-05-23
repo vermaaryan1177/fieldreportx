@@ -13,6 +13,7 @@ import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { useAuth } from "@/hooks/useAuth";
 import { listReportsByUser } from "@/lib/db/reports";
+import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
 
@@ -68,13 +69,14 @@ const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = 
     draft:      { label: "Draft",       bg: "#ffff5b25", text: "#ffff5b" },
 };
 
-type FilterTab = "All" | "Completed" | "In Progress" | "Archived";
-const FILTERS: FilterTab[] = ["All", "Completed", "In Progress", "Archived"];
+type FilterTab = "All" | "Completed" | "In Progress" | "Draft" | "Archived";
+const FILTERS: FilterTab[] = ["All", "Completed", "In Progress", "Draft", "Archived"];
 
 const FILTER_TO_STATUS: Record<FilterTab, string | null> = {
     "All":         null,
     "Completed":   "completed",
     "In Progress": "inprogress",
+    "Draft":       "draft",
     "Archived":    "archived",
 };
 
@@ -233,6 +235,46 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                                     onPress={() => {
                                         if (comparing.length > 0) {
                                             toggleCompare(report.id);
+                                        } else if (report.status === "draft") {
+                                            store.clearReport();
+                                            store.setDraftReportId(report.id);
+                                            store.setSelectedTemplate(report.templateId);
+                                            store.setResumeSetup({
+                                                title: report.title,
+                                                description: report.description ?? "",
+                                                inspectorName: report.inspectorName,
+                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                gpsEnabled: false,
+                                                templateId: report.templateId,
+                                            });
+                                            if (report.templateId.startsWith("user_")) {
+                                                getTemplate(report.templateId)
+                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .catch(() => {});
+                                            }
+                                            onNavigate("reportSetup");
+                                        } else if (report.status === "inprogress") {
+                                            store.clearReport();
+                                            store.setDraftReportId(report.id);
+                                            store.setSelectedTemplate(report.templateId);
+                                            store.setEditorBackScreen("reports");
+                                            store.setReportSetup({
+                                                title: report.title,
+                                                description: report.description ?? "",
+                                                inspectorName: report.inspectorName,
+                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                gpsEnabled: false,
+                                            });
+                                            for (const sec of report.sections) {
+                                                store.setSectionStatus(sec.id, sec.status);
+                                                store.setFieldValues(sec.id, sec.fieldValues);
+                                            }
+                                            if (report.templateId.startsWith("user_")) {
+                                                getTemplate(report.templateId)
+                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .catch(() => {});
+                                            }
+                                            onNavigate("reportEditor");
                                         } else {
                                             store.setSelectedReport(report);
                                             onNavigate("reportDetail");

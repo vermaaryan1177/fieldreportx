@@ -28,6 +28,7 @@ import { Circle, Line, Path, Svg } from "react-native-svg";
 import { AppScreen } from "@/components/BottomNavBar";
 import SignaturePad from "@/components/SignaturePad";
 import { detectJointAngle, JointAngleCapture, SKELETON_EDGES, AI_UNSUPPORTED_JOINTS } from "@/lib/poseService";
+import { updateInProgressSections } from "@/lib/db/reports";
 import { store } from "@/lib/store";
 import { trackingStore, RouteFieldData, RouteStop, AccelFieldData, haversineKm } from "@/lib/trackingStore";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
@@ -2699,13 +2700,33 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
 
     const activeSection = sections.find((s) => s.id === activeSectionId);
 
+    const handleBack = async () => {
+        if (store.draftReportId) {
+            const sectionData = sections.map((sec) => ({
+                id: sec.id,
+                name: sec.name,
+                status: sectionStatuses[sec.id] ?? "notstarted",
+                fieldValues: allFieldValues[sec.id] ?? {},
+                notes: "",
+                photoIds: [],
+                score: null,
+            }));
+            try {
+                await updateInProgressSections(store.draftReportId, sectionData);
+            } catch {
+                // non-blocking — still navigate away
+            }
+        }
+        onNavigate(store.editorBackScreen as AppScreen);
+    };
+
     return (
         <View className="flex-1 bg-background">
             {/* Top Bar */}
             <View className="flex-row items-center gap-2 px-5 pt-16 pb-3">
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => onNavigate("reportSetup")}
+                    onPress={handleBack}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
                 >
                     <Ionicons name="arrow-back" size={18} color="#ffffff" />

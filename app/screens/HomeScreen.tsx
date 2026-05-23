@@ -223,7 +223,7 @@ import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 
 import { listReportsByUser } from "@/lib/db/reports";
-
+import { getTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
 import { Report } from "@/lib/types";
@@ -501,8 +501,50 @@ export default function HomeScreen({
                                     key={report.id}
                                     activeOpacity={0.7}
                                     onPress={() => {
-                                        store.setSelectedReport(report);
-                                        onNavigate("reportDetail");
+                                        if (report.status === "draft") {
+                                            store.clearReport();
+                                            store.setDraftReportId(report.id);
+                                            store.setSelectedTemplate(report.templateId);
+                                            store.setResumeSetup({
+                                                title: report.title,
+                                                description: report.description ?? "",
+                                                inspectorName: report.inspectorName,
+                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                gpsEnabled: false,
+                                                templateId: report.templateId,
+                                            });
+                                            if (report.templateId.startsWith("user_")) {
+                                                getTemplate(report.templateId)
+                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .catch(() => {});
+                                            }
+                                            onNavigate("reportSetup");
+                                        } else if (report.status === "inprogress") {
+                                            store.clearReport();
+                                            store.setDraftReportId(report.id);
+                                            store.setSelectedTemplate(report.templateId);
+                                            store.setEditorBackScreen("home");
+                                            store.setReportSetup({
+                                                title: report.title,
+                                                description: report.description ?? "",
+                                                inspectorName: report.inspectorName,
+                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                gpsEnabled: false,
+                                            });
+                                            for (const sec of report.sections) {
+                                                store.setSectionStatus(sec.id, sec.status);
+                                                store.setFieldValues(sec.id, sec.fieldValues);
+                                            }
+                                            if (report.templateId.startsWith("user_")) {
+                                                getTemplate(report.templateId)
+                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .catch(() => {});
+                                            }
+                                            onNavigate("reportEditor");
+                                        } else {
+                                            store.setSelectedReport(report);
+                                            onNavigate("reportDetail");
+                                        }
                                     }}
                                     className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
                                 >

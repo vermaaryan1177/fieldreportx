@@ -109,6 +109,7 @@ export interface RouteData {
 export interface Report {
     id: string;
     title: string;
+    description?: string;
     templateId: string;
     templateName: string;
     templateVersion?: number;

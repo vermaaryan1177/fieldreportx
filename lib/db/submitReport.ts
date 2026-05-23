@@ -62,8 +62,10 @@ export async function submitReport(): Promise<string> {
     const setup = store.reportSetup;
     if (!setup) throw new Error("No report setup found");
 
-    // Reserve a Firestore doc ID before uploading so paths are stable
-    const reportRef = doc(collection(db, "reports"));
+    // Reuse the draft/inprogress doc if one was created during setup/editing
+    const reportRef = store.draftReportId
+        ? doc(db, "reports", store.draftReportId)
+        : doc(collection(db, "reports"));
     const reportId = reportRef.id;
 
     const allPhotos: ReportPhoto[] = [];

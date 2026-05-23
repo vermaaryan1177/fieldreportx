@@ -20,6 +20,12 @@ let _fieldValues: Record<string, Record<string, string | boolean | number>> = {}
 let _sectionStatuses: Record<string, SectionStatus> = {};
 let _orgReportMode: boolean = false;
 let _orgTemplateMode: boolean = false;
+// ID of the Firestore doc for a report currently being drafted or edited
+let _draftReportId: string | null = null;
+// Pre-fill data for resuming a draft on the setup screen
+let _resumeSetup: (ReportSetup & { templateId: string; description: string }) | null = null;
+// Screen the editor's back button should return to
+let _editorBackScreen: string = "reportSetup";
 
 export const store = {
     get selectedReport() {
@@ -92,6 +98,27 @@ export const store = {
         _orgTemplateMode = v;
     },
 
+    get draftReportId() {
+        return _draftReportId;
+    },
+    setDraftReportId(id: string | null) {
+        _draftReportId = id;
+    },
+
+    get resumeSetup() {
+        return _resumeSetup;
+    },
+    setResumeSetup(data: (ReportSetup & { templateId: string; description: string }) | null) {
+        _resumeSetup = data;
+    },
+
+    get editorBackScreen() {
+        return _editorBackScreen;
+    },
+    setEditorBackScreen(screen: string) {
+        _editorBackScreen = screen;
+    },
+
     clearReport() {
         _selectedTemplateId = null;
         _selectedUserTemplate = null;
@@ -99,5 +126,8 @@ export const store = {
         _fieldValues = {};
         _sectionStatuses = {};
         _orgReportMode = false;
+        _draftReportId = null;
+        _resumeSetup = null;
+        _editorBackScreen = "reportSetup";
     },
 };

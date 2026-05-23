@@ -13,6 +13,7 @@ import {
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { auth } from "@/lib/firebase";
+import { saveDraftReport, markReportInProgress } from "@/lib/db/reports";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 
@@ -31,13 +32,12 @@ function todayLabel() {
     });
 }
 
-// Normalised shape used only for display — covers both system and user templates.
 interface DisplayTemplate {
     name: string;
     category: string;
     icon: string;
     color: string;
-    sections: { id: string }[];
+    sections: { id: string; name: string }[];
     gpsValidation: boolean;
 }
 
@@ -64,18 +64,44 @@ function resolveTemplate(): DisplayTemplate | null {
 
 export default function ReportSetupScreen({ onNavigate }: Props) {
     const template = resolveTemplate();
+    const user = auth.currentUser;
 
-    const [reportTitle, setReportTitle] = useState("");
-    const [description, setDescription] = useState("");
+    // Pre-fill from a resumed draft if available
+    const resume = store.resumeSetup;
+
+    const [reportTitle, setReportTitle] = useState(resume?.title ?? "");
+    const [description, setDescription] = useState(resume?.description ?? "");
     const [association, setAssociation] = useState<Association>("individual");
     const reportDate = todayLabel();
     const [inspectorName, setInspectorName] = useState(
-        auth.currentUser?.displayName ?? "",
+        resume?.inspectorName ?? user?.displayName ?? "",
     );
     const [autoGps, setAutoGps] = useState(template?.gpsValidation ?? false);
     const [recording, setRecording] = useState<Audio.Recording | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [saving, setSaving] = useState(false);
 
+    // Save current field values so they survive the unmount/remount when the
+    // user navigates to the template library and back.
+    const handlePickTemplate = () => {
+        store.setResumeSetup({
+            title: reportTitle,
+            description,
+            inspectorName,
+            date: reportDate,
+            gpsEnabled: autoGps,
+            templateId: store.selectedTemplateId ?? "",
+        });
+        onNavigate("templateLibrary");
+    };
+
+    // ── Validation ────────────────────────────────────────────────────────────
+    const canProceed =
+        !!template &&
+        reportTitle.trim().length > 0 &&
+        description.trim().length > 0;
+
+    // ── Voice dictation ───────────────────────────────────────────────────────
     const startRecording = async () => {
         try {
             const { granted } = await Audio.requestPermissionsAsync();
@@ -134,14 +160,75 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
         }
     };
 
-    const handleBegin = () => {
-        store.setReportSetup({
-            title: reportTitle.trim() || (template?.name ?? "Untitled report"),
-            description: description.trim(),
-            inspectorName: inspectorName.trim(),
-            date: reportDate,
-            gpsEnabled: autoGps,
-        });
+    // ── Save draft on back press ───────────────────────────────────────────────
+    const handleBack = async () => {
+        if (!template || !reportTitle.trim() || !description.trim() || !user) {
+            // Missing required fields — discard and go back
+            store.clearReport();
+            onNavigate("home");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const id = await saveDraftReport({
+                existingId: store.draftReportId,
+                title: reportTitle.trim(),
+                description: description.trim(),
+                templateId: store.selectedTemplateId ?? template.name,
+                templateName: template.name,
+                inspectorId: user.uid,
+                inspectorName: inspectorName.trim() || user.displayName || user.email || "Unknown",
+                sectionStubs: template.sections,
+            });
+            store.setDraftReportId(id);
+        } catch {
+            // Save failed silently — still navigate back
+        } finally {
+            setSaving(false);
+        }
+
+        onNavigate("home");
+    };
+
+    // ── Begin report (save as inprogress + navigate to editor) ────────────────
+    const handleBegin = async () => {
+        if (!canProceed || !user) return;
+
+        setSaving(true);
+        try {
+            // Persist setup to store (editor reads from here)
+            store.setReportSetup({
+                title: reportTitle.trim(),
+                description: description.trim(),
+                inspectorName: inspectorName.trim() || user.displayName || user.email || "Unknown",
+                date: reportDate,
+                gpsEnabled: autoGps,
+            });
+
+            // Create or update the Firestore doc as "inprogress"
+            if (store.draftReportId) {
+                await markReportInProgress(store.draftReportId);
+            } else {
+                const id = await saveDraftReport({
+                    existingId: null,
+                    title: reportTitle.trim(),
+                    description: description.trim(),
+                    templateId: store.selectedTemplateId ?? template!.name,
+                    templateName: template!.name,
+                    inspectorId: user.uid,
+                    inspectorName: inspectorName.trim() || user.displayName || user.email || "Unknown",
+                    sectionStubs: template!.sections,
+                });
+                store.setDraftReportId(id);
+                await markReportInProgress(id);
+            }
+        } catch {
+            // Non-blocking — editor still opens even if Firestore write fails
+        } finally {
+            setSaving(false);
+        }
+
         onNavigate("reportEditor");
     };
 
@@ -151,14 +238,16 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
             <View className="flex-row items-center gap-3 px-5 pt-16 pb-4">
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => onNavigate("templateLibrary")}
+                    onPress={handleBack}
+                    disabled={saving}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
                 >
-                    <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    {saving
+                        ? <ActivityIndicator size="small" color="#f2a72f" />
+                        : <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    }
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-bold">
-                    Report setup
-                </Text>
+                <Text className="text-white text-lg font-bold">Report setup</Text>
             </View>
 
             <ScrollView
@@ -176,32 +265,18 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                             className="w-10 h-10 rounded-xl items-center justify-center mr-3"
                             style={{ backgroundColor: template.color + "30" }}
                         >
-                            <Ionicons
-                                name={template.icon as any}
-                                size={18}
-                                color={template.color}
-                            />
+                            <Ionicons name={template.icon as any} size={18} color={template.color} />
                         </View>
                         <View className="flex-1">
-                            <Text
-                                className="font-bold text-sm"
-                                style={{ color: template.color }}
-                            >
+                            <Text className="font-bold text-sm" style={{ color: template.color }}>
                                 {template.name}
                             </Text>
                             <Text className="text-zinc-500 text-xs mt-0.5">
-                                {template.sections.length} sections ·{" "}
-                                {template.category}
+                                {template.sections.length} sections · {template.category}
                             </Text>
                         </View>
-                        <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => onNavigate("templateLibrary")}
-                        >
-                            <Text
-                                className="font-semibold text-sm"
-                                style={{ color: template.color }}
-                            >
+                        <TouchableOpacity activeOpacity={0.7} onPress={handlePickTemplate}>
+                            <Text className="font-semibold text-sm" style={{ color: template.color }}>
                                 Change
                             </Text>
                         </TouchableOpacity>
@@ -209,21 +284,24 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                 ) : (
                     <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => onNavigate("templateLibrary")}
+                        onPress={handlePickTemplate}
                         className="bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center mb-5 border border-dashed border-zinc-700"
                     >
                         <Ionicons name="add-circle-outline" size={20} color="#52525b" />
-                        <Text className="text-zinc-500 text-sm ml-3">
-                            Select a template
-                        </Text>
+                        <Text className="text-zinc-500 text-sm ml-3">Select a template</Text>
                     </TouchableOpacity>
                 )}
 
                 {/* Report Title */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Report title
-                </Text>
-                <View className="bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
+                <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">
+                        Report title
+                    </Text>
+                    {reportTitle.trim().length === 0 && (
+                        <Text className="text-red-400 text-xs">Required</Text>
+                    )}
+                </View>
+                <View className={`bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5 border ${reportTitle.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
                     <TextInput
                         className="text-white text-sm"
                         placeholder={
@@ -237,14 +315,16 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     />
                 </View>
 
-                {/* Description */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
-                    Description{" "}
-                    <Text className="text-zinc-600 normal-case tracking-normal">
-                        (optional)
+                {/* Description — required */}
+                <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">
+                        Description
                     </Text>
-                </Text>
-                <View className="bg-slate-900 rounded-2xl px-4 py-3 mb-5">
+                    {description.trim().length === 0 && (
+                        <Text className="text-red-400 text-xs">Required</Text>
+                    )}
+                </View>
+                <View className={`bg-slate-900 rounded-2xl px-4 py-3 mb-5 border ${description.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
                     <TextInput
                         className="text-white text-sm"
                         placeholder="Add notes or context for this report…"
@@ -256,31 +336,12 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                         textAlignVertical="top"
                         style={{ minHeight: 72 }}
                     />
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            justifyContent: "flex-end",
-                            marginTop: 8,
-                            paddingTop: 8,
-                            borderTopWidth: 1,
-                            borderTopColor: "#1e293b",
-                        }}
-                    >
+                    <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#1e293b" }}>
                         <TouchableOpacity
                             activeOpacity={0.7}
                             onPress={recording ? stopAndTranscribe : startRecording}
                             disabled={isTranscribing}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 6,
-                                backgroundColor: "#0f172a",
-                                paddingHorizontal: 12,
-                                paddingVertical: 6,
-                                borderRadius: 10,
-                                borderWidth: 1,
-                                borderColor: recording ? "#ef444440" : "#3f3f46",
-                            }}
+                            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0f172a", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: recording ? "#ef444440" : "#3f3f46" }}
                         >
                             {isTranscribing ? (
                                 <>
@@ -307,30 +368,18 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     Associate with
                 </Text>
                 <View className="flex-row bg-slate-900 rounded-2xl p-1 mb-5">
-                    {(["individual", "organisation"] as Association[]).map(
-                        (opt) => (
-                            <TouchableOpacity
-                                key={opt}
-                                activeOpacity={0.7}
-                                onPress={() => setAssociation(opt)}
-                                className={`flex-1 py-2.5 rounded-xl items-center ${
-                                    association === opt ? "bg-primary" : ""
-                                }`}
-                            >
-                                <Text
-                                    className={`text-sm font-semibold capitalize ${
-                                        association === opt
-                                            ? "text-white"
-                                            : "text-zinc-500"
-                                    }`}
-                                >
-                                    {opt === "organisation"
-                                        ? "Organisation"
-                                        : "Individual"}
-                                </Text>
-                            </TouchableOpacity>
-                        ),
-                    )}
+                    {(["individual", "organisation"] as Association[]).map((opt) => (
+                        <TouchableOpacity
+                            key={opt}
+                            activeOpacity={0.7}
+                            onPress={() => setAssociation(opt)}
+                            className={`flex-1 py-2.5 rounded-xl items-center ${association === opt ? "bg-primary" : ""}`}
+                        >
+                            <Text className={`text-sm font-semibold capitalize ${association === opt ? "text-white" : "text-zinc-500"}`}>
+                                {opt === "organisation" ? "Organisation" : "Individual"}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
                 {/* Inspector Name */}
@@ -347,19 +396,13 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     />
                 </View>
 
-                {/* Report Date — auto-set to today, not editable */}
+                {/* Report Date */}
                 <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Report date
                 </Text>
                 <View className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-5">
-                    <Text className="text-zinc-400 text-sm flex-1">
-                        {reportDate}
-                    </Text>
-                    <Ionicons
-                        name="calendar-outline"
-                        size={18}
-                        color="#3f3f46"
-                    />
+                    <Text className="text-zinc-400 text-sm flex-1">{reportDate}</Text>
+                    <Ionicons name="calendar-outline" size={18} color="#3f3f46" />
                 </View>
 
                 {/* Auto GPS */}
@@ -368,37 +411,32 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     onPress={() => setAutoGps((v) => !v)}
                     className="flex-row items-center gap-3 mb-8"
                 >
-                    <View
-                        className={`w-5 h-5 rounded-md border-2 items-center justify-center ${
-                            autoGps
-                                ? "bg-primary border-primary"
-                                : "bg-transparent border-zinc-600"
-                        }`}
-                    >
-                        {autoGps && (
-                            <Ionicons
-                                name="checkmark"
-                                size={13}
-                                color="#ffffff"
-                            />
-                        )}
+                    <View className={`w-5 h-5 rounded-md border-2 items-center justify-center ${autoGps ? "bg-primary border-primary" : "bg-transparent border-zinc-600"}`}>
+                        {autoGps && <Ionicons name="checkmark" size={13} color="#ffffff" />}
                     </View>
-                    <Text className="text-white text-sm">
-                        Auto-capture GPS location on start
-                    </Text>
+                    <Text className="text-white text-sm">Auto-capture GPS location on start</Text>
                 </TouchableOpacity>
+
+                {/* Validation hint */}
+                {!canProceed && (
+                    <View className="bg-slate-900 rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
+                        <Ionicons name="information-circle-outline" size={16} color="#52525b" />
+                        <Text className="text-zinc-500 text-xs flex-1">
+                            Select a template, enter a title and description to begin.
+                        </Text>
+                    </View>
+                )}
 
                 {/* Begin */}
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={handleBegin}
-                    disabled={!template}
-                    className={`rounded-2xl py-4 items-center ${
-                        template ? "bg-primary" : "bg-slate-700"
-                    }`}
+                    disabled={!canProceed || saving}
+                    className={`rounded-2xl py-4 items-center flex-row justify-center gap-2 ${canProceed ? "bg-primary" : "bg-slate-700"}`}
                 >
+                    {saving && <ActivityIndicator size="small" color="#ffffff" />}
                     <Text className="text-white font-bold text-base">
-                        Begin report
+                        {saving ? "Saving…" : "Begin report"}
                     </Text>
                 </TouchableOpacity>
             </ScrollView>

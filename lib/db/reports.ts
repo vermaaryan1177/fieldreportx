@@ -59,7 +59,7 @@ export async function listReportsByUser(uid: string): Promise<Report[]> {
     for (const d of snap.docs) {
         const data = d.data() as Report;
         // "done" was the old status name; missing status means pre-migration doc
-        if (!data.status || data.status === ("done" as any) || data.status === "draft") {
+        if (!data.status || data.status === ("done" as any)) {
             data.status = "completed";
             staleIds.push(d.id);
         }
@@ -86,7 +86,7 @@ export async function listReportsByOrg(orgId: string): Promise<Report[]> {
 
     for (const d of snap.docs) {
         const data = d.data() as Report;
-        if (!data.status || data.status === ("done" as any) || data.status === "draft") {
+        if (!data.status || data.status === ("done" as any)) {
             data.status = "completed";
             staleIds.push(d.id);
         }
@@ -152,6 +152,86 @@ export async function updateReportStatus(
 ): Promise<void> {
     await updateDoc(doc(db, col, reportId), {
         status,
+        updatedAt: serverTimestamp(),
+    });
+}
+
+// ─── Draft / In-Progress lifecycle ───────────────────────────────────────────
+
+/**
+ * Creates or updates a Firestore doc for a report in "draft" state.
+ * Pass existingId to update; omit to create a new document.
+ * Returns the Firestore document ID.
+ */
+export async function saveDraftReport(params: {
+    existingId: string | null;
+    title: string;
+    description: string;
+    templateId: string;
+    templateName: string;
+    inspectorId: string;
+    inspectorName: string;
+    sectionStubs: Array<{ id: string; name: string }>;
+}): Promise<string> {
+    const { existingId, sectionStubs, ...rest } = params;
+    const ref = existingId ? doc(db, col, existingId) : doc(collection(db, col));
+
+    const sections: ReportSection[] = sectionStubs.map((s) => ({
+        id: s.id,
+        name: s.name,
+        status: "notstarted" as const,
+        fieldValues: {},
+        notes: "",
+        photoIds: [],
+        score: null,
+    }));
+
+    const payload = {
+        id: ref.id,
+        title: rest.title || "Untitled Report",
+        description: rest.description,
+        templateId: rest.templateId,
+        templateName: rest.templateName,
+        organisationId: null,
+        inspectorId: rest.inspectorId,
+        inspectorName: rest.inspectorName,
+        status: "draft" as ReportStatus,
+        score: null,
+        gps: null,
+        routeData: null,
+        signatureUrl: null,
+        checksum: null,
+        deviceHash: null,
+        sections,
+        photos: [],
+        updatedAt: serverTimestamp(),
+        ...(existingId ? {} : { createdAt: serverTimestamp() }),
+    };
+
+    if (existingId) {
+        await updateDoc(ref, payload);
+    } else {
+        await setDoc(ref, { ...payload, createdAt: serverTimestamp() });
+    }
+
+    return ref.id;
+}
+
+/** Persists current section values/statuses back to an inprogress Firestore doc. */
+export async function updateInProgressSections(
+    reportId: string,
+    sections: ReportSection[],
+): Promise<void> {
+    await updateDoc(doc(db, col, reportId), {
+        sections,
+        updatedAt: serverTimestamp(),
+    });
+}
+
+/** Transitions a draft doc to "inprogress" state. */
+export async function markReportInProgress(reportId: string): Promise<void> {
+    await updateDoc(doc(db, col, reportId), {
+        status: "inprogress" as ReportStatus,
         updatedAt: serverTimestamp(),
     });
 }
