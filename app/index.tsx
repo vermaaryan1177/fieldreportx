@@ -30,6 +30,10 @@ import {
 } from "@/lib/notificationService";
 import { store } from "@/lib/store";
 import { trackingStore } from "@/lib/trackingStore";
+import {
+    registerBackgroundTasks,
+    unregisterBackgroundTasks,
+} from "@/lib/background/tasks";
 
 import HomeScreen from "./screens/HomeScreen";
 import LoginRegisterScreen from "./screens/LoginRegisterScreen";
@@ -324,14 +328,19 @@ export default function App() {
                 const orgs = await getUserOrganisation(user.uid);
                 const hasOrg = Array.isArray(orgs) && orgs.length > 0;
                 setHasOrganisation(hasOrg);
-                if (hasOrg) {
-                    const orgId = store.currentOrgId ?? orgs[0].id;
-                    store.setCurrentOrgId(orgId);
-                    setCurrentOrgId(orgId);
+                const resolvedOrgId = hasOrg ? (store.currentOrgId ?? orgs[0].id) : null;
+                if (hasOrg && resolvedOrgId) {
+                    store.setCurrentOrgId(resolvedOrgId);
+                    setCurrentOrgId(resolvedOrgId);
                 }
+                registerBackgroundTasks(resolvedOrgId).catch(() => {});
             } catch {
             }
         })();
+
+        return () => {
+            unregisterBackgroundTasks().catch(() => {});
+        };
     }, [user?.uid]);
 
     // notification service — register permissions + start Firestore listeners
