@@ -26,7 +26,8 @@
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.fieldreportx"
     },
     "web": {
       "output": "static",
@@ -58,7 +59,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0c68db86-82f4-4883-84ca-579d05e75c0d"
+      }
     }
-    
   }
 }

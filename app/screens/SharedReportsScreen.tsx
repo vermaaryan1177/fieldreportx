@@ -70,7 +70,7 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                 all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
                 setReports(all);
             })
-            .catch((e) => console.warn("Failed to load shared reports", e))
+            .catch(() => {})
             .finally(() => setLoadingReports(false));
     }, [orgId]);
 
@@ -79,7 +79,7 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
         setLoadingTemplates(true);
         listTemplates("", orgId)
             .then(setTemplates)
-            .catch((e) => console.warn("Failed to load shared templates", e))
+            .catch(() => {})
             .finally(() => setLoadingTemplates(false));
     }, [orgId]);
 

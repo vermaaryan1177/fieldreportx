@@ -100,7 +100,7 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                 all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
                 setReports(all);
             })
-            .catch((e) => console.warn("Failed to load reports", e))
+            .catch(() => {})
             .finally(() => setLoading(false));
     }, [user?.uid]);
 

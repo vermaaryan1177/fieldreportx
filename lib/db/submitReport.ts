@@ -102,8 +102,7 @@ export async function submitReport(): Promise<string> {
                                     localUri,
                                     `reports/${reportId}/photos/${photoId}`,
                                 );
-                            } catch (e) {
-                                console.warn("Photo upload failed, keeping localUri", e);
+                            } catch {
                             }
                             const rp: ReportPhoto = {
                                 id: photoId,
@@ -134,8 +133,7 @@ export async function submitReport(): Promise<string> {
                                     d.imageUri,
                                     `reports/${reportId}/joint_angles/${photoId}`,
                                 );
-                            } catch (e) {
-                                console.warn("Joint angle image upload failed", e);
+                            } catch {
                             }
                             const rp: ReportPhoto = {
                                 id: photoId,

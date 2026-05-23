@@ -32,7 +32,7 @@ export default function SharedTemplatesScreen({ onNavigate, onOpenSidebar, hasOr
         // listTemplates with null uid + orgId returns org-shared templates
         listTemplates("", orgId)
             .then(setTemplates)
-            .catch((e) => console.warn("Failed to load shared templates", e))
+            .catch(() => {})
             .finally(() => setLoading(false));
     }, [orgId]);
 

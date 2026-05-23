@@ -8,7 +8,7 @@ const ProfileScreen = () => {
     <View className="flex-1 bg-white">
       
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-your color">
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-zinc-200">
         <Text className="text-2xl font-bold text-black">
           Profile
         </Text>
@@ -78,7 +78,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Organisation */}
-        <View className="flex-row justify-between items-center py-4 border-b border-your color">
+        <View className="flex-row justify-between items-center py-4 border-b border-zinc-200">
           <Text className="">
             Organisation
           </Text>
@@ -98,7 +98,7 @@ const ProfileScreen = () => {
         <View className="flex-row justify-between">
           
           {/* Card 1 */}
-          <View className="bg-your color/10 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
+          <View className="bg-zinc-100 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
             <Text className="text-3xl font-bold">
               47
             </Text>
@@ -109,7 +109,7 @@ const ProfileScreen = () => {
           </View>
 
           {/* Card 2 */}
-          <View className="bg-your color/10 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
+          <View className="bg-zinc-100 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
             <Text className="text-3xl font-bold ">
               12
             </Text>
@@ -120,7 +120,7 @@ const ProfileScreen = () => {
           </View>
 
           {/* Card 3 */}
-          <View className="bg-your color/10 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
+          <View className="bg-zinc-100 rounded-lg p-4 w-[31%] items-center border rounded-lg border-black">
             <Text className="text-3xl font-bold ">
               7
             </Text>

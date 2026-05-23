@@ -85,8 +85,7 @@ export default function OrganisationScreen({
         setSelectedOrg(null);
         setMembers([]);
       }
-    } catch (e) {
-      console.log("LOAD ORGS ERROR:", e);
+    } catch {
     } finally {
       setLoading(false);
     }
@@ -165,8 +164,7 @@ export default function OrganisationScreen({
       setShowInviteModal(false);
       await loadOrgs();
       Alert.alert("Invitation sent!");
-    } catch (err) {
-      console.log(err);
+    } catch {
       Alert.alert("Failed to send invitation");
     }
   };

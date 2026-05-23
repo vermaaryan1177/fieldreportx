@@ -172,26 +172,24 @@ async function fetchAsDataUri(uri: string): Promise<string | null> {
                 encoding: FileSystem.EncodingType.Base64,
             });
             return `data:image/jpeg;base64,${base64}`;
-        } catch (e) {
-            console.warn("[PDF] local file read error", uri.slice(0, 60), e);
+        } catch {
             return null;
         }
     }
 
     // Remote URL — download to temp file then read as base64
     const cacheDir = FileSystem.cacheDirectory;
-    if (!cacheDir) { console.warn("[PDF] cacheDirectory is null"); return null; }
+    if (!cacheDir) return null;
     const tmpPath = cacheDir + "pdf_img_" + Math.random().toString(36).slice(2) + ".jpg";
     try {
         const result = await FileSystem.downloadAsync(uri, tmpPath);
-        if (result.status !== 200) { console.warn("[PDF] download status", result.status); return null; }
+        if (result.status !== 200) return null;
         const base64 = await FileSystem.readAsStringAsync(tmpPath, {
             encoding: FileSystem.EncodingType.Base64,
         });
         const mime = result.mimeType ?? "image/jpeg";
         return `data:${mime};base64,${base64}`;
     } catch (e) {
-        console.warn("[PDF] fetchAsDataUri error", String(e).slice(0, 120));
         return null;
     } finally {
         try { await FileSystem.deleteAsync(tmpPath, { idempotent: true }); } catch {}

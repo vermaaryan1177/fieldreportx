@@ -151,7 +151,6 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
         try {
             const reportId = await submitReport();
             if (store.orgReportMode && store.currentOrgId) {
-                // Created from Shared tab — auto-share, no prompt
                 await updateDoc(doc(db, "reports", reportId), { organisationId: store.currentOrgId });
                 store.clearReport();
                 onNavigate("sharedReports");
@@ -175,8 +174,7 @@ export default function ReportPreviewScreen({ onNavigate }: Props) {
                 await updateDoc(doc(db, "reports", submittedReportId), {
                     organisationId: store.currentOrgId,
                 });
-            } catch (e) {
-                console.warn("Failed to share report with org", e);
+            } catch {
             }
         }
         setShowOrgShareModal(false);
