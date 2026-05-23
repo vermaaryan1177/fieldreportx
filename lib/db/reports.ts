@@ -52,13 +52,56 @@ export async function getReport(reportId: string): Promise<Report | null> {
 export async function listReportsByUser(uid: string): Promise<Report[]> {
     const q = query(collection(db, col), where("inspectorId", "==", uid));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as Report);
+
+    const reports: Report[] = [];
+    const staleIds: string[] = [];
+
+    for (const d of snap.docs) {
+        const data = d.data() as Report;
+        // "done" was the old status name; missing status means pre-migration doc
+        if (!data.status || data.status === ("done" as any) || data.status === "draft") {
+            data.status = "completed";
+            staleIds.push(d.id);
+        }
+        reports.push(data);
+    }
+
+    if (staleIds.length > 0) {
+        Promise.all(
+            staleIds.map((id) =>
+                updateDoc(doc(db, col, id), { status: "completed", updatedAt: serverTimestamp() })
+            )
+        ).catch(() => {});
+    }
+
+    return reports;
 }
 
 export async function listReportsByOrg(orgId: string): Promise<Report[]> {
     const q = query(collection(db, col), where("organisationId", "==", orgId));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => d.data() as Report);
+
+    const reports: Report[] = [];
+    const staleIds: string[] = [];
+
+    for (const d of snap.docs) {
+        const data = d.data() as Report;
+        if (!data.status || data.status === ("done" as any) || data.status === "draft") {
+            data.status = "completed";
+            staleIds.push(d.id);
+        }
+        reports.push(data);
+    }
+
+    if (staleIds.length > 0) {
+        Promise.all(
+            staleIds.map((id) =>
+                updateDoc(doc(db, col, id), { status: "completed", updatedAt: serverTimestamp() })
+            )
+        ).catch(() => {});
+    }
+
+    return reports;
 }
 
 export async function updateReport(
@@ -111,6 +154,14 @@ export async function updateReportStatus(
         status,
         updatedAt: serverTimestamp(),
     });
+}
+
+export async function archiveReport(reportId: string): Promise<void> {
+    await updateDoc(doc(db, col, reportId), { status: "archived", updatedAt: serverTimestamp() });
+}
+
+export async function unarchiveReport(reportId: string): Promise<void> {
+    await updateDoc(doc(db, col, reportId), { status: "completed", updatedAt: serverTimestamp() });
 }
 
 export async function deleteReport(reportId: string): Promise<void> {

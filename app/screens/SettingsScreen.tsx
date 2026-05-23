@@ -68,7 +68,7 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
         (async () => {
             try {
                 const dbPath = `${FileSystem.documentDirectory}SQLite/fieldreportx.db`;
-                const info = await FileSystem.getInfoAsync(dbPath, { size: true });
+                const info = await FileSystem.getInfoAsync(dbPath, { size: true } as any);
                 if (info.exists && !info.isDirectory && (info as any).size != null) {
                     setLocalStorageUsed(formatBytes((info as any).size));
                 } else {

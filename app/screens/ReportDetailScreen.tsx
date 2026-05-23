@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, Vi
 import { Path, Svg } from "react-native-svg";
 
 import { AppScreen } from "@/components/BottomNavBar";
+import { archiveReport, unarchiveReport } from "@/lib/db/reports";
 import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
@@ -111,9 +112,10 @@ function formatFieldValue(type: FieldType, value: string | boolean | number): st
 }
 
 const STATUS_CFG = {
-    draft:      { label: "Draft",       color: "#ffff5b", bg: "#ffff5b20" },
-    done:       { label: "Done",        color: "#22c55e", bg: "#22c55e20" },
+    completed:  { label: "Completed",   color: "#22c55e", bg: "#22c55e20" },
     inprogress: { label: "In Progress", color: "#44d2f9", bg: "#44d2f920" },
+    archived:   { label: "Archived",    color: "#6b7280", bg: "#6b728020" },
+    draft:      { label: "Draft",       color: "#ffff5b", bg: "#ffff5b20" },
 } as const;
 
 const SECTION_STATUS_CFG = {
@@ -210,9 +212,9 @@ function buildReportHTML(
     signaturePaths: string | null,
     imgMap: Record<string, string> = {},
 ): string {
-    const statusLabels: Record<string, string> = { done: "Done", draft: "Draft", inprogress: "In Progress" };
-    const statusColors: Record<string, string> = { done: "#15803d", draft: "#92400e", inprogress: "#1d4ed8" };
-    const statusBgs:   Record<string, string> = { done: "#dcfce7", draft: "#fef3c7", inprogress: "#dbeafe" };
+    const statusLabels: Record<string, string> = { completed: "Completed", draft: "Draft", inprogress: "In Progress", archived: "Archived" };
+    const statusColors: Record<string, string> = { completed: "#15803d", draft: "#92400e", inprogress: "#1d4ed8", archived: "#6b7280" };
+    const statusBgs:   Record<string, string> = { completed: "#dcfce7", draft: "#fef3c7", inprogress: "#dbeafe", archived: "#f3f4f6" };
     const sectionStatusLabels: Record<string, string> = {
         completed: "Completed", partial: "Partial", inprogress: "In Progress",
         skipped: "Skipped", notstarted: "Not started",
@@ -395,6 +397,9 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
     const [template, setTemplate] = useState<Template | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
+    const [archiving, setArchiving] = useState(false);
+    // Local status so archive/unarchive updates reflect immediately without re-fetching
+    const [reportStatus, setReportStatus] = useState<string>(report?.status ?? "completed");
 
     // Resolve the template: system first, then Firestore
     useEffect(() => {
@@ -477,7 +482,7 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
         );
     }
 
-    const statusCfg = STATUS_CFG[report.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.draft;
+    const statusCfg = STATUS_CFG[reportStatus as keyof typeof STATUS_CFG] ?? STATUS_CFG.completed;
     const scoreColor = !report.score ? "#52525b"
         : report.score >= 80 ? "#22c55e"
         : report.score >= 50 ? "#f2a72f"
@@ -702,22 +707,95 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
             </ScrollView>
 
             {/* ── Bottom actions ────────────────────────────────────────── */}
-            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3">
-                <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleExport}
-                    disabled={exporting}
-                    className="bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
-                    style={exporting ? { opacity: 0.6 } : undefined}
-                >
-                    {exporting
-                        ? <ActivityIndicator size="small" color="#ffffff" />
-                        : <Ionicons name="share-outline" size={16} color="#ffffff" />
-                    }
-                    <Text className="text-white font-semibold text-sm">
-                        {exporting ? "Exporting…" : "Export PDF"}
-                    </Text>
-                </TouchableOpacity>
+            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3 gap-2">
+                {reportStatus === "archived" ? (
+                    /* ── Archived state: unarchive only ── */
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        disabled={archiving}
+                        onPress={async () => {
+                            setArchiving(true);
+                            try {
+                                await unarchiveReport(report.id);
+                                setReportStatus("completed");
+                                store.setSelectedReport({ ...report, status: "completed" });
+                            } catch (e: any) {
+                                Alert.alert("Failed", e?.message ?? "Could not unarchive report.");
+                            } finally {
+                                setArchiving(false);
+                            }
+                        }}
+                        className="rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                        style={{ backgroundColor: "#1e293b", opacity: archiving ? 0.6 : 1 }}
+                    >
+                        {archiving
+                            ? <ActivityIndicator size="small" color="#f2a72f" />
+                            : <Ionicons name="archive-outline" size={16} color="#f2a72f" />
+                        }
+                        <Text className="text-primary font-semibold text-sm">
+                            {archiving ? "Unarchiving…" : "Unarchive Report"}
+                        </Text>
+                    </TouchableOpacity>
+                ) : (
+                    /* ── Completed state: export + archive ── */
+                    <>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={handleExport}
+                            disabled={exporting}
+                            className="bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                            style={exporting ? { opacity: 0.6 } : undefined}
+                        >
+                            {exporting
+                                ? <ActivityIndicator size="small" color="#ffffff" />
+                                : <Ionicons name="share-outline" size={16} color="#ffffff" />
+                            }
+                            <Text className="text-white font-semibold text-sm">
+                                {exporting ? "Exporting…" : "Export PDF"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            disabled={archiving}
+                            onPress={async () => {
+                                Alert.alert(
+                                    "Archive Report",
+                                    "This will archive the report. You can unarchive it later, but PDF export will be disabled while archived.",
+                                    [
+                                        { text: "Cancel", style: "cancel" },
+                                        {
+                                            text: "Archive",
+                                            style: "destructive",
+                                            onPress: async () => {
+                                                setArchiving(true);
+                                                try {
+                                                    await archiveReport(report.id);
+                                                    setReportStatus("archived");
+                                                    store.setSelectedReport({ ...report, status: "archived" });
+                                                } catch (e: any) {
+                                                    Alert.alert("Failed", e?.message ?? "Could not archive report.");
+                                                } finally {
+                                                    setArchiving(false);
+                                                }
+                                            },
+                                        },
+                                    ]
+                                );
+                            }}
+                            className="rounded-2xl py-3 items-center flex-row justify-center gap-2"
+                            style={{ backgroundColor: "#1e293b", opacity: archiving ? 0.6 : 1 }}
+                        >
+                            {archiving
+                                ? <ActivityIndicator size="small" color="#6b7280" />
+                                : <Ionicons name="archive-outline" size={15} color="#6b7280" />
+                            }
+                            <Text style={{ color: "#6b7280" }} className="font-semibold text-sm">
+                                {archiving ? "Archiving…" : "Archive Report"}
+                            </Text>
+                        </TouchableOpacity>
+                    </>
+                )}
             </View>
         </View>
     );
