@@ -14,7 +14,8 @@ import { createTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
 import { SystemTemplate } from "@/lib/templates/systemTemplates";
-import { TemplateField } from "@/lib/types";
+import { TemplateField, TemplateSection } from "@/lib/types";
+import SectionPickerModal from "./SectionPickerModal";
 
 interface EditableSection {
     id: string;
@@ -31,6 +32,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
     const [templateName, setTemplateName] = useState(`${baseTemplate.name} (Custom)`);
     const [gpsValidation, setGpsValidation] = useState(baseTemplate.gpsValidation);
     const [saving, setSaving] = useState(false);
+    const [pickerVisible, setPickerVisible] = useState(false);
     const [sections, setSections] = useState<EditableSection[]>(() =>
         baseTemplate.sections.map((s) => ({ id: s.id, name: s.name, fields: s.fields })),
     );
@@ -79,6 +81,14 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
             [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
             return arr;
         });
+    };
+
+    const addBorrowedSections = (borrowed: TemplateSection[]) => {
+        setSections((prev) => [
+            ...prev,
+            ...borrowed.map((s) => ({ id: s.id, name: s.name, fields: s.fields as TemplateField[] })),
+        ]);
+        setPickerVisible(false);
     };
 
     const handleSave = async () => {
@@ -131,6 +141,12 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
 
     return (
         <View className="flex-1">
+            <SectionPickerModal
+                visible={pickerVisible}
+                baseTemplateId={baseTemplate.id}
+                onClose={() => setPickerVisible(false)}
+                onAdd={addBorrowedSections}
+            />
             <View className="flex-row items-center justify-between px-5 pt-4 pb-4">
                 <View>
                     <Text className="text-white text-xl font-bold">Customise sections</Text>
@@ -253,9 +269,18 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={addSection}
-                    className="border border-dashed border-zinc-700 rounded-2xl py-3.5 items-center mb-6"
+                    className="border border-dashed border-zinc-700 rounded-2xl py-3.5 items-center mb-3"
                 >
                     <Text className="text-zinc-500 text-sm">+ Add section</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => setPickerVisible(true)}
+                    className="border border-dashed border-zinc-700 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-6"
+                >
+                    <Ionicons name="layers-outline" size={15} color="#f2a72f" />
+                    <Text className="text-primary text-sm font-semibold">Browse sections from other templates</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
