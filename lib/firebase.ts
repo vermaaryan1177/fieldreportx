@@ -1,9 +1,7 @@
 import { initializeApp } from "firebase/app";
-// @ts-ignore — types resolve to web bundle; Metro uses the react-native bundle at runtime which exports this
-import { initializeAuth, getReactNativePersistence } from "@firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -15,8 +13,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-});
+export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

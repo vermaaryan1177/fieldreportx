@@ -43,7 +43,6 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
         setLoading(true);
         try {
             await signIn(loginEmail, loginPassword);
-            // useAuth in index.tsx detects the new user and re-renders automatically
         } catch (e) {
             setError(getAuthErrorMessage(e));
         } finally {
@@ -277,7 +276,7 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                 />
 
                                 {/* Terms */}
-                                <Text className="text-white text-xs text-center px-4 pb-4">
+                                <Text className="text-white text-xs text-center px-4 pb-10">
                                     By creating an account you agree to our{" "}
                                     <Text className="text-sky-500">
                                         Terms of Service
@@ -290,29 +289,6 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                 </Text>
                             </>
                         )}
-
-                        {/* Divider */}
-                        <View className="flex-row items-center gap-3 my-2">
-                            <View className="flex-1 h-px bg-white" />
-                            <Text className="text-primary text-xs">
-                                or continue with
-                            </Text>
-                            <View className="flex-1 h-px bg-white" />
-                        </View>
-
-                        {/* SSO Options */}
-                        <View className="flex-row gap-3 pb-10">
-                            {["Apple", "Google", "SSO"].map((provider) => (
-                                <TouchableOpacity
-                                    key={provider}
-                                    className="flex-1 bg-secondary border border-slate-500 rounded-2xl py-3 items-center active:opacity-70"
-                                >
-                                    <Text className="text-black text-xs font-medium">
-                                        {provider}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
                     </View>
                 </ScrollView>
             </View>

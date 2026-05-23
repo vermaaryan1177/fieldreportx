@@ -34,6 +34,17 @@ import {
     registerBackgroundTasks,
     unregisterBackgroundTasks,
 } from "@/lib/background/tasks";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+
+// Initialise AdMob SDK once at app startup so ads are ready by the time the user needs them.
+// Skip in Expo Go (native module not linked); succeeds in dev/production builds.
+const _isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+if (!_isExpoGo) {
+    try {
+        const { MobileAds } = require("react-native-google-mobile-ads");
+        MobileAds().initialize();
+    } catch { /* AdMob not in this build */ }
+}
 
 import HomeScreen from "./screens/HomeScreen";
 import LoginRegisterScreen from "./screens/LoginRegisterScreen";

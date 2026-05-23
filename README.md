@@ -1,50 +1,84 @@
-# Welcome to your Expo app 👋
+# FieldReportX
+---
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile field inspection and reporting platform built with React Native and Expo.
 
-## Get started
+---
 
-1. Install dependencies
+## Getting Started
+### Prerequisites
+- Node.js 18+
+- Expo Go app on your device, or Xcode/Android Studio for a simulator
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### Install dependencies
 ```bash
-npm run reset-project
+npm install
+```
+### Set up environment variables
+Create a `.env` file in the project root:
+
+```env
+EXPO_PUBLIC_FIREBASE_API_KEY="your-firebase-api-key"
+EXPO_PUBLIC_GROQ_API_KEY="your-groq-api-key"
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Start the app
+```bash
+npx expo start
+```
 
-## Learn more
+Scan the QR code with Expo Go (iOS/Android) or press `i` for iOS simulator / `a` for Android emulator.
 
-To learn more about developing your project with Expo, look at the following resources:
+> **Note:** Some features require a native development build (Google Mobile Ads, background tasks). Run `npx expo run:ios` or `npx expo run:android` to build a full development binary.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Features
+### Reports
+- Create reports from system or custom templates
+- Fill structured sections with typed fields
+- Auto-save drafts at any point
+- Submit, archive, and export reports as PDF
+- Compare two reports side-by-side to track changes over time
+- Completion scoring with section-level breakdowns
+### Templates
+- Browse a library of built-in system templates
+- Build custom templates from scratch using a two-step wizard
+- Add, remove, rename, and reorder sections
+- Borrow sections from other templates (with multiple-copy support)
+- Import templates from JSON or YAML files
+### Field Types
+- **Text** — keyboard input with optional voice dictation (Groq Whisper)
+- **Number** — numeric input
+- **Checkbox** — yes/no toggle
+- **Select** — option list defined in the template
+- **Photo** — camera or gallery, with freehand annotation, GPS tagging, and gyroscope metadata
+- **Signature** — full-screen SVG signature pad
+- **Route** — live GPS route tracker with map, speed stats, and manual stop markers
+- **Accelerometer** — vibration sampling with RMS, peak, and average readings
+- **Stopwatch** — multi-trial reaction time measurement
+- **Timer** — session duration tracker
+- **Joint Angle** — AI-assisted body joint angle measurement from a photo
+### Organisations
+- Create and manage organisations
+- Invite members by email; accept or decline invites in-app
+- Share reports and templates across the organisation
+- Role-based access (Admin, Inspector, Viewer)
+### Notifications
+- In-app notification centre with unread/read tabs
+- Organisation invite notifications with one-tap accept/decline
+- New organisation template alerts
+- Scheduled 2-hourly OS push reminder for in-progress reports
+### Sensors & Hardware
+- GPS location capture for photo geotagging and route tracking
+- Accelerometer sampling for vibration analysis
+- Gyroscope metadata on photos (pitch, roll, azimuth)
+- Microphone recording with automatic speech-to-text transcription
+### Background Tasks
+- Automatic archiving of stale drafts (inactive for 7+ days)
+- Background polling for new organisation templates
+### Other
+- Offline-first with SQLite local cache
+- Sidebar with organisation switcher and notification badge
+- Permissions onboarding screen on first launch
+- Settings: data export, storage usage, sign out
