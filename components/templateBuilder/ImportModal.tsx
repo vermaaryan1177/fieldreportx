@@ -17,6 +17,7 @@ import {
 
 import { createTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
+import { useTemplateAd } from "@/hooks/useTemplateAd";
 import { store } from "@/lib/store";
 import { parseImportText, ParsedImport } from "@/lib/importTemplate";
 
@@ -52,6 +53,7 @@ export default function ImportModal({ visible, onClose, onSaved }: Props) {
     const [templateName, setTemplateName] = useState("");
     const [saving, setSaving] = useState(false);
     const [picking, setPicking] = useState(false);
+    const { showAd } = useTemplateAd(onSaved);
 
     const reset = () => {
         setText("");
@@ -116,7 +118,7 @@ export default function ImportModal({ visible, onClose, onSaved }: Props) {
             Alert.alert(
                 "Template imported",
                 `"${name}" has been added to your library.`,
-                [{ text: "OK", onPress: () => { reset(); onSaved(); } }],
+                [{ text: "OK", onPress: () => { reset(); showAd(); } }],
             );
         } catch (e: any) {
             Alert.alert("Save failed", e?.message ?? "Something went wrong.");

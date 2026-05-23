@@ -12,6 +12,7 @@ import {
 
 import { createTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
+import { useTemplateAd } from "@/hooks/useTemplateAd";
 import { store } from "@/lib/store";
 import { SystemTemplate } from "@/lib/templates/systemTemplates";
 import { TemplateField, TemplateSection } from "@/lib/types";
@@ -33,6 +34,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
     const [gpsValidation, setGpsValidation] = useState(baseTemplate.gpsValidation);
     const [saving, setSaving] = useState(false);
     const [pickerVisible, setPickerVisible] = useState(false);
+    const { showAd } = useTemplateAd(onSaved);
     const [sections, setSections] = useState<EditableSection[]>(() =>
         baseTemplate.sections.map((s) => ({ id: s.id, name: s.name, fields: s.fields })),
     );
@@ -125,7 +127,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 Alert.alert(
                     "Template saved",
                     `"${name}" is now in your template library.`,
-                    [{ text: "OK", onPress: onSaved }],
+                    [{ text: "OK", onPress: showAd }],
                 );
             }
         } catch (e) {
