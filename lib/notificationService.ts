@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
@@ -16,8 +17,13 @@ Notifications.setNotificationHandler({
     }),
 });
 
+const isExpoGo =
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 export async function registerForPushNotificationsAsync(): Promise<void> {
-    if (Platform.OS === "android") {
+    // Android push notification channels are unsupported in Expo Go since SDK 53.
+    // Skip channel setup in that environment — local/scheduled notifications still work.
+    if (Platform.OS === "android" && !isExpoGo) {
         await Notifications.setNotificationChannelAsync("default", {
             name: "FieldReportX",
             importance: Notifications.AndroidImportance.MAX,
