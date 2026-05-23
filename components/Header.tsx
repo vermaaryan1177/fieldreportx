@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
+import { NotificationDB } from "@/lib/db/notifications";
 import { auth } from "@/lib/firebase";
 
 interface HeaderProps {
@@ -36,6 +37,14 @@ export default function AppHeader({
 }: HeaderProps) {
     const user = auth.currentUser;
     const lastNav = useRef(0);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        return NotificationDB.subscribe(user.uid, (items) => {
+            setUnreadCount(items.filter((n) => n.unread).length);
+        });
+    }, [user?.uid]);
 
     const initials = useMemo(() => {
         if (profileInitials) return profileInitials.toUpperCase();
@@ -66,13 +75,24 @@ export default function AppHeader({
                 <TouchableOpacity
                     activeOpacity={0.7}
                     className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    style={{ overflow: "visible" }}
                     onPress={() => safeNavigate("notification")}
                 >
-                    <Ionicons
-                        name="notifications-outline"
-                        size={20}
-                        color="#f2a72f"
-                    />
+                    <Ionicons name="notifications-outline" size={20} color="#f2a72f" />
+                    {unreadCount > 0 && (
+                        <View style={{
+                            position: "absolute", top: 0, right: 0,
+                            minWidth: 16, height: 16, borderRadius: 8,
+                            backgroundColor: "#ef4444",
+                            alignItems: "center", justifyContent: "center",
+                            paddingHorizontal: 3,
+                            borderWidth: 1.5, borderColor: "#0f172a",
+                        }}>
+                            <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800", lineHeight: 11 }}>
+                                {unreadCount > 9 ? "9+" : unreadCount}
+                            </Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
 
                 <TouchableOpacity

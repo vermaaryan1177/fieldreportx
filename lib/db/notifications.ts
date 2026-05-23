@@ -116,7 +116,6 @@ export const NotificationDB = {
           inviteId: data.inviteId || null,
         };
       });
-      console.log("🔥 Notifications:", items);
       callback(items);
     });
   },

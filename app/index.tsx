@@ -304,6 +304,12 @@ import { AppScreen } from "@/components/BottomNavBar";
 import { useAuth } from "@/hooks/useAuth";
 
 import { getUserOrganisation } from "@/lib/db/organisations";
+import {
+    registerForPushNotificationsAsync,
+    subscribeInProgressReports,
+    subscribeOrgInviteNotifications,
+    subscribeOrgTemplateNotifications,
+} from "@/lib/notificationService";
 import { store } from "@/lib/store";
 import { trackingStore } from "@/lib/trackingStore";
 
@@ -621,6 +627,24 @@ export default function App() {
             }
         })();
     }, [user?.uid]);
+
+    // notification service — register permissions + start Firestore listeners
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        registerForPushNotificationsAsync().catch(() => {});
+
+        const unsubs: Array<() => void> = [
+            subscribeInProgressReports(user.uid),
+            subscribeOrgInviteNotifications(user.uid),
+        ];
+
+        if (currentOrgId) {
+            unsubs.push(subscribeOrgTemplateNotifications(user.uid, currentOrgId));
+        }
+
+        return () => { unsubs.forEach((fn) => fn()); };
+    }, [user?.uid, currentOrgId]);
 
     // loading
     if (loading) {

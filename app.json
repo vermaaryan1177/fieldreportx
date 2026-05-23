@@ -35,6 +35,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "color": "#f2a72f",
+          "sounds": []
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "imageWidth": 200,

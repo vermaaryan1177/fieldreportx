@@ -39,6 +39,7 @@ interface SidebarProps {
     active: AppScreen;
     onNavigate: (screen: AppScreen) => void;
     onOrgSwitch?: (orgId: string) => void;
+    onSignOut?: () => void;
 }
 
 /* helpers */
@@ -97,7 +98,7 @@ function SidebarButton({
     );
 }
 
-export default function Sidebar({ active, onNavigate, onOrgSwitch }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: SidebarProps) {
     const user = auth.currentUser;
 
     const deviceHash = useMemo(
@@ -158,6 +159,7 @@ export default function Sidebar({ active, onNavigate, onOrgSwitch }: SidebarProp
                     setSigningOut(true);
                     try {
                         await signOut();
+                        onSignOut?.();
                     } catch {
                         setSigningOut(false);
                         Alert.alert("Error", "Failed to sign out.");
