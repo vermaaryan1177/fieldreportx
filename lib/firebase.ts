@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { initializeAuth } from "firebase/auth";
-// @ts-ignore — getReactNativePersistence lives in the RN bundle, not the web bundle
-import { getReactNativePersistence } from "@firebase/auth/dist/index.rn.js";
+// @ts-ignore — types resolve to web bundle; Metro uses the react-native bundle at runtime which exports this
+import { initializeAuth, getReactNativePersistence } from "@firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
