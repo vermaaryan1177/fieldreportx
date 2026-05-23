@@ -11,7 +11,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "We need camera access for reports",
         "NSLocationWhenInUseUsageDescription": "We need location for geotagging",
-        "NSMicrophoneUsageDescription": "We need mic for voice notes"
+        "NSMicrophoneUsageDescription": "We need mic for voice notes",
+        "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
       },
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.fieldreportx"
@@ -55,7 +56,15 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "expo-document-picker",
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-google-mobile-ads/app.plugin.js",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
