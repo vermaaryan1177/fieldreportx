@@ -1,12 +1,12 @@
+import AppHeader from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { Camera } from "expo-camera";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Location from "expo-location";
-import * as Sharing from "expo-sharing";
 import { DeviceMotion } from "expo-sensors";
-import { Audio } from "expo-av";
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
-import AppHeader from "@/components/Header";
 import {
     Alert,
     Linking,
@@ -21,17 +21,15 @@ import {
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { signOut } from "@/lib/auth";
-import { auth } from "@/lib/firebase";
+import { sqliteDb } from "@/lib/db/database";
 import {
     createOrganisation,
     getUserOrganisation,
     leaveOrganisation,
-    makeAdmin,
 } from "@/lib/db/organisations";
 import { listReportsByUser } from "@/lib/db/reports";
 import { listTemplates } from "@/lib/db/templates";
-import { sqliteDb } from "@/lib/db/database";
-import { getUserProfile } from "@/lib/db/users";
+import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
 import { formatBytes } from "@/lib/utils/format";
 
@@ -41,20 +39,29 @@ interface Props {
     hasOrganisation: boolean;
 }
 
-const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
+const Toggle = ({
+    value,
+    onPress,
+}: {
+    value: boolean;
+    onPress: () => void;
+}) => (
     <TouchableOpacity
         onPress={onPress}
         className={`w-12 h-6 rounded-full ${value ? "bg-primary" : "bg-slate-700"}`}
     >
         <View
-            style={{ left: value ? 28 : 4 }}
+            style={{ left: value ? 26 : 4 }}
             className="w-4 h-4 rounded-full bg-white absolute top-1"
         />
     </TouchableOpacity>
 );
 
-
-export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisation }: Props) {
+export default function SettingsScreen({
+    onNavigate,
+    onOpenSidebar,
+    hasOrganisation,
+}: Props) {
     const user = auth.currentUser;
 
     const [localStorageUsed, setLocalStorageUsed] = useState<string>("—");
@@ -63,8 +70,14 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
         (async () => {
             try {
                 const dbPath = `${FileSystem.documentDirectory}SQLite/fieldreportx.db`;
-                const info = await FileSystem.getInfoAsync(dbPath, { size: true } as any);
-                if (info.exists && !info.isDirectory && (info as any).size != null) {
+                const info = await FileSystem.getInfoAsync(dbPath, {
+                    size: true,
+                } as any);
+                if (
+                    info.exists &&
+                    !info.isDirectory &&
+                    (info as any).size != null
+                ) {
                     setLocalStorageUsed(formatBytes((info as any).size));
                 } else {
                     setLocalStorageUsed("0 B");
@@ -86,8 +99,10 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                 listTemplates(user.uid, null),
             ]);
 
-            const cachedUsers = sqliteDb.getAllSync("SELECT * FROM users") ?? [];
-            const cachedOrgs  = sqliteDb.getAllSync("SELECT * FROM organisations") ?? [];
+            const cachedUsers =
+                sqliteDb.getAllSync("SELECT * FROM users") ?? [];
+            const cachedOrgs =
+                sqliteDb.getAllSync("SELECT * FROM organisations") ?? [];
 
             const payload = {
                 exportedAt: new Date().toISOString(),
@@ -100,9 +115,13 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
 
             const filename = `fieldreportx_backup_${Date.now()}.json`;
             const path = `${FileSystem.cacheDirectory}${filename}`;
-            await FileSystem.writeAsStringAsync(path, JSON.stringify(payload, null, 2), {
-                encoding: FileSystem.EncodingType.UTF8,
-            });
+            await FileSystem.writeAsStringAsync(
+                path,
+                JSON.stringify(payload, null, 2),
+                {
+                    encoding: FileSystem.EncodingType.UTF8,
+                },
+            );
 
             const canShare = await Sharing.isAvailableAsync();
             if (canShare) {
@@ -115,7 +134,10 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                 Alert.alert("Backup saved", `File written to:\n${path}`);
             }
         } catch (e: any) {
-            Alert.alert("Export failed", e?.message ?? "Could not create backup.");
+            Alert.alert(
+                "Export failed",
+                e?.message ?? "Could not create backup.",
+            );
         } finally {
             setExporting(false);
         }
@@ -130,7 +152,10 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
     useEffect(() => {
         if (!user?.uid) return;
         getUserOrganisation(user.uid).then((orgs) => {
-            const active = orgs.find((o) => o.id === store.currentOrgId) ?? orgs[0] ?? null;
+            const active =
+                orgs.find((o) => o.id === store.currentOrgId) ??
+                orgs[0] ??
+                null;
             setCurrentOrg(active);
         });
     }, [user?.uid]);
@@ -139,13 +164,18 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
         if (!newOrgName.trim() || !user?.uid) return;
         setCreatingOrg(true);
         try {
-            const orgId = await createOrganisation(user.uid, { name: newOrgName.trim() });
+            const orgId = await createOrganisation(user.uid, {
+                name: newOrgName.trim(),
+            });
             store.setCurrentOrgId(orgId);
             const orgs = await getUserOrganisation(user.uid);
             setCurrentOrg(orgs.find((o) => o.id === orgId) ?? null);
             setNewOrgName("");
             setOrgModalVisible(false);
-            Alert.alert("Organisation created", `"${newOrgName.trim()}" is ready.`);
+            Alert.alert(
+                "Organisation created",
+                `"${newOrgName.trim()}" is ready.`,
+            );
         } catch {
             Alert.alert("Error", "Failed to create organisation.");
         } finally {
@@ -156,7 +186,9 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
     const handleLeaveOrg = async () => {
         if (!currentOrg || !user?.uid) return;
         const isAdmin = currentOrg.adminUid === user.uid;
-        const otherMembers = (currentOrg.memberUids as string[]).filter((id: string) => id !== user.uid);
+        const otherMembers = (currentOrg.memberUids as string[]).filter(
+            (id: string) => id !== user.uid,
+        );
 
         if (isAdmin && otherMembers.length > 0) {
             Alert.alert(
@@ -180,7 +212,10 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                             store.setCurrentOrgId(null);
                             setCurrentOrg(null);
                         } catch {
-                            Alert.alert("Error", "Failed to leave organisation.");
+                            Alert.alert(
+                                "Error",
+                                "Failed to leave organisation.",
+                            );
                         }
                     },
                 },
@@ -257,7 +292,12 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" active="settings" />
+            <AppHeader
+                onOpenSidebar={onOpenSidebar}
+                onNavigate={onNavigate}
+                profileInitials="AK"
+                active="settings"
+            />
             {/* Header */}
             <View className="px-5 pt-5 pb-4">
                 <Text className="text-white text-2xl font-bold">Settings</Text>
@@ -297,18 +337,38 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                 </Text>
                 <View className="mx-5 bg-slate-900 rounded-2xl px-4">
                     {[
-                        { label: "Camera", value: cameraEnabled, onPress: openPermissionSettings },
-                        { label: "Location (GPS)", value: locationEnabled, onPress: openPermissionSettings },
-                        { label: "Microphone", value: microphoneEnabled, onPress: openPermissionSettings },
-                        { label: "Motion sensors", value: motionEnabled, onPress: openPermissionSettings },
+                        {
+                            label: "Camera",
+                            value: cameraEnabled,
+                            onPress: openPermissionSettings,
+                        },
+                        {
+                            label: "Location (GPS)",
+                            value: locationEnabled,
+                            onPress: openPermissionSettings,
+                        },
+                        {
+                            label: "Microphone",
+                            value: microphoneEnabled,
+                            onPress: openPermissionSettings,
+                        },
+                        {
+                            label: "Motion sensors",
+                            value: motionEnabled,
+                            onPress: openPermissionSettings,
+                        },
                     ].map((item, i, arr) => (
                         <View
                             key={item.label}
                             className={`flex-row items-center justify-between py-4 ${
-                                i < arr.length - 1 ? "border-b border-zinc-800" : ""
+                                i < arr.length - 1
+                                    ? "border-b border-zinc-800"
+                                    : ""
                             }`}
                         >
-                            <Text className="text-white text-sm">{item.label}</Text>
+                            <Text className="text-white text-sm">
+                                {item.label}
+                            </Text>
                             <Toggle value={item.value} onPress={item.onPress} />
                         </View>
                     ))}
@@ -320,16 +380,28 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                 </Text>
                 <View className="mx-5 bg-slate-900 rounded-2xl px-4">
                     {[
-                        { label: "Report reminders", value: reportReminderEnabled, onPress: () => setReportReminderEnabled((v) => !v) },
-                        { label: "Template updates", value: templateUpdatesEnabled, onPress: () => setTemplateUpdatesEnabled((v) => !v) },
+                        {
+                            label: "Report reminders",
+                            value: reportReminderEnabled,
+                            onPress: () => setReportReminderEnabled((v) => !v),
+                        },
+                        {
+                            label: "Template updates",
+                            value: templateUpdatesEnabled,
+                            onPress: () => setTemplateUpdatesEnabled((v) => !v),
+                        },
                     ].map((item, i, arr) => (
                         <View
                             key={item.label}
                             className={`flex-row items-center justify-between py-4 ${
-                                i < arr.length - 1 ? "border-b border-zinc-800" : ""
+                                i < arr.length - 1
+                                    ? "border-b border-zinc-800"
+                                    : ""
                             }`}
                         >
-                            <Text className="text-white text-sm">{item.label}</Text>
+                            <Text className="text-white text-sm">
+                                {item.label}
+                            </Text>
                             <Toggle value={item.value} onPress={item.onPress} />
                         </View>
                     ))}
@@ -348,8 +420,12 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                         />
                     </View>
                     <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                        <Text className="text-white text-sm">Local storage used</Text>
-                        <Text className="text-zinc-400 text-sm">{localStorageUsed}</Text>
+                        <Text className="text-white text-sm">
+                            Local storage used
+                        </Text>
+                        <Text className="text-zinc-400 text-sm">
+                            {localStorageUsed}
+                        </Text>
                     </View>
                     <TouchableOpacity
                         activeOpacity={0.7}
@@ -357,8 +433,16 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                         onPress={handleExportBackup}
                         className="py-4 flex-row items-center justify-between"
                     >
-                        <Text className="text-white text-sm">Export &amp; backup data</Text>
-                        {exporting && <Ionicons name="hourglass-outline" size={16} color="#f2a72f" />}
+                        <Text className="text-white text-sm">
+                            Export &amp; backup data
+                        </Text>
+                        {exporting && (
+                            <Ionicons
+                                name="hourglass-outline"
+                                size={16}
+                                color="#f2a72f"
+                            />
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -375,8 +459,14 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                         activeOpacity={0.7}
                         className="flex-row items-center justify-between py-4"
                     >
-                        <Text className="text-white text-sm">Terms &amp; privacy policy</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#3f3f46" />
+                        <Text className="text-white text-sm">
+                            Terms &amp; privacy policy
+                        </Text>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={16}
+                            color="#3f3f46"
+                        />
                     </TouchableOpacity>
                 </View>
 
@@ -388,15 +478,21 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                     {currentOrg ? (
                         <>
                             <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                                <Text className="text-white text-sm">Current org</Text>
-                                <Text className="text-zinc-400 text-sm">{currentOrg.name}</Text>
+                                <Text className="text-white text-sm">
+                                    Current org
+                                </Text>
+                                <Text className="text-zinc-400 text-sm">
+                                    {currentOrg.name}
+                                </Text>
                             </View>
                             <TouchableOpacity
                                 activeOpacity={0.7}
                                 onPress={handleLeaveOrg}
                                 className="py-4"
                             >
-                                <Text className="text-red-400 text-sm">Leave "{currentOrg.name}"</Text>
+                                <Text className="text-red-400 text-sm">
+                                    Leave "{currentOrg.name}"
+                                </Text>
                             </TouchableOpacity>
                         </>
                     ) : (
@@ -405,8 +501,14 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                             onPress={() => setOrgModalVisible(true)}
                             className="flex-row items-center justify-between py-4"
                         >
-                            <Text className="text-white text-sm">Create Organisation</Text>
-                            <Ionicons name="chevron-forward" size={16} color="#3f3f46" />
+                            <Text className="text-white text-sm">
+                                Create Organisation
+                            </Text>
+                            <Ionicons
+                                name="chevron-forward"
+                                size={16}
+                                color="#3f3f46"
+                            />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -418,17 +520,27 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                     disabled={signingOut}
                     className="mx-5 mt-5 bg-alert/10 border border-alert/30 rounded-2xl py-4 flex-row items-center justify-center gap-2"
                 >
-                    <Ionicons name="log-out-outline" size={18} color="#f93a3a" />
+                    <Ionicons
+                        name="log-out-outline"
+                        size={18}
+                        color="#f93a3a"
+                    />
                     <Text className="text-alert font-semibold text-sm">
                         {signingOut ? "Signing out…" : "Sign out"}
                     </Text>
                 </TouchableOpacity>
 
                 {/* Create Org Modal */}
-                <Modal visible={orgModalVisible} transparent animationType="fade">
+                <Modal
+                    visible={orgModalVisible}
+                    transparent
+                    animationType="fade"
+                >
                     <View className="flex-1 bg-black/70 justify-center px-6">
                         <View className="bg-slate-900 rounded-2xl p-5">
-                            <Text className="text-white font-bold text-base mb-4">Create Organisation</Text>
+                            <Text className="text-white font-bold text-base mb-4">
+                                Create Organisation
+                            </Text>
                             <TextInput
                                 placeholder="Organisation name"
                                 placeholderTextColor="#52525b"
@@ -438,16 +550,25 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                             />
                             <View className="flex-row gap-3">
                                 <TouchableOpacity
-                                    onPress={() => { setOrgModalVisible(false); setNewOrgName(""); }}
+                                    onPress={() => {
+                                        setOrgModalVisible(false);
+                                        setNewOrgName("");
+                                    }}
                                     className="flex-1 py-3 rounded-xl bg-slate-800 items-center"
                                 >
-                                    <Text className="text-zinc-400 font-semibold">Cancel</Text>
+                                    <Text className="text-zinc-400 font-semibold">
+                                        Cancel
+                                    </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={handleCreateOrg}
                                     disabled={creatingOrg || !newOrgName.trim()}
                                     className="flex-1 py-3 rounded-xl bg-primary items-center"
-                                    style={(!newOrgName.trim() || creatingOrg) ? { opacity: 0.5 } : undefined}
+                                    style={
+                                        !newOrgName.trim() || creatingOrg
+                                            ? { opacity: 0.5 }
+                                            : undefined
+                                    }
                                 >
                                     <Text className="text-white font-semibold">
                                         {creatingOrg ? "Creating…" : "Create"}
@@ -459,7 +580,11 @@ export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisat
                 </Modal>
             </ScrollView>
 
-            <BottomNavBar active="settings" onNavigate={onNavigate} hasOrganisation={hasOrganisation}/>
+            <BottomNavBar
+                active="settings"
+                onNavigate={onNavigate}
+                hasOrganisation={hasOrganisation}
+            />
         </View>
     );
 }

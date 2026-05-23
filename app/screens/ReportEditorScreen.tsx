@@ -6,8 +6,8 @@ import * as Location from "expo-location";
 import { DeviceMotion } from "expo-sensors";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     ActionSheetIOS,
+    ActivityIndicator,
     Alert,
     Image,
     Keyboard,
@@ -26,14 +26,21 @@ import AccelerometerField from "@/components/fields/AccelerometerField";
 import AnnotationEditor from "@/components/fields/AnnotationEditor";
 import JointAngleCaptureField from "@/components/fields/JointAngleCaptureField";
 import LocationPicker from "@/components/fields/LocationPicker";
-import ReflexStopwatchField, { ReflexStopwatchData } from "@/components/fields/ReflexStopwatchField";
+import ReflexStopwatchField, {
+    ReflexStopwatchData,
+} from "@/components/fields/ReflexStopwatchField";
 import RouteTrackerField from "@/components/fields/RouteTrackerField";
 import SessionTimerField from "@/components/fields/SessionTimerField";
 import SignaturePad from "@/components/SignaturePad";
 import { updateInProgressSections } from "@/lib/db/reports";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
-import { SectionStatus, TaggedPhoto, Template, TemplateField, TemplateSection } from "@/lib/types";
+import {
+    SectionStatus,
+    TaggedPhoto,
+    TemplateField,
+    TemplateSection,
+} from "@/lib/types";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -111,7 +118,8 @@ const AUTOFILL_NUMBER_LABELS = ["rms", "peak", "avg"];
 function isAutoFillNumber(label: string): boolean {
     const l = label.toLowerCase();
     if (AUTOFILL_NUMBER_LABELS.includes(l.trim())) return true;
-    if (l.includes("reaction time") || l.includes("average reaction")) return true;
+    if (l.includes("reaction time") || l.includes("average reaction"))
+        return true;
     return false;
 }
 
@@ -179,7 +187,11 @@ function FieldRow({
     const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
     // ── Gyroscope ─────────────────────────────────────────────────────────────
-    const motionRef = useRef<{ pitch: number; roll: number; azimuth: number } | null>(null);
+    const motionRef = useRef<{
+        pitch: number;
+        roll: number;
+        azimuth: number;
+    } | null>(null);
 
     useEffect(() => {
         if (!field.gyroCapture) return;
@@ -190,7 +202,7 @@ function FieldRow({
             motionRef.current = {
                 pitch: toDeg(rotation.beta ?? 0),
                 roll: toDeg(rotation.gamma ?? 0),
-                azimuth: ((toDeg(rotation.alpha ?? 0)) + 360) % 360,
+                azimuth: (toDeg(rotation.alpha ?? 0) + 360) % 360,
             };
         });
         return () => sub.remove();
@@ -205,7 +217,9 @@ function FieldRow({
             const p = JSON.parse(value);
             if (!Array.isArray(p)) return [];
             return p.map((item: unknown) =>
-                typeof item === "string" ? { uri: item } : (item as TaggedPhoto),
+                typeof item === "string"
+                    ? { uri: item }
+                    : (item as TaggedPhoto),
             );
         } catch {
             return typeof value === "string" && value ? [{ uri: value }] : [];
@@ -234,7 +248,8 @@ function FieldRow({
         let lat: number | undefined;
         let lng: number | undefined;
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
+            const { status } =
+                await Location.requestForegroundPermissionsAsync();
             if (status === "granted") {
                 const pos = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced,
@@ -246,13 +261,22 @@ function FieldRow({
             // GPS unavailable — photo saved without coordinates
         }
         const motion = field.gyroCapture ? motionRef.current : null;
-        commitPhotos([...photos, {
-            uri,
-            lat,
-            lng,
-            capturedAt: Date.now(),
-            ...(motion ? { pitch: motion.pitch, roll: motion.roll, azimuth: motion.azimuth } : {}),
-        }]);
+        commitPhotos([
+            ...photos,
+            {
+                uri,
+                lat,
+                lng,
+                capturedAt: Date.now(),
+                ...(motion
+                    ? {
+                          pitch: motion.pitch,
+                          roll: motion.roll,
+                          azimuth: motion.azimuth,
+                      }
+                    : {}),
+            },
+        ]);
     };
 
     const launchGallery = async () => {
@@ -271,7 +295,13 @@ function FieldRow({
             quality: 0.8,
         });
         if (!result.canceled)
-            commitPhotos([...photos, ...result.assets.map((a) => ({ uri: a.uri, capturedAt: Date.now() }))]);
+            commitPhotos([
+                ...photos,
+                ...result.assets.map((a) => ({
+                    uri: a.uri,
+                    capturedAt: Date.now(),
+                })),
+            ]);
     };
 
     const removePhoto = (index: number) =>
@@ -307,10 +337,16 @@ function FieldRow({
         try {
             const { granted } = await Audio.requestPermissionsAsync();
             if (!granted) {
-                Alert.alert("Permission required", "Microphone access is needed for voice input.");
+                Alert.alert(
+                    "Permission required",
+                    "Microphone access is needed for voice input.",
+                );
                 return;
             }
-            await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
             const { recording: rec } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY,
             );
@@ -330,21 +366,33 @@ function FieldRow({
             if (!uri) return;
 
             setIsTranscribing(true);
-            const apiKey = (process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "").replace(/^["']|["']$/g, "").trim();
+            const apiKey = (process.env.EXPO_PUBLIC_GROQ_API_KEY ?? "")
+                .replace(/^["']|["']$/g, "")
+                .trim();
             if (!apiKey) {
-                Alert.alert("Setup required", "Add EXPO_PUBLIC_GROQ_API_KEY to your .env file.");
+                Alert.alert(
+                    "Setup required",
+                    "Add EXPO_PUBLIC_GROQ_API_KEY to your .env file.",
+                );
                 return;
             }
 
             const formData = new FormData();
-            formData.append("file", { uri, type: "audio/m4a", name: "recording.m4a" } as any);
+            formData.append("file", {
+                uri,
+                type: "audio/m4a",
+                name: "recording.m4a",
+            } as any);
             formData.append("model", "whisper-large-v3");
 
-            const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${apiKey}` },
-                body: formData,
-            });
+            const res = await fetch(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${apiKey}` },
+                    body: formData,
+                },
+            );
             if (!res.ok) {
                 const body = await res.text();
                 throw new Error(`${res.status}: ${body}`);
@@ -355,7 +403,10 @@ function FieldRow({
                 onChange(current ? `${current} ${text.trim()}` : text.trim());
             }
         } catch (err: any) {
-            Alert.alert("Transcription failed", err?.message ?? "Unknown error");
+            Alert.alert(
+                "Transcription failed",
+                err?.message ?? "Unknown error",
+            );
         } finally {
             setIsTranscribing(false);
         }
@@ -394,10 +445,17 @@ function FieldRow({
                         onPress={() => setLocationPickerOpen(true)}
                         className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     >
-                        <Text className={`text-sm flex-1 mr-2 ${value ? "text-white" : "text-zinc-600"}`} numberOfLines={1}>
+                        <Text
+                            className={`text-sm flex-1 mr-2 ${value ? "text-white" : "text-zinc-600"}`}
+                            numberOfLines={1}
+                        >
                             {value ? String(value) : "Select on map…"}
                         </Text>
-                        <Ionicons name="map-outline" size={16} color="#52525b" />
+                        <Ionicons
+                            name="map-outline"
+                            size={16}
+                            color="#52525b"
+                        />
                     </TouchableOpacity>
 
                     <Modal
@@ -425,16 +483,26 @@ function FieldRow({
                         onPress={() => {
                             if (value) {
                                 const parsed = new Date(String(value));
-                                setTempDate(isNaN(parsed.getTime()) ? new Date() : parsed);
+                                setTempDate(
+                                    isNaN(parsed.getTime())
+                                        ? new Date()
+                                        : parsed,
+                                );
                             }
                             setShowDatePicker(true);
                         }}
                         className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     >
-                        <Text className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}>
+                        <Text
+                            className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+                        >
                             {value ? String(value) : "Select date & time…"}
                         </Text>
-                        <Ionicons name="time-outline" size={16} color="#52525b" />
+                        <Ionicons
+                            name="time-outline"
+                            size={16}
+                            color="#52525b"
+                        />
                     </TouchableOpacity>
 
                     {Platform.OS === "ios" ? (
@@ -444,38 +512,76 @@ function FieldRow({
                             animationType="slide"
                             onRequestClose={() => setShowDatePicker(false)}
                         >
-                            <View style={{ flex: 1, justifyContent: "flex-end" }}>
-                                <View style={{
-                                    backgroundColor: "#1e293b",
-                                    borderTopLeftRadius: 20,
-                                    borderTopRightRadius: 20,
-                                    paddingBottom: 32,
-                                }}>
-                                    <View style={{
-                                        flexDirection: "row",
-                                        justifyContent: "space-between",
-                                        paddingHorizontal: 20,
-                                        paddingVertical: 14,
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: "#27272a",
-                                    }}>
-                                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                            <Text style={{ color: "#71717a", fontSize: 15 }}>Cancel</Text>
+                            <View
+                                style={{ flex: 1, justifyContent: "flex-end" }}
+                            >
+                                <View
+                                    style={{
+                                        backgroundColor: "#1e293b",
+                                        borderTopLeftRadius: 20,
+                                        borderTopRightRadius: 20,
+                                        paddingBottom: 32,
+                                    }}
+                                >
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            justifyContent: "space-between",
+                                            paddingHorizontal: 20,
+                                            paddingVertical: 14,
+                                            borderBottomWidth: 1,
+                                            borderBottomColor: "#27272a",
+                                        }}
+                                    >
+                                        <TouchableOpacity
+                                            onPress={() =>
+                                                setShowDatePicker(false)
+                                            }
+                                        >
+                                            <Text
+                                                style={{
+                                                    color: "#71717a",
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                Cancel
+                                            </Text>
                                         </TouchableOpacity>
-                                        <Text style={{ color: "#ffffff", fontWeight: "bold", fontSize: 15 }}>
+                                        <Text
+                                            style={{
+                                                color: "#ffffff",
+                                                fontWeight: "bold",
+                                                fontSize: 15,
+                                            }}
+                                        >
                                             Date & Time
                                         </Text>
-                                        <TouchableOpacity onPress={() => {
-                                            onChange(tempDate.toLocaleString("en-AU", {
-                                                day: "numeric",
-                                                month: "short",
-                                                year: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }));
-                                            setShowDatePicker(false);
-                                        }}>
-                                            <Text style={{ color: "#f2a72f", fontWeight: "bold", fontSize: 15 }}>Done</Text>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                onChange(
+                                                    tempDate.toLocaleString(
+                                                        "en-AU",
+                                                        {
+                                                            day: "numeric",
+                                                            month: "short",
+                                                            year: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        },
+                                                    ),
+                                                );
+                                                setShowDatePicker(false);
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    color: "#f2a72f",
+                                                    fontWeight: "bold",
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                Done
+                                            </Text>
                                         </TouchableOpacity>
                                     </View>
                                     <DateTimePicker
@@ -483,7 +589,9 @@ function FieldRow({
                                         mode="datetime"
                                         display="spinner"
                                         themeVariant="dark"
-                                        onChange={(_, date) => { if (date) setTempDate(date); }}
+                                        onChange={(_, date) => {
+                                            if (date) setTempDate(date);
+                                        }}
                                         style={{ height: 200 }}
                                     />
                                 </View>
@@ -514,13 +622,15 @@ function FieldRow({
                                         setShowTimePicker(false);
                                         if (date) {
                                             setTempDate(date);
-                                            onChange(date.toLocaleString("en-AU", {
-                                                day: "numeric",
-                                                month: "short",
-                                                year: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            }));
+                                            onChange(
+                                                date.toLocaleString("en-AU", {
+                                                    day: "numeric",
+                                                    month: "short",
+                                                    year: "numeric",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                }),
+                                            );
                                         }
                                     }}
                                 />
@@ -531,195 +641,261 @@ function FieldRow({
             )}
 
             {/* TEXT — date detected by label keyword */}
-            {field.type === "text" && isDateField(field.label) && !isDateTimeField(field.label) && (
-                <>
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => {
-                            if (value)
-                                setTempDate(
-                                    new Date(String(value)) ?? new Date(),
-                                );
-                            setShowDatePicker(true);
-                        }}
-                        className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
-                    >
-                        <Text
-                            className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+            {field.type === "text" &&
+                isDateField(field.label) &&
+                !isDateTimeField(field.label) && (
+                    <>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => {
+                                if (value)
+                                    setTempDate(
+                                        new Date(String(value)) ?? new Date(),
+                                    );
+                                setShowDatePicker(true);
+                            }}
+                            className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                         >
-                            {value ? String(value) : "Select date…"}
-                        </Text>
-                        <Ionicons
-                            name="calendar-outline"
-                            size={16}
-                            color="#52525b"
-                        />
-                    </TouchableOpacity>
+                            <Text
+                                className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+                            >
+                                {value ? String(value) : "Select date…"}
+                            </Text>
+                            <Ionicons
+                                name="calendar-outline"
+                                size={16}
+                                color="#52525b"
+                            />
+                        </TouchableOpacity>
 
-                    {/* Date picker bottom sheet */}
-                    <Modal
-                        visible={showDatePicker}
-                        transparent
-                        animationType="slide"
-                        onRequestClose={() => setShowDatePicker(false)}
-                    >
-                        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+                        {/* Date picker bottom sheet */}
+                        <Modal
+                            visible={showDatePicker}
+                            transparent
+                            animationType="slide"
+                            onRequestClose={() => setShowDatePicker(false)}
+                        >
                             <View
-                                style={{
-                                    backgroundColor: "#1e293b",
-                                    borderTopLeftRadius: 20,
-                                    borderTopRightRadius: 20,
-                                    paddingBottom: 32,
-                                }}
+                                style={{ flex: 1, justifyContent: "flex-end" }}
                             >
                                 <View
                                     style={{
-                                        flexDirection: "row",
-                                        justifyContent: "space-between",
-                                        paddingHorizontal: 20,
-                                        paddingVertical: 14,
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: "#27272a",
+                                        backgroundColor: "#1e293b",
+                                        borderTopLeftRadius: 20,
+                                        borderTopRightRadius: 20,
+                                        paddingBottom: 32,
                                     }}
                                 >
-                                    <TouchableOpacity
-                                        onPress={() => setShowDatePicker(false)}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: "#71717a",
-                                                fontSize: 15,
-                                            }}
-                                        >
-                                            Cancel
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <Text
+                                    <View
                                         style={{
-                                            color: "#ffffff",
-                                            fontWeight: "bold",
-                                            fontSize: 15,
+                                            flexDirection: "row",
+                                            justifyContent: "space-between",
+                                            paddingHorizontal: 20,
+                                            paddingVertical: 14,
+                                            borderBottomWidth: 1,
+                                            borderBottomColor: "#27272a",
                                         }}
                                     >
-                                        Select date
-                                    </Text>
-                                    <TouchableOpacity onPress={confirmDate}>
+                                        <TouchableOpacity
+                                            onPress={() =>
+                                                setShowDatePicker(false)
+                                            }
+                                        >
+                                            <Text
+                                                style={{
+                                                    color: "#71717a",
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                Cancel
+                                            </Text>
+                                        </TouchableOpacity>
                                         <Text
                                             style={{
-                                                color: "#f2a72f",
+                                                color: "#ffffff",
                                                 fontWeight: "bold",
                                                 fontSize: 15,
                                             }}
                                         >
-                                            Done
+                                            Select date
                                         </Text>
-                                    </TouchableOpacity>
+                                        <TouchableOpacity onPress={confirmDate}>
+                                            <Text
+                                                style={{
+                                                    color: "#f2a72f",
+                                                    fontWeight: "bold",
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                Done
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <DateTimePicker
+                                        value={tempDate}
+                                        mode="date"
+                                        display="spinner"
+                                        themeVariant="dark"
+                                        onChange={(_, date) => {
+                                            if (date) setTempDate(date);
+                                        }}
+                                        style={{ height: 200 }}
+                                    />
                                 </View>
-                                <DateTimePicker
-                                    value={tempDate}
-                                    mode="date"
-                                    display="spinner"
-                                    themeVariant="dark"
-                                    onChange={(_, date) => {
-                                        if (date) setTempDate(date);
-                                    }}
-                                    style={{ height: 200 }}
-                                />
                             </View>
-                        </View>
-                    </Modal>
-                </>
-            )}
+                        </Modal>
+                    </>
+                )}
 
             {/* TEXT — single-line (mic icon at right) */}
-            {field.type === "text" && !isLocationField(field.label) && !isDateTimeField(field.label) && !isDateField(field.label) && !isMultiline(field.label) && (
-                <View className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
-                    <TextInput
-                        className="text-white text-sm flex-1"
-                        value={String(value ?? "")}
-                        onChangeText={onChange}
-                        placeholderTextColor="#52525b"
-                        placeholder="Type here…"
-                        numberOfLines={1}
-                        textAlignVertical="center"
-                    />
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={recording ? stopAndTranscribe : startRecording}
-                        disabled={isTranscribing}
-                        style={{ paddingLeft: 10 }}
-                    >
-                        {isTranscribing ? (
-                            <ActivityIndicator size="small" color="#f2a72f" />
-                        ) : recording ? (
-                            <Ionicons name="stop-circle" size={20} color="#ef4444" />
-                        ) : (
-                            <Ionicons name="mic-outline" size={20} color="#52525b" />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {/* TEXT — multiline (Dictate button below textarea) */}
-            {field.type === "text" && !isLocationField(field.label) && !isDateTimeField(field.label) && !isDateField(field.label) && isMultiline(field.label) && (
-                <View className="bg-slate-800 rounded-xl px-3 py-3">
-                    <TextInput
-                        className="text-white text-sm"
-                        value={String(value ?? "")}
-                        onChangeText={onChange}
-                        placeholderTextColor="#52525b"
-                        placeholder="Type here…"
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                        style={{ minHeight: 88 }}
-                    />
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            justifyContent: "flex-end",
-                            marginTop: 8,
-                            paddingTop: 8,
-                            borderTopWidth: 1,
-                            borderTopColor: "#27272a",
-                        }}
-                    >
+            {field.type === "text" &&
+                !isLocationField(field.label) &&
+                !isDateTimeField(field.label) &&
+                !isDateField(field.label) &&
+                !isMultiline(field.label) && (
+                    <View className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
+                        <TextInput
+                            className="text-white text-sm flex-1"
+                            value={String(value ?? "")}
+                            onChangeText={onChange}
+                            placeholderTextColor="#52525b"
+                            placeholder="Type here…"
+                            numberOfLines={1}
+                            textAlignVertical="center"
+                        />
                         <TouchableOpacity
                             activeOpacity={0.7}
-                            onPress={recording ? stopAndTranscribe : startRecording}
+                            onPress={
+                                recording ? stopAndTranscribe : startRecording
+                            }
                             disabled={isTranscribing}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 6,
-                                backgroundColor: "#1e293b",
-                                paddingHorizontal: 12,
-                                paddingVertical: 6,
-                                borderRadius: 10,
-                                borderWidth: 1,
-                                borderColor: recording ? "#ef444440" : "#3f3f46",
-                            }}
+                            style={{ paddingLeft: 10 }}
                         >
                             {isTranscribing ? (
-                                <>
-                                    <ActivityIndicator size="small" color="#f2a72f" />
-                                    <Text style={{ color: "#f2a72f", fontSize: 12 }}>Transcribing…</Text>
-                                </>
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#f2a72f"
+                                />
                             ) : recording ? (
-                                <>
-                                    <Ionicons name="stop-circle" size={14} color="#ef4444" />
-                                    <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>Stop recording</Text>
-                                </>
+                                <Ionicons
+                                    name="stop-circle"
+                                    size={20}
+                                    color="#ef4444"
+                                />
                             ) : (
-                                <>
-                                    <Ionicons name="mic-outline" size={14} color="#94a3b8" />
-                                    <Text style={{ color: "#94a3b8", fontSize: 12 }}>Dictate</Text>
-                                </>
+                                <Ionicons
+                                    name="mic-outline"
+                                    size={20}
+                                    color="#52525b"
+                                />
                             )}
                         </TouchableOpacity>
                     </View>
-                </View>
-            )}
+                )}
+
+            {/* TEXT — multiline (Dictate button below textarea) */}
+            {field.type === "text" &&
+                !isLocationField(field.label) &&
+                !isDateTimeField(field.label) &&
+                !isDateField(field.label) &&
+                isMultiline(field.label) && (
+                    <View className="bg-slate-800 rounded-xl px-3 py-3">
+                        <TextInput
+                            className="text-white text-sm"
+                            value={String(value ?? "")}
+                            onChangeText={onChange}
+                            placeholderTextColor="#52525b"
+                            placeholder="Type here…"
+                            multiline
+                            numberOfLines={4}
+                            textAlignVertical="top"
+                            style={{ minHeight: 88 }}
+                        />
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "flex-end",
+                                marginTop: 8,
+                                paddingTop: 8,
+                                borderTopWidth: 1,
+                                borderTopColor: "#27272a",
+                            }}
+                        >
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={
+                                    recording
+                                        ? stopAndTranscribe
+                                        : startRecording
+                                }
+                                disabled={isTranscribing}
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    backgroundColor: "#1e293b",
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    borderRadius: 10,
+                                    borderWidth: 1,
+                                    borderColor: recording
+                                        ? "#ef444440"
+                                        : "#3f3f46",
+                                }}
+                            >
+                                {isTranscribing ? (
+                                    <>
+                                        <ActivityIndicator
+                                            size="small"
+                                            color="#f2a72f"
+                                        />
+                                        <Text
+                                            style={{
+                                                color: "#f2a72f",
+                                                fontSize: 12,
+                                            }}
+                                        >
+                                            Transcribing…
+                                        </Text>
+                                    </>
+                                ) : recording ? (
+                                    <>
+                                        <Ionicons
+                                            name="stop-circle"
+                                            size={14}
+                                            color="#ef4444"
+                                        />
+                                        <Text
+                                            style={{
+                                                color: "#ef4444",
+                                                fontSize: 12,
+                                                fontWeight: "600",
+                                            }}
+                                        >
+                                            Stop recording
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Ionicons
+                                            name="mic-outline"
+                                            size={14}
+                                            color="#94a3b8"
+                                        />
+                                        <Text
+                                            style={{
+                                                color: "#94a3b8",
+                                                fontSize: 12,
+                                            }}
+                                        >
+                                            Dictate
+                                        </Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
 
             {/* NUMBER — read-only auto-fill (RMS / Peak / Avg from accelerometer) */}
             {field.type === "number" && isAutoFillNumber(field.label) && (
@@ -727,8 +903,18 @@ function FieldRow({
                     className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     style={{ opacity: 0.7 }}
                 >
-                    <Text style={{ color: value !== undefined && value !== "" ? "#fff" : "#3f3f46", fontSize: 14 }}>
-                        {value !== undefined && value !== "" ? String(value) : "—"}
+                    <Text
+                        style={{
+                            color:
+                                value !== undefined && value !== ""
+                                    ? "#fff"
+                                    : "#3f3f46",
+                            fontSize: 14,
+                        }}
+                    >
+                        {value !== undefined && value !== ""
+                            ? String(value)
+                            : "—"}
                     </Text>
                     <Ionicons name="flash-outline" size={13} color="#3f3f46" />
                 </View>
@@ -739,9 +925,16 @@ function FieldRow({
                 <View className="bg-slate-800 rounded-xl px-3 h-11 justify-center">
                     <TextInput
                         className="text-white text-sm"
-                        value={value !== undefined && value !== "" ? String(value) : ""}
+                        value={
+                            value !== undefined && value !== ""
+                                ? String(value)
+                                : ""
+                        }
                         onChangeText={(v) => {
-                            if (v === "" || v === "-") { onChange(v); return; }
+                            if (v === "" || v === "-") {
+                                onChange(v);
+                                return;
+                            }
                             const n = parseFloat(v);
                             if (!isNaN(n)) onChange(n);
                         }}
@@ -860,7 +1053,8 @@ function FieldRow({
                                 <View
                                     style={{
                                         position: "absolute",
-                                        bottom: photo.lat !== undefined ? 28 : 5,
+                                        bottom:
+                                            photo.lat !== undefined ? 28 : 5,
                                         left: 5,
                                         flexDirection: "row",
                                         alignItems: "center",
@@ -871,9 +1065,20 @@ function FieldRow({
                                         gap: 3,
                                     }}
                                 >
-                                    <Ionicons name="compass-outline" size={9} color="#60a5fa" />
-                                    <Text style={{ color: "#60a5fa", fontSize: 8, fontWeight: "600" }}>
-                                        {azimuthLabel(photo.azimuth ?? 0)} · {photo.pitch}° · {photo.roll}°
+                                    <Ionicons
+                                        name="compass-outline"
+                                        size={9}
+                                        color="#60a5fa"
+                                    />
+                                    <Text
+                                        style={{
+                                            color: "#60a5fa",
+                                            fontSize: 8,
+                                            fontWeight: "600",
+                                        }}
+                                    >
+                                        {azimuthLabel(photo.azimuth ?? 0)} ·{" "}
+                                        {photo.pitch}° · {photo.roll}°
                                     </Text>
                                 </View>
                             )}
@@ -893,24 +1098,42 @@ function FieldRow({
                                         gap: 3,
                                     }}
                                 >
-                                    <Ionicons name="location" size={10} color="#22c55e" />
-                                    <Text style={{ color: "#22c55e", fontSize: 9, fontWeight: "600" }}>
+                                    <Ionicons
+                                        name="location"
+                                        size={10}
+                                        color="#22c55e"
+                                    />
+                                    <Text
+                                        style={{
+                                            color: "#22c55e",
+                                            fontSize: 9,
+                                            fontWeight: "600",
+                                        }}
+                                    >
                                         GPS
                                     </Text>
                                 </View>
                             )}
                             {/* Timestamp watermark */}
                             {photo.capturedAt !== undefined && (
-                                <View style={{
-                                    position: "absolute",
-                                    bottom: 5,
-                                    right: 5,
-                                    backgroundColor: "rgba(0,0,0,0.55)",
-                                    borderRadius: 4,
-                                    paddingHorizontal: 4,
-                                    paddingVertical: 2,
-                                }}>
-                                    <Text style={{ color: "#fff", fontSize: 7, fontWeight: "600" }}>
+                                <View
+                                    style={{
+                                        position: "absolute",
+                                        bottom: 5,
+                                        right: 5,
+                                        backgroundColor: "rgba(0,0,0,0.55)",
+                                        borderRadius: 4,
+                                        paddingHorizontal: 4,
+                                        paddingVertical: 2,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            color: "#fff",
+                                            fontSize: 7,
+                                            fontWeight: "600",
+                                        }}
+                                    >
                                         {formatTimestamp(photo.capturedAt)}
                                     </Text>
                                 </View>
@@ -926,14 +1149,19 @@ function FieldRow({
                                     width: 22,
                                     height: 22,
                                     borderRadius: 11,
-                                    backgroundColor: (photo.annotations?.length ?? 0) > 0
-                                        ? "rgba(242,167,47,0.85)"
-                                        : "rgba(0,0,0,0.65)",
+                                    backgroundColor:
+                                        (photo.annotations?.length ?? 0) > 0
+                                            ? "rgba(242,167,47,0.85)"
+                                            : "rgba(0,0,0,0.65)",
                                     alignItems: "center",
                                     justifyContent: "center",
                                 }}
                             >
-                                <Ionicons name="pencil" size={11} color="#fff" />
+                                <Ionicons
+                                    name="pencil"
+                                    size={11}
+                                    color="#fff"
+                                />
                             </TouchableOpacity>
                             {/* Delete button */}
                             <TouchableOpacity
@@ -986,26 +1214,30 @@ function FieldRow({
             )}
 
             {/* ANNOTATION EDITOR */}
-            {field.type === "photo" && annotatingIdx !== null && annotatingIdx < photos.length && (
-                <Modal
-                    visible
-                    animationType="slide"
-                    presentationStyle="fullScreen"
-                    onRequestClose={() => setAnnotatingIdx(null)}
-                >
-                    <AnnotationEditor
-                        photo={photos[annotatingIdx]}
-                        onSave={(annotations) => {
-                            const updated = photos.map((p, i) =>
-                                i === annotatingIdx ? { ...p, annotations } : p,
-                            );
-                            commitPhotos(updated);
-                            setAnnotatingIdx(null);
-                        }}
-                        onCancel={() => setAnnotatingIdx(null)}
-                    />
-                </Modal>
-            )}
+            {field.type === "photo" &&
+                annotatingIdx !== null &&
+                annotatingIdx < photos.length && (
+                    <Modal
+                        visible
+                        animationType="slide"
+                        presentationStyle="fullScreen"
+                        onRequestClose={() => setAnnotatingIdx(null)}
+                    >
+                        <AnnotationEditor
+                            photo={photos[annotatingIdx]}
+                            onSave={(annotations) => {
+                                const updated = photos.map((p, i) =>
+                                    i === annotatingIdx
+                                        ? { ...p, annotations }
+                                        : p,
+                                );
+                                commitPhotos(updated);
+                                setAnnotatingIdx(null);
+                            }}
+                            onCancel={() => setAnnotatingIdx(null)}
+                        />
+                    </Modal>
+                )}
 
             {/* ROUTE TRACKER */}
             {field.type === "route" && (
@@ -1099,28 +1331,40 @@ function SectionEditor({
         setValues((prev) => {
             const next = { ...prev, [fieldId]: value };
             const field = section.fields.find((f) => f.id === fieldId);
-            if (field?.type === "accelerometer" && typeof value === "string" && value) {
+            if (
+                field?.type === "accelerometer" &&
+                typeof value === "string" &&
+                value
+            ) {
                 try {
                     const accel = JSON.parse(value);
                     section.fields.forEach((f) => {
                         if (f.type !== "number") return;
                         const l = f.label.toLowerCase().trim();
-                        if (l === "rms")  next[f.id] = accel.rms ?? 0;
+                        if (l === "rms") next[f.id] = accel.rms ?? 0;
                         if (l === "peak") next[f.id] = accel.peak ?? 0;
-                        if (l === "avg")  next[f.id] = accel.avgMagnitude ?? 0;
+                        if (l === "avg") next[f.id] = accel.avgMagnitude ?? 0;
                     });
                 } catch {}
             }
-            if (field?.type === "stopwatch" && typeof value === "string" && value) {
+            if (
+                field?.type === "stopwatch" &&
+                typeof value === "string" &&
+                value
+            ) {
                 try {
                     const sw: ReflexStopwatchData = JSON.parse(value);
                     section.fields.forEach((f) => {
                         if (f.type !== "number") return;
                         const l = f.label.toLowerCase();
-                        if (l.includes("trial 1")) next[f.id] = sw.trials[0] ?? 0;
-                        else if (l.includes("trial 2")) next[f.id] = sw.trials[1] ?? 0;
-                        else if (l.includes("trial 3")) next[f.id] = sw.trials[2] ?? 0;
-                        else if (l.includes("average")) next[f.id] = sw.avg ?? 0;
+                        if (l.includes("trial 1"))
+                            next[f.id] = sw.trials[0] ?? 0;
+                        else if (l.includes("trial 2"))
+                            next[f.id] = sw.trials[1] ?? 0;
+                        else if (l.includes("trial 3"))
+                            next[f.id] = sw.trials[2] ?? 0;
+                        else if (l.includes("average"))
+                            next[f.id] = sw.avg ?? 0;
                     });
                 } catch {}
             }
@@ -1130,15 +1374,19 @@ function SectionEditor({
 
     // Re-apply auto-fill when reopening a section that already has accel or stopwatch data
     useEffect(() => {
-        const accelField = section.fields.find((f) => f.type === "accelerometer");
+        const accelField = section.fields.find(
+            (f) => f.type === "accelerometer",
+        );
         if (accelField) {
             const accelValue = initialValues[accelField.id];
-            if (accelValue && typeof accelValue === "string") setValue(accelField.id, accelValue);
+            if (accelValue && typeof accelValue === "string")
+                setValue(accelField.id, accelValue);
         }
         const swField = section.fields.find((f) => f.type === "stopwatch");
         if (swField) {
             const swValue = initialValues[swField.id];
-            if (swValue && typeof swValue === "string") setValue(swField.id, swValue);
+            if (swValue && typeof swValue === "string")
+                setValue(swField.id, swValue);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -1236,10 +1484,9 @@ function SectionEditor({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportEditorScreen({ onNavigate }: Props) {
-    const template =
-        store.selectedTemplateId?.startsWith("user_")
-            ? (store.selectedUserTemplate ?? undefined)
-            : SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId);
+    const template = store.selectedTemplateId?.startsWith("user_")
+        ? (store.selectedUserTemplate ?? undefined)
+        : SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId);
     const setup = store.reportSetup;
 
     const [sectionStatuses, setSectionStatuses] = useState<
@@ -1353,7 +1600,10 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                 score: null,
             }));
             try {
-                await updateInProgressSections(store.draftReportId, sectionData);
+                await updateInProgressSections(
+                    store.draftReportId,
+                    sectionData,
+                );
             } catch {
                 // non-blocking — still navigate away
             }

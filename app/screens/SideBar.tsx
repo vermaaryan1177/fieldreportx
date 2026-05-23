@@ -1,7 +1,8 @@
 import { signOut } from "@/lib/auth";
+import { fnv1a32 } from "@/lib/checksum";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     Alert,
     Modal,
@@ -11,13 +12,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { fnv1a32 } from "@/lib/checksum";
 
 import { AppScreen } from "@/components/BottomNavBar";
-import { auth } from "@/lib/firebase";
 import { getUserOrganisation } from "@/lib/db/organisations";
+import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
-// import { getUserNotifications } from "@/lib/db/notifications";
 
 type SidebarItem = {
     id: AppScreen;
@@ -98,7 +97,12 @@ function SidebarButton({
     );
 }
 
-export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: SidebarProps) {
+export default function Sidebar({
+    active,
+    onNavigate,
+    onOrgSwitch,
+    onSignOut,
+}: SidebarProps) {
     const user = auth.currentUser;
 
     const deviceHash = useMemo(
@@ -123,7 +127,10 @@ export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: 
             const safe = Array.isArray(orgs) ? orgs : [];
 
             setOrganisations(safe);
-            const active = safe.find((o) => o.id === store.currentOrgId) ?? safe[0] ?? null;
+            const active =
+                safe.find((o) => o.id === store.currentOrgId) ??
+                safe[0] ??
+                null;
             setCurrentOrg(active);
             if (active) store.setCurrentOrgId(active.id);
         })();
@@ -353,16 +360,18 @@ export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: 
 
             {/* FOOTER */}
             <View className="border-t border-zinc-800 p-4">
-                <Text className="text-white font-semibold">
-                    FieldReportX
-                </Text>
+                <Text className="text-white font-semibold">FieldReportX</Text>
 
                 <Text className="text-zinc-500 text-sm mt-1">
                     Version {Constants.expoConfig?.version ?? "1.0.0"}
                 </Text>
 
                 <View className="mt-3 bg-slate-800 rounded-xl px-3 py-2.5 flex-row items-center gap-2">
-                    <Ionicons name="hardware-chip-outline" size={14} color="#52525b" />
+                    <Ionicons
+                        name="hardware-chip-outline"
+                        size={14}
+                        color="#52525b"
+                    />
                     <View className="flex-1">
                         <Text className="text-zinc-500 text-xs">Device ID</Text>
                         <Text className="text-zinc-300 text-xs font-mono mt-0.5">
@@ -376,7 +385,11 @@ export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: 
                     onPress={handleSignOut}
                     disabled={signingOut}
                 >
-                    <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+                    <Ionicons
+                        name="log-out-outline"
+                        size={18}
+                        color="#ef4444"
+                    />
                     <Text className="text-red-500 font-medium ml-2">
                         {signingOut ? "Signing out…" : "Sign out"}
                     </Text>
@@ -385,6 +398,3 @@ export default function Sidebar({ active, onNavigate, onOrgSwitch, onSignOut }: 
         </View>
     );
 }
-
-
-

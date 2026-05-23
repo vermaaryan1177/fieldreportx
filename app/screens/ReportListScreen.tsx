@@ -9,15 +9,15 @@ import {
     View,
 } from "react-native";
 
-import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import AppHeader from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { useReports } from "@/hooks/useReports";
+import { STATUS_CFG } from "@/lib/constants/reportStatus";
 import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
-import { STATUS_CFG } from "@/lib/constants/reportStatus";
 import { templateColor } from "@/lib/utils/color";
-import { timeAgo, toMs } from "@/lib/utils/time";
+import { timeAgo } from "@/lib/utils/time";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -27,23 +27,39 @@ interface Props {
 
 function getInitials(name: string | null | undefined): string {
     if (!name) return "?";
-    return name.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+    return name
+        .trim()
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
 }
 
 type FilterTab = "All" | "Completed" | "In Progress" | "Draft" | "Archived";
-const FILTERS: FilterTab[] = ["All", "Completed", "In Progress", "Draft", "Archived"];
+const FILTERS: FilterTab[] = [
+    "All",
+    "Completed",
+    "In Progress",
+    "Draft",
+    "Archived",
+];
 
 const FILTER_TO_STATUS: Record<FilterTab, string | null> = {
-    "All":         null,
-    "Completed":   "completed",
+    All: null,
+    Completed: "completed",
     "In Progress": "inprogress",
-    "Draft":       "draft",
-    "Archived":    "archived",
+    Draft: "draft",
+    Archived: "archived",
 };
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisation }: Props) {
+export default function ReportListScreen({
+    onNavigate,
+    onOpenSidebar,
+    hasOrganisation,
+}: Props) {
     const [search, setSearch] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
@@ -82,17 +98,26 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
 
     return (
         <View className="flex-1 bg-background">
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials={initials} active="reports" />
+            <AppHeader
+                onOpenSidebar={onOpenSidebar}
+                onNavigate={onNavigate}
+                profileInitials={initials}
+                active="reports"
+            />
 
             <View className="px-5 pt-5 pb-4">
                 <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-white text-2xl font-bold">Reports</Text>
+                    <Text className="text-white text-2xl font-bold">
+                        Reports
+                    </Text>
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => onNavigate("reportSetup")}
                         className="bg-primary rounded-2xl px-4 py-2"
                     >
-                        <Text className="text-white font-bold text-sm">+ New</Text>
+                        <Text className="text-white font-bold text-sm">
+                            + New
+                        </Text>
                     </TouchableOpacity>
                 </View>
 
@@ -108,7 +133,11 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                     />
                     {search.length > 0 && (
                         <TouchableOpacity onPress={() => setSearch("")}>
-                            <Ionicons name="close-circle" size={16} color="#52525b" />
+                            <Ionicons
+                                name="close-circle"
+                                size={16}
+                                color="#52525b"
+                            />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -119,7 +148,12 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ flexGrow: 0 }}
-                contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: "center" }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    gap: 8,
+                    paddingBottom: 12,
+                    alignItems: "center",
+                }}
             >
                 {FILTERS.map((f) => (
                     <TouchableOpacity
@@ -129,7 +163,9 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                         className={`py-1.5 rounded-xl items-center ${activeFilter === f ? "bg-primary" : "bg-slate-900"}`}
                         style={{ minWidth: 82 }}
                     >
-                        <Text className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}>
+                        <Text
+                            className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}
+                        >
                             {f}
                         </Text>
                     </TouchableOpacity>
@@ -140,10 +176,14 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
             {comparing.length > 0 && (
                 <View className="mx-5 mb-3 bg-slate-800 rounded-2xl px-4 py-3 flex-row items-center justify-between">
                     <Text className="text-white text-sm font-semibold">
-                        {comparing.length === 1 ? "1 selected — pick one more" : "2 selected"}
+                        {comparing.length === 1
+                            ? "1 selected — pick one more"
+                            : "2 selected"}
                     </Text>
                     <TouchableOpacity onPress={() => setComparing([])}>
-                        <Text className="text-primary text-sm font-semibold">Cancel</Text>
+                        <Text className="text-primary text-sm font-semibold">
+                            Cancel
+                        </Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -151,7 +191,10 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
             {/* Report List */}
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 100,
+                }}
             >
                 {loading ? (
                     <View className="items-center mt-16">
@@ -159,13 +202,24 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                     </View>
                 ) : filtered.length === 0 ? (
                     <View className="items-center mt-16 gap-3">
-                        <Ionicons name="document-text-outline" size={48} color="#3f3f46" />
+                        <Ionicons
+                            name="document-text-outline"
+                            size={48}
+                            color="#3f3f46"
+                        />
                         <Text className="text-zinc-500 text-sm">
-                            {reports.length === 0 ? "No reports yet" : "No reports match your search"}
+                            {reports.length === 0
+                                ? "No reports yet"
+                                : "No reports match your search"}
                         </Text>
                         {reports.length === 0 && (
-                            <TouchableOpacity onPress={() => onNavigate("reportSetup")} className="mt-1">
-                                <Text className="text-primary text-sm font-semibold">Create your first report</Text>
+                            <TouchableOpacity
+                                onPress={() => onNavigate("reportSetup")}
+                                className="mt-1"
+                            >
+                                <Text className="text-primary text-sm font-semibold">
+                                    Create your first report
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -173,7 +227,8 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                     <View className="gap-3">
                         {filtered.map((report) => {
                             const color = templateColor(report.templateName);
-                            const cfg = STATUS_CFG[report.status] ?? STATUS_CFG.draft;
+                            const cfg =
+                                STATUS_CFG[report.status] ?? STATUS_CFG.draft;
                             const isSelected = comparing.includes(report.id);
 
                             return (
@@ -186,40 +241,90 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                                         } else if (report.status === "draft") {
                                             store.clearReport();
                                             store.setDraftReportId(report.id);
-                                            store.setSelectedTemplate(report.templateId);
+                                            store.setSelectedTemplate(
+                                                report.templateId,
+                                            );
                                             store.setResumeSetup({
                                                 title: report.title,
-                                                description: report.description ?? "",
-                                                inspectorName: report.inspectorName,
-                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                description:
+                                                    report.description ?? "",
+                                                inspectorName:
+                                                    report.inspectorName,
+                                                date: new Date().toLocaleDateString(
+                                                    "en-AU",
+                                                    {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    },
+                                                ),
                                                 gpsEnabled: false,
                                                 templateId: report.templateId,
                                             });
-                                            if (report.templateId.startsWith("user_")) {
+                                            if (
+                                                report.templateId.startsWith(
+                                                    "user_",
+                                                )
+                                            ) {
                                                 getTemplate(report.templateId)
-                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .then((t) => {
+                                                        if (t)
+                                                            store.setSelectedUserTemplate(
+                                                                t,
+                                                            );
+                                                    })
                                                     .catch(() => {});
                                             }
                                             onNavigate("reportSetup");
-                                        } else if (report.status === "inprogress") {
+                                        } else if (
+                                            report.status === "inprogress"
+                                        ) {
                                             store.clearReport();
                                             store.setDraftReportId(report.id);
-                                            store.setSelectedTemplate(report.templateId);
-                                            store.setEditorBackScreen("reports");
+                                            store.setSelectedTemplate(
+                                                report.templateId,
+                                            );
+                                            store.setEditorBackScreen(
+                                                "reports",
+                                            );
                                             store.setReportSetup({
                                                 title: report.title,
-                                                description: report.description ?? "",
-                                                inspectorName: report.inspectorName,
-                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                description:
+                                                    report.description ?? "",
+                                                inspectorName:
+                                                    report.inspectorName,
+                                                date: new Date().toLocaleDateString(
+                                                    "en-AU",
+                                                    {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    },
+                                                ),
                                                 gpsEnabled: false,
                                             });
                                             for (const sec of report.sections) {
-                                                store.setSectionStatus(sec.id, sec.status);
-                                                store.setFieldValues(sec.id, sec.fieldValues);
+                                                store.setSectionStatus(
+                                                    sec.id,
+                                                    sec.status,
+                                                );
+                                                store.setFieldValues(
+                                                    sec.id,
+                                                    sec.fieldValues,
+                                                );
                                             }
-                                            if (report.templateId.startsWith("user_")) {
+                                            if (
+                                                report.templateId.startsWith(
+                                                    "user_",
+                                                )
+                                            ) {
                                                 getTemplate(report.templateId)
-                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .then((t) => {
+                                                        if (t)
+                                                            store.setSelectedUserTemplate(
+                                                                t,
+                                                            );
+                                                    })
                                                     .catch(() => {});
                                             }
                                             onNavigate("reportEditor");
@@ -232,29 +337,47 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                                     className={`flex-row items-center bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
                                 >
                                     {/* Left color strip */}
-                                    <View style={{ width: 4, alignSelf: "stretch", backgroundColor: color }} />
+                                    <View
+                                        style={{
+                                            width: 4,
+                                            alignSelf: "stretch",
+                                            backgroundColor: color,
+                                        }}
+                                    />
 
                                     {/* Icon */}
                                     <View
                                         className="w-10 h-10 rounded-xl m-3 items-center justify-center"
-                                        style={{ backgroundColor: color + "33" }}
+                                        style={{
+                                            backgroundColor: color + "33",
+                                        }}
                                     >
-                                        <Ionicons name="document-text" size={18} color={color} />
+                                        <Ionicons
+                                            name="document-text"
+                                            size={18}
+                                            color={color}
+                                        />
                                     </View>
 
                                     {/* Text */}
                                     <View className="flex-1 py-3 pr-2">
-                                        <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+                                        <Text
+                                            className="text-white font-semibold text-sm"
+                                            numberOfLines={1}
+                                        >
                                             {report.title}
                                         </Text>
                                         <Text className="text-zinc-500 text-xs mt-0.5">
-                                            {report.templateName} · {timeAgo(report.updatedAt)}
+                                            {report.templateName} ·{" "}
+                                            {timeAgo(report.updatedAt)}
                                         </Text>
                                     </View>
 
                                     {/* Score */}
                                     {report.score !== null && (
-                                        <Text className="text-zinc-400 text-xs mr-2">{report.score}%</Text>
+                                        <Text className="text-zinc-400 text-xs mr-2">
+                                            {report.score}%
+                                        </Text>
                                     )}
 
                                     {/* Status Badge */}
@@ -262,7 +385,10 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                                         className="mx-3 px-2.5 py-1 rounded-full"
                                         style={{ backgroundColor: cfg.bg }}
                                     >
-                                        <Text className="text-xs font-semibold" style={{ color: cfg.text }}>
+                                        <Text
+                                            className="text-xs font-semibold"
+                                            style={{ color: cfg.text }}
+                                        >
                                             {cfg.label}
                                         </Text>
                                     </View>
@@ -286,13 +412,23 @@ export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisa
                         onPress={handleCompare}
                         className="bg-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
                     >
-                        <Ionicons name="git-compare-outline" size={18} color="#fff" />
-                        <Text className="text-white font-bold text-sm">Compare 2 Reports</Text>
+                        <Ionicons
+                            name="git-compare-outline"
+                            size={18}
+                            color="#fff"
+                        />
+                        <Text className="text-white font-bold text-sm">
+                            Compare 2 Reports
+                        </Text>
                     </TouchableOpacity>
                 </View>
             )}
 
-            <BottomNavBar active="reports" onNavigate={onNavigate} hasOrganisation={hasOrganisation} />
+            <BottomNavBar
+                active="reports"
+                onNavigate={onNavigate}
+                hasOrganisation={hasOrganisation}
+            />
         </View>
     );
 }

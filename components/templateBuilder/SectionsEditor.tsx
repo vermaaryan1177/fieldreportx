@@ -194,7 +194,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                         className={`w-12 h-6 rounded-full ${gpsValidation ? "bg-primary" : "bg-zinc-700"}`}
                     >
                         <View
-                            style={{ left: gpsValidation ? 28 : 4 }}
+                            style={{ left: gpsValidation ? 26 : 4 }}
                             className="w-4 h-4 rounded-full bg-white absolute top-1"
                         />
                     </TouchableOpacity>
