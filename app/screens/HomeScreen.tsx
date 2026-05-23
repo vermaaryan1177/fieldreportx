@@ -1,7 +1,5 @@
-
-
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -10,14 +8,16 @@ import {
     View,
 } from "react-native";
 
-import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
+import AppHeader from "@/components/Header";
 
-import { listReportsByUser } from "@/lib/db/reports";
+import { useReports } from "@/hooks/useReports";
+import { STATUS_CFG } from "@/lib/constants/reportStatus";
 import { getTemplate } from "@/lib/db/templates";
 import { auth } from "@/lib/firebase";
 import { store } from "@/lib/store";
-import { Report } from "@/lib/types";
+import { templateColor } from "@/lib/utils/color";
+import { timeAgo, toMs } from "@/lib/utils/time";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -25,79 +25,8 @@ interface Props {
     hasOrganisation?: boolean;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function toMs(ts: any): number {
-    if (!ts) return 0;
-
-    if (typeof ts === "number") return ts;
-
-    if (typeof ts.toMillis === "function") {
-        return ts.toMillis();
-    }
-
-    if (ts.seconds !== undefined) {
-        return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
-    }
-
-    return 0;
-}
-
-function timeAgo(ts: any): string {
-    const ms = toMs(ts);
-
-    if (!ms) return "";
-
-    const diff = Date.now() - ms;
-
-    const mins = Math.floor(diff / 60000);
-
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-
-    const hours = Math.floor(mins / 60);
-
-    if (hours < 24) return `${hours}h ago`;
-
-    const days = Math.floor(hours / 24);
-
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)}w ago`;
-
-    return `${Math.floor(days / 30)}mo ago`;
-}
-
-const PALETTE = [
-    "#8b5cf6",
-    "#22c55e",
-    "#f59e0b",
-    "#3b82f6",
-    "#ef4444",
-    "#f2a72f",
-    "#06b6d4",
-];
-
-function templateColor(name: string): string {
-    let h = 0;
-
-    for (const c of name) {
-        h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
-    }
-
-    return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-    completed:  { label: "Completed",   bg: "#44ff0025", text: "#44ff00" },
-    inprogress: { label: "In Progress", bg: "#44d2f925", text: "#44d2f9" },
-    archived:   { label: "Archived",    bg: "#6b728025", text: "#6b7280" },
-    draft:      { label: "Draft",       bg: "#ffff5b25", text: "#ffff5b" },
-};
-
 function getInitials(name: string | null | undefined): string {
     if (!name) return "?";
-
     return name
         .trim()
         .split(/\s+/)
@@ -114,46 +43,15 @@ export default function HomeScreen({
     onOpenSidebar,
     hasOrganisation = false,
 }: Props) {
-    const [reports, setReports] = useState<Report[]>([]);
-    const [loading, setLoading] = useState(true);
-
     const user = auth.currentUser;
+    const { reports, loading } = useReports(user?.uid);
 
     const firstName =
         user?.displayName?.split(" ")[0] ??
         user?.email?.split("@")[0] ??
         "there";
 
-    const initials = getInitials(
-        user?.displayName ?? user?.email
-    );
-
-    // ─── Reports ──────────────────────────────────────────────────────────────
-
-    const fetchReports = useCallback(async () => {
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const all = await listReportsByUser(user.uid);
-
-            // Sort most recent first
-            all.sort(
-                (a, b) => toMs(b.updatedAt) - toMs(a.updatedAt)
-            );
-
-            setReports(all);
-        } catch {
-        } finally {
-            setLoading(false);
-        }
-    }, [user?.uid]);
-
-    useEffect(() => {
-        fetchReports();
-    }, [fetchReports]);
+    const initials = getInitials(user?.displayName ?? user?.email);
 
     // ─── Stats ────────────────────────────────────────────────────────────────
 
@@ -162,15 +60,15 @@ export default function HomeScreen({
     const thisMonthMs = new Date(
         now.getFullYear(),
         now.getMonth(),
-        1
+        1,
     ).getTime();
 
     const reportsThisMonth = reports.filter(
-        (r) => toMs(r.createdAt) >= thisMonthMs
+        (r) => toMs(r.createdAt) >= thisMonthMs,
     ).length;
 
     const inProgressCount = reports.filter(
-        (r) => r.status === "inprogress"
+        (r) => r.status === "inprogress",
     ).length;
 
     const recent = reports.slice(0, 5);
@@ -265,9 +163,7 @@ export default function HomeScreen({
                         </Text>
 
                         <TouchableOpacity
-                            onPress={() =>
-                                onNavigate("reportSetup")
-                            }
+                            onPress={() => onNavigate("reportSetup")}
                             className="mt-1"
                         >
                             <Text className="text-primary text-sm font-semibold">
@@ -278,13 +174,10 @@ export default function HomeScreen({
                 ) : (
                     <View className="gap-3">
                         {recent.map((report) => {
-                            const color = templateColor(
-                                report.templateName
-                            );
+                            const color = templateColor(report.templateName);
 
                             const cfg =
-                                STATUS_CFG[report.status] ??
-                                STATUS_CFG.draft;
+                                STATUS_CFG[report.status] ?? STATUS_CFG.draft;
 
                             return (
                                 <TouchableOpacity
@@ -294,40 +187,88 @@ export default function HomeScreen({
                                         if (report.status === "draft") {
                                             store.clearReport();
                                             store.setDraftReportId(report.id);
-                                            store.setSelectedTemplate(report.templateId);
+                                            store.setSelectedTemplate(
+                                                report.templateId,
+                                            );
                                             store.setResumeSetup({
                                                 title: report.title,
-                                                description: report.description ?? "",
-                                                inspectorName: report.inspectorName,
-                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                description:
+                                                    report.description ?? "",
+                                                inspectorName:
+                                                    report.inspectorName,
+                                                date: new Date().toLocaleDateString(
+                                                    "en-AU",
+                                                    {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    },
+                                                ),
                                                 gpsEnabled: false,
                                                 templateId: report.templateId,
                                             });
-                                            if (report.templateId.startsWith("user_")) {
+                                            if (
+                                                report.templateId.startsWith(
+                                                    "user_",
+                                                )
+                                            ) {
                                                 getTemplate(report.templateId)
-                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .then((t) => {
+                                                        if (t)
+                                                            store.setSelectedUserTemplate(
+                                                                t,
+                                                            );
+                                                    })
                                                     .catch(() => {});
                                             }
                                             onNavigate("reportSetup");
-                                        } else if (report.status === "inprogress") {
+                                        } else if (
+                                            report.status === "inprogress"
+                                        ) {
                                             store.clearReport();
                                             store.setDraftReportId(report.id);
-                                            store.setSelectedTemplate(report.templateId);
+                                            store.setSelectedTemplate(
+                                                report.templateId,
+                                            );
                                             store.setEditorBackScreen("home");
                                             store.setReportSetup({
                                                 title: report.title,
-                                                description: report.description ?? "",
-                                                inspectorName: report.inspectorName,
-                                                date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+                                                description:
+                                                    report.description ?? "",
+                                                inspectorName:
+                                                    report.inspectorName,
+                                                date: new Date().toLocaleDateString(
+                                                    "en-AU",
+                                                    {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    },
+                                                ),
                                                 gpsEnabled: false,
                                             });
                                             for (const sec of report.sections) {
-                                                store.setSectionStatus(sec.id, sec.status);
-                                                store.setFieldValues(sec.id, sec.fieldValues);
+                                                store.setSectionStatus(
+                                                    sec.id,
+                                                    sec.status,
+                                                );
+                                                store.setFieldValues(
+                                                    sec.id,
+                                                    sec.fieldValues,
+                                                );
                                             }
-                                            if (report.templateId.startsWith("user_")) {
+                                            if (
+                                                report.templateId.startsWith(
+                                                    "user_",
+                                                )
+                                            ) {
                                                 getTemplate(report.templateId)
-                                                    .then((t) => { if (t) store.setSelectedUserTemplate(t); })
+                                                    .then((t) => {
+                                                        if (t)
+                                                            store.setSelectedUserTemplate(
+                                                                t,
+                                                            );
+                                                    })
                                                     .catch(() => {});
                                             }
                                             onNavigate("reportEditor");
@@ -351,8 +292,7 @@ export default function HomeScreen({
                                     <View
                                         className="w-10 h-10 rounded-xl m-3 items-center justify-center"
                                         style={{
-                                            backgroundColor:
-                                                color + "33",
+                                            backgroundColor: color + "33",
                                         }}
                                     >
                                         <Ionicons
@@ -373,9 +313,7 @@ export default function HomeScreen({
 
                                         <Text className="text-zinc-500 text-xs mt-0.5">
                                             {report.templateName} ·{" "}
-                                            {timeAgo(
-                                                report.updatedAt
-                                            )}
+                                            {timeAgo(report.updatedAt)}
                                         </Text>
                                     </View>
 

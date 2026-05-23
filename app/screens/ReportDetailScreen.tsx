@@ -12,37 +12,15 @@ import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
 import { SYSTEM_TEMPLATES } from "@/lib/templates/systemTemplates";
 import { FieldType, Report, ReportPhoto, Template } from "@/lib/types";
+import { STATUS_CFG_DETAIL as STATUS_CFG, SECTION_STATUS_CFG } from "@/lib/constants/reportStatus";
+import { toMs, fmtDate } from "@/lib/utils/time";
+import { formatFieldValue } from "@/lib/utils/format";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function toMs(ts: any): number {
-    if (!ts) return 0;
-    if (typeof ts === "number") return ts;
-    if (typeof ts.toMillis === "function") return ts.toMillis();
-    if (ts.seconds !== undefined) return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
-    return 0;
-}
-
-function fmtDate(ts: any): string {
-    const ms = toMs(ts);
-    if (!ms) return "";
-    return new Date(ms).toLocaleDateString("en-AU", {
-        day: "numeric", month: "short", year: "numeric",
-    });
-}
-
-function fmtDuration(sec: number): string {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    return h > 0
-        ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-        : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 /**
  * Inspects any field value for photo-like structure (has `url` or `localUri`)
@@ -62,69 +40,6 @@ function extractFieldPhotoUris(value: string | boolean | number): string[] {
     }
 }
 
-function formatFieldValue(type: FieldType, value: string | boolean | number): string | null {
-    if (value === undefined || value === null || value === "" || value === false) return null;
-    switch (type) {
-        case "text":
-        case "select":
-            return String(value).trim() || null;
-        case "number":
-            return String(value);
-        case "checkbox":
-            return "Yes";
-        case "signature":
-            return "Signed";
-        case "timer": {
-            const sec = Number(value);
-            return sec > 0 ? fmtDuration(sec) : null;
-        }
-        case "route": {
-            try {
-                const d = JSON.parse(String(value));
-                const dur = Math.floor((d.endTime - d.startTime) / 1000);
-                return `${d.distanceKm} km · ${fmtDuration(dur)} · avg ${d.avgSpeedKmh} km/h${(d.stops?.length ?? 0) > 0 ? ` · ${d.stops.length} stops` : ""}`;
-            } catch { return "Route recorded"; }
-        }
-        case "accelerometer": {
-            try {
-                const d = JSON.parse(String(value));
-                return `${d.category} · RMS ${d.rms} g · Peak ${d.peak} g`;
-            } catch { return "Vibration recorded"; }
-        }
-        case "stopwatch": {
-            try {
-                const d = JSON.parse(String(value));
-                const trials: number[] = d.trials ?? [];
-                return `${trials.length} trial${trials.length !== 1 ? "s" : ""} · avg ${d.avg} ms`;
-            } catch { return "Timing recorded"; }
-        }
-        case "joint_angle": {
-            try {
-                const d = JSON.parse(String(value));
-                return `${d.joint} — ${d.angle}° (${Math.round(d.confidence * 100)}% confidence)`;
-            } catch { return "Angle captured"; }
-        }
-        case "photo":
-            return null;
-        default:
-            return String(value) || null;
-    }
-}
-
-const STATUS_CFG = {
-    completed:  { label: "Completed",   color: "#22c55e", bg: "#22c55e20" },
-    inprogress: { label: "In Progress", color: "#44d2f9", bg: "#44d2f920" },
-    archived:   { label: "Archived",    color: "#6b7280", bg: "#6b728020" },
-    draft:      { label: "Draft",       color: "#ffff5b", bg: "#ffff5b20" },
-} as const;
-
-const SECTION_STATUS_CFG = {
-    completed:  { icon: "checkmark"            as const, color: "#22c55e", bg: "#22c55e20" },
-    partial:    { icon: "remove"               as const, color: "#eab308", bg: "#eab30820" },
-    inprogress: { icon: "ellipsis-horizontal"  as const, color: "#f2a72f", bg: "#f2a72f20" },
-    skipped:    { icon: "remove"               as const, color: "#52525b", bg: "#3f3f4640" },
-    notstarted: { icon: "remove"               as const, color: "#52525b", bg: "#3f3f4640" },
-};
 
 // ─── Signature renderer ───────────────────────────────────────────────────────
 
@@ -227,13 +142,6 @@ function buildReportHTML(
         hour: "2-digit", minute: "2-digit",
     });
 
-    const toMs = (ts: any): number => {
-        if (!ts) return 0;
-        if (typeof ts === "number") return ts;
-        if (typeof ts.toMillis === "function") return ts.toMillis();
-        if (ts.seconds !== undefined) return ts.seconds * 1000;
-        return 0;
-    };
     const createdDate = toMs(report.createdAt)
         ? new Date(toMs(report.createdAt)).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
         : "";

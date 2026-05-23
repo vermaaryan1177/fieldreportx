@@ -67,6 +67,24 @@ export interface Template {
     updatedAt: Timestamp;
 }
 
+// ─── Photo annotation ────────────────────────────────────────────────────────
+
+export interface AnnotationStroke {
+    path: string;
+    color: string;
+}
+
+export interface TaggedPhoto {
+    uri: string;
+    lat?: number;
+    lng?: number;
+    pitch?: number;
+    roll?: number;
+    azimuth?: number;
+    capturedAt?: number;
+    annotations?: AnnotationStroke[];
+}
+
 // ─── Report ───────────────────────────────────────────────────────────────────
 
 export type ReportStatus = "draft" | "inprogress" | "completed" | "archived";

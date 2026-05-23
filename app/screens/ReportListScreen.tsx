@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -12,10 +12,12 @@ import {
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { useAuth } from "@/hooks/useAuth";
-import { listReportsByUser } from "@/lib/db/reports";
+import { useReports } from "@/hooks/useReports";
 import { getTemplate } from "@/lib/db/templates";
 import { store } from "@/lib/store";
-import { Report } from "@/lib/types";
+import { STATUS_CFG } from "@/lib/constants/reportStatus";
+import { templateColor } from "@/lib/utils/color";
+import { timeAgo, toMs } from "@/lib/utils/time";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -23,51 +25,10 @@ interface Props {
     hasOrganisation: boolean;
 }
 
-// ─── Helpers (mirrored from HomeScreen) ──────────────────────────────────────
-
-function toMs(ts: any): number {
-    if (!ts) return 0;
-    if (typeof ts === "number") return ts;
-    if (typeof ts.toMillis === "function") return ts.toMillis();
-    if (ts.seconds !== undefined) return ts.seconds * 1000 + (ts.nanoseconds ?? 0) / 1e6;
-    return 0;
-}
-
-function timeAgo(ts: any): string {
-    const ms = toMs(ts);
-    if (!ms) return "";
-    const diff = Date.now() - ms;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)}w ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-}
-
-const PALETTE = ["#8b5cf6", "#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#f2a72f", "#06b6d4"];
-
-function templateColor(name: string): string {
-    let h = 0;
-    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
-    return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
 function getInitials(name: string | null | undefined): string {
     if (!name) return "?";
     return name.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 }
-
-const STATUS_CFG: Record<string, { label: string; bg: string; text: string }> = {
-    completed:  { label: "Completed",   bg: "#44ff0025", text: "#44ff00" },
-    inprogress: { label: "In Progress", bg: "#44d2f925", text: "#44d2f9" },
-    archived:   { label: "Archived",    bg: "#6b728025", text: "#6b7280" },
-    draft:      { label: "Draft",       bg: "#ffff5b25", text: "#ffff5b" },
-};
 
 type FilterTab = "All" | "Completed" | "In Progress" | "Draft" | "Archived";
 const FILTERS: FilterTab[] = ["All", "Completed", "In Progress", "Draft", "Archived"];
@@ -83,26 +44,13 @@ const FILTER_TO_STATUS: Record<FilterTab, string | null> = {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ReportListScreen({ onNavigate, onOpenSidebar,hasOrganisation }: Props) {
-    const [reports, setReports] = useState<Report[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
 
     const { user } = useAuth();
+    const { reports, loading } = useReports(user?.uid);
     const initials = getInitials(user?.displayName ?? user?.email);
-
-    useEffect(() => {
-        if (!user) { setLoading(false); return; }
-        setLoading(true);
-        listReportsByUser(user.uid)
-            .then((all) => {
-                all.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
-                setReports(all);
-            })
-            .catch(() => {})
-            .finally(() => setLoading(false));
-    }, [user?.uid]);
 
     const filtered = reports.filter((r) => {
         const statusFilter = FILTER_TO_STATUS[activeFilter];

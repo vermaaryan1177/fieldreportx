@@ -33,6 +33,7 @@ import { listTemplates } from "@/lib/db/templates";
 import { sqliteDb } from "@/lib/db/database";
 import { getUserProfile } from "@/lib/db/users";
 import { store } from "@/lib/store";
+import { formatBytes } from "@/lib/utils/format";
 
 interface Props {
     onNavigate: (screen: AppScreen) => void;
@@ -52,12 +53,6 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
     </TouchableOpacity>
 );
 
-function formatBytes(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 export default function SettingsScreen({ onNavigate, onOpenSidebar, hasOrganisation }: Props) {
     const user = auth.currentUser;
