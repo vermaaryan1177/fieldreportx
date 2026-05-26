@@ -7,6 +7,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
@@ -60,6 +61,8 @@ export default function ReportListScreen({
     onOpenSidebar,
     hasOrganisation,
 }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [search, setSearch] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
     const [comparing, setComparing] = useState<string[]>([]);
@@ -97,7 +100,7 @@ export default function ReportListScreen({
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <AppHeader
                 onOpenSidebar={onOpenSidebar}
                 onNavigate={onNavigate}
@@ -107,7 +110,7 @@ export default function ReportListScreen({
 
             <View className="px-5 pt-5 pb-4">
                 <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-white text-2xl font-bold">
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">
                         Reports
                     </Text>
                     <TouchableOpacity
@@ -115,28 +118,28 @@ export default function ReportListScreen({
                         onPress={() => onNavigate("reportSetup")}
                         className="bg-primary rounded-2xl px-4 py-2"
                     >
-                        <Text className="text-white font-bold text-sm">
+                        <Text className="text-slate-900 dark:text-white font-bold text-sm">
                             + New
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Search */}
-                <View className="flex-row items-center bg-slate-900 rounded-2xl px-4 h-11 gap-2">
-                    <Ionicons name="search-outline" size={16} color="#71717a" />
+                <View className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 h-11 gap-2">
+                    <Ionicons name="search-outline" size={16} color={isDark ? "#71717a" : "#94a3b8"} />
                     <TextInput
                         value={search}
                         onChangeText={setSearch}
                         placeholder="Search reports…"
-                        placeholderTextColor="#52525b"
-                        className="flex-1 text-white text-sm"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
+                        className="flex-1 text-slate-900 dark:text-white text-sm"
                     />
                     {search.length > 0 && (
                         <TouchableOpacity onPress={() => setSearch("")}>
                             <Ionicons
                                 name="close-circle"
                                 size={16}
-                                color="#52525b"
+                                color={isDark ? "#52525b" : "#94a3b8"}
                             />
                         </TouchableOpacity>
                     )}
@@ -160,11 +163,11 @@ export default function ReportListScreen({
                         key={f}
                         activeOpacity={0.7}
                         onPress={() => setActiveFilter(f)}
-                        className={`py-1.5 rounded-xl items-center ${activeFilter === f ? "bg-primary" : "bg-slate-900"}`}
+                        className={`py-1.5 rounded-xl items-center ${activeFilter === f ? "bg-primary" : "bg-white dark:bg-slate-900"}`}
                         style={{ minWidth: 82 }}
                     >
                         <Text
-                            className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-zinc-400"}`}
+                            className={`text-sm font-medium ${activeFilter === f ? "text-white" : "text-slate-500 dark:text-zinc-400"}`}
                         >
                             {f}
                         </Text>
@@ -174,8 +177,8 @@ export default function ReportListScreen({
 
             {/* Compare mode banner */}
             {comparing.length > 0 && (
-                <View className="mx-5 mb-3 bg-slate-800 rounded-2xl px-4 py-3 flex-row items-center justify-between">
-                    <Text className="text-white text-sm font-semibold">
+                <View className="mx-5 mb-3 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-3 flex-row items-center justify-between">
+                    <Text className="text-slate-900 dark:text-white text-sm font-semibold">
                         {comparing.length === 1
                             ? "1 selected — pick one more"
                             : "2 selected"}
@@ -205,9 +208,9 @@ export default function ReportListScreen({
                         <Ionicons
                             name="document-text-outline"
                             size={48}
-                            color="#3f3f46"
+                            color={isDark ? "#3f3f46" : "#cbd5e1"}
                         />
-                        <Text className="text-zinc-500 text-sm">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">
                             {reports.length === 0
                                 ? "No reports yet"
                                 : "No reports match your search"}
@@ -334,7 +337,7 @@ export default function ReportListScreen({
                                         }
                                     }}
                                     onLongPress={() => toggleCompare(report.id)}
-                                    className={`flex-row items-center bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
+                                    className={`flex-row items-center bg-white dark:bg-slate-900 rounded-2xl overflow-hidden ${isSelected ? "border border-primary" : ""}`}
                                 >
                                     {/* Left color strip */}
                                     <View
@@ -362,12 +365,12 @@ export default function ReportListScreen({
                                     {/* Text */}
                                     <View className="flex-1 py-3 pr-2">
                                         <Text
-                                            className="text-white font-semibold text-sm"
+                                            className="text-slate-900 dark:text-white font-semibold text-sm"
                                             numberOfLines={1}
                                         >
                                             {report.title}
                                         </Text>
-                                        <Text className="text-zinc-500 text-xs mt-0.5">
+                                        <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                             {report.templateName} ·{" "}
                                             {timeAgo(report.updatedAt)}
                                         </Text>
@@ -375,7 +378,7 @@ export default function ReportListScreen({
 
                                     {/* Score */}
                                     {report.score !== null && (
-                                        <Text className="text-zinc-400 text-xs mr-2">
+                                        <Text className="text-slate-500 dark:text-zinc-400 text-xs mr-2">
                                             {report.score}%
                                         </Text>
                                     )}
@@ -399,14 +402,14 @@ export default function ReportListScreen({
                 )}
 
                 {!loading && comparing.length === 0 && filtered.length > 1 && (
-                    <Text className="text-zinc-600 text-xs text-center mt-4">
+                    <Text className="text-slate-400 dark:text-zinc-600 text-xs text-center mt-4">
                         Long-press a report to select for comparison
                     </Text>
                 )}
             </ScrollView>
 
             {comparing.length === 2 && (
-                <View className="px-5 pb-3 bg-background">
+                <View className="px-5 pb-3 bg-background dark:bg-[#1e2529]">
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleCompare}

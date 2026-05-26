@@ -11,6 +11,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -82,6 +83,8 @@ const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => 
 );
 
 export default function PermissionsScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [enabled, setEnabled] = useState<Record<PermKey, boolean>>(
         () => Object.fromEntries(PERMS.map((p) => [p.key, p.defaultOn])) as Record<PermKey, boolean>,
     );
@@ -125,7 +128,7 @@ export default function PermissionsScreen({ onNavigate }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 32 }}
@@ -135,10 +138,10 @@ export default function PermissionsScreen({ onNavigate }: Props) {
                     <View className="w-14 h-14 rounded-2xl bg-primary/20 items-center justify-center mb-5">
                         <Ionicons name="shield-checkmark-outline" size={28} color="#f2a72f" />
                     </View>
-                    <Text className="text-white text-3xl font-bold mb-2">
+                    <Text className="text-slate-900 dark:text-white text-3xl font-bold mb-2">
                         App permissions
                     </Text>
-                    <Text className="text-zinc-400 text-sm leading-relaxed">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm leading-relaxed">
                         FieldReportX needs the following permissions to work in
                         the field. Toggle off anything you'd prefer to skip —
                         you can always change these in Settings later.
@@ -153,15 +156,15 @@ export default function PermissionsScreen({ onNavigate }: Props) {
                         return (
                             <View
                                 key={perm.key}
-                                className="bg-slate-900 rounded-2xl overflow-hidden"
+                                className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
                             >
                                 {/* Main row */}
                                 <View className="flex-row items-center px-4 py-4">
-                                    <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center mr-3">
+                                    <View className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3">
                                         <Ionicons
                                             name={perm.icon}
                                             size={20}
-                                            color={isOn ? "#f2a72f" : "#52525b"}
+                                            color={isOn ? "#f2a72f" : (isDark ? "#52525b" : "#94a3b8")}
                                         />
                                     </View>
                                     <TouchableOpacity
@@ -169,10 +172,10 @@ export default function PermissionsScreen({ onNavigate }: Props) {
                                         activeOpacity={0.7}
                                         onPress={() => toggleExpanded(perm.key)}
                                     >
-                                        <Text className="text-white font-semibold text-sm">
+                                        <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                             {perm.label}
                                         </Text>
-                                        <Text className="text-zinc-500 text-xs mt-0.5">
+                                        <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                             {perm.description}
                                         </Text>
                                     </TouchableOpacity>
@@ -184,11 +187,11 @@ export default function PermissionsScreen({ onNavigate }: Props) {
 
                                 {/* Expandable reason */}
                                 {isOpen && (
-                                    <View className="bg-zinc-950 border-t border-zinc-800 px-4 py-3">
-                                        <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">
+                                    <View className="bg-slate-100 dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800 px-4 py-3">
+                                        <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-1">
                                             Why we need this
                                         </Text>
-                                        <Text className="text-zinc-400 text-sm leading-5">
+                                        <Text className="text-slate-500 dark:text-zinc-400 text-sm leading-5">
                                             {perm.reason}
                                         </Text>
                                     </View>
@@ -198,12 +201,12 @@ export default function PermissionsScreen({ onNavigate }: Props) {
                                 <TouchableOpacity
                                     onPress={() => toggleExpanded(perm.key)}
                                     activeOpacity={0.6}
-                                    className="items-center justify-center py-1.5 border-t border-zinc-800/60"
+                                    className="items-center justify-center py-1.5 border-t border-slate-200/60 dark:border-zinc-800/60"
                                 >
                                     <Ionicons
                                         name={isOpen ? "chevron-up" : "chevron-down"}
                                         size={14}
-                                        color="#52525b"
+                                        color={isDark ? "#52525b" : "#94a3b8"}
                                     />
                                 </TouchableOpacity>
                             </View>
@@ -211,9 +214,9 @@ export default function PermissionsScreen({ onNavigate }: Props) {
                     })}
                 </View>
 
-                <Text className="text-zinc-600 text-xs text-center mx-10 mt-5 leading-relaxed">
+                <Text className="text-slate-400 dark:text-zinc-600 text-xs text-center mx-10 mt-5 leading-relaxed">
                     You can update any permission at any time in{" "}
-                    <Text className="text-zinc-400">Settings → Permissions</Text>
+                    <Text className="text-slate-600 dark:text-zinc-400">Settings → Permissions</Text>
                 </Text>
             </ScrollView>
 

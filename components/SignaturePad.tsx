@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
-import { Alert, PanResponder, Text, TouchableOpacity, View } from "react-native";
+import { Alert, PanResponder, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 import { Path, Svg } from "react-native-svg";
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
 }
 
 export default function SignaturePad({ onDone, onCancel }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [completedPaths, setCompletedPaths] = useState<string[]>([]);
     const [livePath, setLivePath] = useState("");
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -51,33 +53,33 @@ export default function SignaturePad({ onDone, onCancel }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-background">
-            <View className="flex-row items-center justify-between px-5 pt-14 pb-4 border-b border-zinc-800">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
+            <View className="flex-row items-center justify-between px-5 pt-14 pb-4 border-b border-slate-200 dark:border-zinc-800">
                 <TouchableOpacity
                     onPress={onCancel}
-                    className="w-9 h-9 rounded-full bg-slate-800 items-center justify-center"
+                    className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
                 >
-                    <Ionicons name="close" size={18} color="#fff" />
+                    <Ionicons name="close" size={18} color={isDark ? "#fff" : "#0f172a"} />
                 </TouchableOpacity>
-                <Text className="text-white font-bold text-base">Sign here</Text>
+                <Text className="text-slate-900 dark:text-white font-bold text-base">Sign here</Text>
                 <TouchableOpacity
                     onPress={() => {
                         setCompletedPaths([]);
                         setLivePath("");
                         livePathRef.current = "";
                     }}
-                    className="px-3 py-2 rounded-xl bg-slate-800"
+                    className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800"
                 >
-                    <Text className="text-zinc-400 text-sm">Clear</Text>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm">Clear</Text>
                 </TouchableOpacity>
             </View>
 
-            <Text className="text-zinc-500 text-xs text-center mt-3 mb-2">
+            <Text className="text-slate-400 dark:text-zinc-500 text-xs text-center mt-3 mb-2">
                 Draw your signature in the box below
             </Text>
 
             <View
-                className="mx-5 flex-1 bg-slate-900 rounded-2xl overflow-hidden border border-zinc-700"
+                className="mx-5 flex-1 bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-700"
                 onLayout={(e) =>
                     setCanvasSize({
                         width: e.nativeEvent.layout.width,
@@ -113,12 +115,12 @@ export default function SignaturePad({ onDone, onCancel }: Props) {
                 )}
                 {completedPaths.length === 0 && livePath === "" && (
                     <View className="absolute inset-0 items-center justify-center">
-                        <Ionicons name="pencil-outline" size={32} color="#3f3f46" />
-                        <Text className="text-zinc-700 text-sm mt-2">Sign above</Text>
+                        <Ionicons name="pencil-outline" size={32} color={isDark ? "#3f3f46" : "#cbd5e1"} />
+                        <Text className="text-slate-400 dark:text-zinc-700 text-sm mt-2">Sign above</Text>
                     </View>
                 )}
                 <View
-                    className="absolute left-8 right-8 h-px bg-zinc-700"
+                    className="absolute left-8 right-8 h-px bg-slate-200 dark:bg-zinc-700"
                     style={{ bottom: 60 }}
                 />
             </View>
@@ -129,7 +131,7 @@ export default function SignaturePad({ onDone, onCancel }: Props) {
                     activeOpacity={0.8}
                     className="bg-primary rounded-2xl py-4 items-center"
                 >
-                    <Text className="text-white font-bold text-base">Confirm signature</Text>
+                    <Text className="text-slate-900 dark:text-white font-bold text-base">Confirm signature</Text>
                 </TouchableOpacity>
             </View>
         </View>

@@ -52,18 +52,18 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
     const stopRecording = () => setRecording(false);
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Top Bar */}
             <View className="flex-row items-center justify-between px-5 pt-16 pb-4">
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => onNavigate("reportEditor")}
-                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                     >
                         <Ionicons name="arrow-back" size={18} color="#ffffff" />
                     </TouchableOpacity>
-                    <Text className="text-white text-lg font-bold">
+                    <Text className="text-slate-900 dark:text-white text-lg font-bold">
                         Maps &amp; routes
                     </Text>
                 </View>
@@ -77,9 +77,9 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                         </Text>
                     </View>
                 ) : (
-                    <View className="flex-row items-center gap-2 bg-zinc-800 rounded-full px-3 py-1.5">
+                    <View className="flex-row items-center gap-2 bg-slate-100 dark:bg-zinc-800 rounded-full px-3 py-1.5">
                         <View className="w-2 h-2 rounded-full bg-zinc-500" />
-                        <Text className="text-zinc-500 text-xs font-bold">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-xs font-bold">
                             STOPPED
                         </Text>
                     </View>
@@ -206,7 +206,7 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                                 size={11}
                                 color="#f2a72f"
                             />
-                            <Text className="text-white text-xs">
+                            <Text className="text-slate-900 dark:text-white text-xs">
                                 {markers} marker{markers > 1 ? "s" : ""}
                             </Text>
                         </View>
@@ -217,7 +217,7 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                         style={{ position: "absolute", right: 8, top: 8 }}
                         className="bg-black/70 rounded-lg px-2.5 py-1"
                     >
-                        <Text className="text-white text-xs font-medium">
+                        <Text className="text-slate-900 dark:text-white text-xs font-medium">
                             −37.8136, 144.9631
                         </Text>
                     </View>
@@ -228,12 +228,12 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                     {SPEED_STATS.map((stat) => (
                         <View
                             key={stat.label}
-                            className="flex-1 bg-slate-900 rounded-2xl py-3 items-center"
+                            className="flex-1 bg-white dark:bg-slate-900 rounded-2xl py-3 items-center"
                         >
-                            <Text className="text-white text-xl font-bold">
+                            <Text className="text-slate-900 dark:text-white text-xl font-bold">
                                 {stat.value}
                             </Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5 text-center">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5 text-center">
                                 {stat.label}
                             </Text>
                         </View>
@@ -241,7 +241,7 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                 </View>
 
                 {/* ── Route Details ─────────────────────────────────────────── */}
-                <View className="mx-5 mt-3 bg-slate-900 rounded-2xl px-4 py-1">
+                <View className="mx-5 mt-3 bg-white dark:bg-slate-900 rounded-2xl px-4 py-1">
                     {[
                         { label: "Duration", value: "00:12:34" },
                         { label: "Distance", value: "4.2 km" },
@@ -250,14 +250,14 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                             key={row.label}
                             className={`flex-row items-center justify-between py-3 ${
                                 i < arr.length - 1
-                                    ? "border-b border-zinc-800"
+                                    ? "border-b border-slate-200 dark:border-zinc-800"
                                     : ""
                             }`}
                         >
-                            <Text className="text-zinc-400 text-sm">
+                            <Text className="text-slate-500 dark:text-zinc-400 text-sm">
                                 {row.label}
                             </Text>
-                            <Text className="text-white font-semibold text-sm">
+                            <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                 {row.value}
                             </Text>
                         </View>
@@ -279,17 +279,17 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                         activeOpacity={0.8}
                         onPress={stopRecording}
                         className={`flex-1 rounded-2xl py-4 items-center ${
-                            recording ? "bg-red-500" : "bg-zinc-700"
+                            recording ? "bg-red-500" : "bg-slate-200 dark:bg-zinc-700"
                         }`}
                     >
-                        <Text className="text-white font-bold text-sm">
+                        <Text className="text-slate-900 dark:text-white font-bold text-sm">
                             {recording ? "Stop recording" : "Recording stopped"}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Route summary notice */}
-                <Text className="text-zinc-500 text-xs text-center mt-4 px-5">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs text-center mt-4 px-5">
                     Route summary will be appended to report
                 </Text>
 
@@ -300,7 +300,7 @@ export default function MapsRoutesScreen({ onNavigate }: Props) {
                         onPress={() => onNavigate("reportEditor")}
                         className="bg-primary mx-5 mt-4 rounded-2xl py-4 items-center"
                     >
-                        <Text className="text-white font-bold text-sm">
+                        <Text className="text-slate-900 dark:text-white font-bold text-sm">
                             Save route to report
                         </Text>
                     </TouchableOpacity>

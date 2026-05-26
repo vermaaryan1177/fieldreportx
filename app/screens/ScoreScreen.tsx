@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 
@@ -28,18 +28,20 @@ const SCORE_BREAKDOWN: {
 ];
 
 export default function ScoreScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Header */}
             <View className="flex-row items-center gap-3 px-5 pt-16 pb-4">
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => onNavigate("reportPreview")}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                 >
-                    <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    <Ionicons name="arrow-back" size={18} color={isDark ? "#ffffff" : "#0f172a"} />
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-bold">
+                <Text className="text-slate-900 dark:text-white text-lg font-bold">
                     Inspection Score
                 </Text>
             </View>
@@ -57,7 +59,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                             borderRadius: 80,
                             borderWidth: 6,
                             borderColor: GRADE_COLOR,
-                            backgroundColor: "#0f172a",
+                            backgroundColor: isDark ? "#0f172a" : "#ffffff",
                             alignItems: "center",
                             justifyContent: "center",
                         }}
@@ -72,7 +74,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                         >
                             {OVERALL}
                         </Text>
-                        <Text className="text-zinc-500 text-sm">/ 100</Text>
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">/ 100</Text>
                     </View>
 
                     <View className="flex-row items-center gap-2 mt-4">
@@ -94,7 +96,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                                 {GRADE}
                             </Text>
                         </View>
-                        <Text className="text-zinc-400 text-sm">Good condition</Text>
+                        <Text className="text-slate-500 dark:text-zinc-400 text-sm">Good condition</Text>
                     </View>
                 </View>
 
@@ -107,7 +109,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                     ].map((s) => (
                         <View
                             key={s.label}
-                            className="flex-1 bg-slate-900 rounded-2xl py-3 items-center"
+                            className="flex-1 bg-white dark:bg-slate-900 rounded-2xl py-3 items-center"
                         >
                             <Text
                                 style={{ color: s.color }}
@@ -115,7 +117,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                             >
                                 {s.value}
                             </Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5 text-center px-1">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5 text-center px-1">
                                 {s.label}
                             </Text>
                         </View>
@@ -123,33 +125,33 @@ export default function ScoreScreen({ onNavigate }: Props) {
                 </View>
 
                 {/* Section label */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mb-3">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mb-3">
                     Section breakdown
                 </Text>
 
                 {/* Breakdown bars */}
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4 py-2">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4 py-2">
                     {SCORE_BREAKDOWN.map((item, i) => {
                         const isSkipped = item.score === 0;
                         return (
                             <View
                                 key={item.section}
-                                className={`py-3 ${i < SCORE_BREAKDOWN.length - 1 ? "border-b border-zinc-800" : ""}`}
+                                className={`py-3 ${i < SCORE_BREAKDOWN.length - 1 ? "border-b border-slate-200 dark:border-zinc-800" : ""}`}
                             >
                                 <View className="flex-row items-center justify-between mb-2">
                                     <Text
-                                        className={`text-sm ${isSkipped ? "text-zinc-600" : "text-white"}`}
+                                        className={`text-sm ${isSkipped ? "text-slate-400 dark:text-zinc-600" : "text-slate-900 dark:text-white"}`}
                                     >
                                         {item.section}
                                     </Text>
                                     <Text
                                         className={`text-sm font-bold`}
-                                        style={{ color: isSkipped ? "#52525b" : item.color }}
+                                        style={{ color: isSkipped ? (isDark ? "#52525b" : "#94a3b8") : item.color }}
                                     >
                                         {isSkipped ? "—" : `${item.score}%`}
                                     </Text>
                                 </View>
-                                <View className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                <View className="h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                                     <View
                                         style={{
                                             width: `${item.score}%`,
@@ -170,7 +172,7 @@ export default function ScoreScreen({ onNavigate }: Props) {
                     onPress={() => onNavigate("reportPreview")}
                     className="bg-primary mx-5 mt-5 rounded-2xl py-4 items-center"
                 >
-                    <Text className="text-white font-bold text-sm">
+                    <Text className="text-slate-900 dark:text-white font-bold text-sm">
                         Confirm &amp; add to report
                     </Text>
                 </TouchableOpacity>

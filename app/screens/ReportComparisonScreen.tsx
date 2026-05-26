@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { store } from "@/lib/store";
@@ -105,21 +105,23 @@ function StatTile({ value, label, color }: { value: number; label: string; color
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ReportComparisonScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const pair = store.comparisonReports;
     const [activeTab, setActiveTab] = useState<"sections" | "summary">("sections");
 
     if (!pair) {
         return (
-            <View className="flex-1 bg-background items-center justify-center px-8">
-                <Ionicons name="git-compare-outline" size={40} color="#52525b" />
-                <Text className="text-zinc-400 text-sm mt-3 text-center">
+            <View className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center px-8">
+                <Ionicons name="git-compare-outline" size={40} color={isDark ? "#52525b" : "#94a3b8"} />
+                <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-3 text-center">
                     No reports selected. Go back and long-press two reports to compare.
                 </Text>
                 <TouchableOpacity
                     onPress={() => onNavigate("reports")}
                     className="mt-5 bg-primary px-6 py-3 rounded-xl"
                 >
-                    <Text className="text-white font-semibold text-sm">Go to Reports</Text>
+                    <Text className="text-slate-900 dark:text-white font-semibold text-sm">Go to Reports</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -184,17 +186,17 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
     ];
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Header */}
             <View className="flex-row items-center gap-3 px-5 pt-16 pb-4">
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => onNavigate("reports")}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                 >
-                    <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    <Ionicons name="arrow-back" size={18} color={isDark ? "#ffffff" : "#0f172a"} />
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-bold">Compare Reports</Text>
+                <Text className="text-slate-900 dark:text-white text-lg font-bold">Compare Reports</Text>
             </View>
 
             {/* Report Header Cards */}
@@ -217,16 +219,16 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
                                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
                                 <Text style={{ color, fontSize: 10, fontWeight: "700" }}>{i === 0 ? "A" : "B"}</Text>
                             </View>
-                            <Text className="text-white text-xs font-bold" numberOfLines={1}>{rep.title}</Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5" numberOfLines={1}>{rep.templateName}</Text>
-                            <Text className="text-zinc-600 text-xs">{fmtDate(rep.updatedAt)}</Text>
+                            <Text className="text-slate-900 dark:text-white text-xs font-bold" numberOfLines={1}>{rep.title}</Text>
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5" numberOfLines={1}>{rep.templateName}</Text>
+                            <Text className="text-slate-400 dark:text-zinc-600 text-xs">{fmtDate(rep.updatedAt)}</Text>
                             {rep.score !== null ? (
                                 <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2, marginTop: 4 }}>
                                     <Text style={{ color, fontSize: 22, fontWeight: "800" }}>{rep.score}</Text>
-                                    <Text className="text-zinc-500 text-xs">/100</Text>
+                                    <Text className="text-slate-400 dark:text-zinc-500 text-xs">/100</Text>
                                 </View>
                             ) : (
-                                <Text className="text-zinc-500 text-xs mt-1 capitalize">{rep.status}</Text>
+                                <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-1 capitalize">{rep.status}</Text>
                             )}
                         </View>
                     );
@@ -234,15 +236,15 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
             </View>
 
             {/* Tab Toggle */}
-            <View className="flex-row bg-slate-900 rounded-2xl mx-5 p-1 mb-4">
+            <View className="flex-row bg-white dark:bg-slate-900 rounded-2xl mx-5 p-1 mb-4">
                 {(["sections", "summary"] as const).map((tab) => (
                     <TouchableOpacity
                         key={tab}
                         activeOpacity={0.7}
                         onPress={() => setActiveTab(tab)}
-                        className={`flex-1 py-2 rounded-xl items-center ${activeTab === tab ? "bg-zinc-700" : ""}`}
+                        className={`flex-1 py-2 rounded-xl items-center ${activeTab === tab ? "bg-slate-200 dark:bg-zinc-700" : ""}`}
                     >
-                        <Text className={`text-sm font-medium capitalize ${activeTab === tab ? "text-white" : "text-zinc-500"}`}>
+                        <Text className={`text-sm font-medium capitalize ${activeTab === tab ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-zinc-500"}`}>
                             {tab}
                         </Text>
                     </TouchableOpacity>
@@ -256,15 +258,15 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
                 >
                     {/* Column headers */}
                     <View className="flex-row mb-2 px-1">
-                        <Text className="text-zinc-600 text-xs flex-1">Section</Text>
+                        <Text className="text-slate-400 dark:text-zinc-600 text-xs flex-1">Section</Text>
                         <Text style={{ color: COLOR_A + "aa", width: 80, textAlign: "center", fontSize: 11, fontWeight: "700" }}>A</Text>
-                        <Text className="text-zinc-600 text-xs w-6" />
+                        <Text className="text-slate-400 dark:text-zinc-600 text-xs w-6" />
                         <Text style={{ color: COLOR_B + "aa", width: 80, textAlign: "center", fontSize: 11, fontWeight: "700" }}>B</Text>
                     </View>
 
-                    <View className="bg-slate-900 rounded-2xl overflow-hidden">
+                    <View className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
                         {rows.length === 0 ? (
-                            <Text className="text-zinc-600 text-sm text-center py-6">No sections to compare.</Text>
+                            <Text className="text-slate-400 dark:text-zinc-600 text-sm text-center py-6">No sections to compare.</Text>
                         ) : rows.map((row, i) => {
                             const ds = DIFF_STYLE[row.diff];
                             const colorA = row.statusA ? STATUS_COLOR[row.statusA] : "#3f3f46";
@@ -274,9 +276,9 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
                             return (
                                 <View
                                     key={row.name}
-                                    className={`flex-row items-center px-4 py-3 ${i < rows.length - 1 ? "border-b border-zinc-800" : ""}`}
+                                    className={`flex-row items-center px-4 py-3 ${i < rows.length - 1 ? "border-b border-slate-200 dark:border-zinc-800" : ""}`}
                                 >
-                                    <Text className="text-white text-sm flex-1" numberOfLines={1}>{row.name}</Text>
+                                    <Text className="text-slate-900 dark:text-white text-sm flex-1" numberOfLines={1}>{row.name}</Text>
                                     <Text style={{ color: colorA, width: 80, textAlign: "center", fontSize: 12, fontWeight: "600" }}>
                                         {labelA}
                                     </Text>
@@ -305,15 +307,15 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
 
                     {/* Score delta card */}
                     {bothHaveScores && scoreDelta !== null && (
-                        <View className="bg-slate-900 rounded-2xl p-4 mb-4">
-                            <Text className="text-zinc-400 text-xs uppercase tracking-widest font-semibold mb-4">
+                        <View className="bg-white dark:bg-slate-900 rounded-2xl p-4 mb-4">
+                            <Text className="text-slate-500 dark:text-zinc-400 text-xs uppercase tracking-widest font-semibold mb-4">
                                 Score
                             </Text>
                             <View className="flex-row items-center justify-between">
                                 <View className="items-center">
                                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: COLOR_B, marginBottom: 4 }} />
-                                    <Text className="text-zinc-500 text-xs mb-1">B</Text>
-                                    <Text className="text-white text-3xl font-bold">{scoreB}</Text>
+                                    <Text className="text-slate-400 dark:text-zinc-500 text-xs mb-1">B</Text>
+                                    <Text className="text-slate-900 dark:text-white text-3xl font-bold">{scoreB}</Text>
                                 </View>
                                 <View className="items-center gap-1">
                                     <Ionicons name="arrow-forward" size={20} color="#f2a72f" />
@@ -338,29 +340,29 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
                                 </View>
                                 <View className="items-center">
                                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: COLOR_A, marginBottom: 4 }} />
-                                    <Text className="text-zinc-500 text-xs mb-1">A</Text>
-                                    <Text className="text-white text-3xl font-bold">{scoreA}</Text>
+                                    <Text className="text-slate-400 dark:text-zinc-500 text-xs mb-1">A</Text>
+                                    <Text className="text-slate-900 dark:text-white text-3xl font-bold">{scoreA}</Text>
                                 </View>
                             </View>
                         </View>
                     )}
 
                     {/* Stats grid */}
-                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                         Stats
                     </Text>
-                    <View className="bg-slate-900 rounded-2xl overflow-hidden mb-4">
+                    <View className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden mb-4">
                         {statRows.map((stat, i) => (
                             <View
                                 key={stat.label}
-                                className={`flex-row items-center px-4 py-3.5 ${i < statRows.length - 1 ? "border-b border-zinc-800" : ""}`}
+                                className={`flex-row items-center px-4 py-3.5 ${i < statRows.length - 1 ? "border-b border-slate-200 dark:border-zinc-800" : ""}`}
                             >
-                                <Ionicons name={stat.icon} size={16} color="#52525b" />
-                                <Text className="text-zinc-400 text-sm ml-3 flex-1">{stat.label}</Text>
+                                <Ionicons name={stat.icon} size={16} color={isDark ? "#52525b" : "#94a3b8"} />
+                                <Text className="text-slate-500 dark:text-zinc-400 text-sm ml-3 flex-1">{stat.label}</Text>
                                 <Text style={{ color: stat.winA ? COLOR_A : "#9ca3af", width: 56, textAlign: "center", fontWeight: "600", fontSize: 13 }}>
                                     {stat.valA}
                                 </Text>
-                                <Text className="text-zinc-700 text-xs mx-1">vs</Text>
+                                <Text className="text-slate-400 dark:text-zinc-700 text-xs mx-1">vs</Text>
                                 <Text style={{ color: stat.winB ? COLOR_B : "#9ca3af", width: 56, textAlign: "center", fontWeight: "600", fontSize: 13 }}>
                                     {stat.valB}
                                 </Text>
@@ -369,25 +371,25 @@ export default function ReportComparisonScreen({ onNavigate }: Props) {
                     </View>
 
                     {/* Key changes */}
-                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                         Key changes (A vs B)
                     </Text>
                     {keyChanges.length > 0 ? (
-                        <View className="bg-slate-900 rounded-2xl overflow-hidden">
+                        <View className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden">
                             {keyChanges.map((item, i) => (
                                 <View
                                     key={i}
-                                    className={`flex-row items-center gap-3 px-4 py-3.5 ${i < keyChanges.length - 1 ? "border-b border-zinc-800" : ""}`}
+                                    className={`flex-row items-center gap-3 px-4 py-3.5 ${i < keyChanges.length - 1 ? "border-b border-slate-200 dark:border-zinc-800" : ""}`}
                                 >
                                     <Ionicons name={item.icon} size={18} color={item.color} />
-                                    <Text className="text-white text-sm flex-1">{item.text}</Text>
+                                    <Text className="text-slate-900 dark:text-white text-sm flex-1">{item.text}</Text>
                                 </View>
                             ))}
                         </View>
                     ) : (
-                        <View className="bg-slate-900 rounded-2xl px-4 py-5 items-center">
+                        <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-5 items-center">
                             <Ionicons name="checkmark-done-outline" size={24} color="#22c55e" />
-                            <Text className="text-zinc-400 text-sm mt-2 text-center">
+                            <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-2 text-center">
                                 All sections have the same status across both reports.
                             </Text>
                         </View>

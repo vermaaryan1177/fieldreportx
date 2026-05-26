@@ -6,6 +6,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
@@ -43,6 +44,8 @@ export default function HomeScreen({
     onOpenSidebar,
     hasOrganisation = false,
 }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const user = auth.currentUser;
     const { reports, loading } = useReports(user?.uid);
 
@@ -74,7 +77,7 @@ export default function HomeScreen({
     const recent = reports.slice(0, 5);
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <AppHeader
                 onOpenSidebar={onOpenSidebar}
                 onNavigate={onNavigate}
@@ -85,11 +88,11 @@ export default function HomeScreen({
             {/* Greeting */}
             <View className="flex-row items-center px-5 pt-5 pb-5">
                 <View>
-                    <Text className="text-white text-2xl font-bold">
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">
                         Hello, {firstName}
                     </Text>
 
-                    <Text className="text-zinc-400 text-sm mt-0.5">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-0.5">
                         {inProgressCount > 0
                             ? `${inProgressCount} report${
                                   inProgressCount !== 1 ? "s" : ""
@@ -101,22 +104,22 @@ export default function HomeScreen({
 
             {/* Stats */}
             <View className="flex-row mx-5 gap-3 mb-4">
-                <View className="flex-1 bg-slate-900 rounded-2xl p-4">
-                    <Text className="text-white text-2xl font-bold">
+                <View className="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-4">
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">
                         {loading ? "—" : reportsThisMonth}
                     </Text>
 
-                    <Text className="text-zinc-500 text-xs mt-0.5">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                         Reports this month
                     </Text>
                 </View>
 
-                <View className="flex-1 bg-slate-900 rounded-2xl p-4">
-                    <Text className="text-white text-2xl font-bold">
+                <View className="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-4">
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">
                         {loading ? "—" : inProgressCount}
                     </Text>
 
-                    <Text className="text-zinc-500 text-xs mt-0.5">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                         In progress
                     </Text>
                 </View>
@@ -128,13 +131,13 @@ export default function HomeScreen({
                 onPress={() => onNavigate("reportSetup")}
                 className="bg-primary mx-5 rounded-2xl py-4 items-center mb-6"
             >
-                <Text className="text-white font-bold text-base">
+                <Text className="text-slate-900 dark:text-white font-bold text-base">
                     + New report
                 </Text>
             </TouchableOpacity>
 
             {/* Label */}
-            <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mb-3">
+            <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mb-3">
                 Recent Reports
             </Text>
 
@@ -155,10 +158,10 @@ export default function HomeScreen({
                         <Ionicons
                             name="document-text-outline"
                             size={36}
-                            color="#3f3f46"
+                            color={isDark ? "#3f3f46" : "#cbd5e1"}
                         />
 
-                        <Text className="text-zinc-500 text-sm">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">
                             No reports yet
                         </Text>
 
@@ -277,7 +280,7 @@ export default function HomeScreen({
                                             onNavigate("reportDetail");
                                         }
                                     }}
-                                    className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
+                                    className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
                                 >
                                     {/* Left Color Strip */}
                                     <View
@@ -305,13 +308,13 @@ export default function HomeScreen({
                                     {/* Text */}
                                     <View className="flex-1 py-3 pr-2">
                                         <Text
-                                            className="text-white font-semibold text-sm"
+                                            className="text-slate-900 dark:text-white font-semibold text-sm"
                                             numberOfLines={1}
                                         >
                                             {report.title}
                                         </Text>
 
-                                        <Text className="text-zinc-500 text-xs mt-0.5">
+                                        <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                             {report.templateName} ·{" "}
                                             {timeAgo(report.updatedAt)}
                                         </Text>

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 export type AppScreen =
     | "home"
@@ -68,6 +68,8 @@ export default function BottomNavBar({
     onNavigate,
     hasOrganisation = false,
 }: BottomNavBarProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const lastNav = useRef(0);
 
     const safeNavigate = (id: AppScreen) => {
@@ -97,7 +99,7 @@ export default function BottomNavBar({
         : BASE_NAV_ITEMS;
 
     return (
-        <View className="flex-row bg-slate-900 border-t border-zinc-800 pb-8 pt-3 px-2">
+        <View className="flex-row bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-zinc-800 pb-8 pt-3 px-2">
             {navItems.map((item) => {
                 const isActive = active === item.id;
 
@@ -115,14 +117,14 @@ export default function BottomNavBar({
                                     : item.icon) as any
                             }
                             size={22}
-                            color={isActive ? "#f2a72f" : "#52525b"}
+                            color={isActive ? "#f2a72f" : (isDark ? "#52525b" : "#94a3b8")}
                         />
 
                         <Text
                             className={`text-xs ${
                                 isActive
                                     ? "text-primary font-semibold"
-                                    : "text-zinc-600"
+                                    : "text-slate-400 dark:text-zinc-600"
                             }`}
                         >
                             {item.label}

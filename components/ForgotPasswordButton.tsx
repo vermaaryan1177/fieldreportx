@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { getAuthErrorMessage, sendPasswordReset } from "@/lib/auth";
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export default function ForgotPasswordButton({ email = "" }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [visible, setVisible] = useState(false);
     const [inputEmail, setInputEmail] = useState(email);
     const [loading, setLoading] = useState(false);
@@ -91,7 +94,7 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                             >
                                 <View
                                     style={{
-                                        backgroundColor: "#0f172a",
+                                        backgroundColor: isDark ? "#0f172a" : "#ffffff",
                                         borderTopLeftRadius: 28,
                                         borderTopRightRadius: 28,
                                         paddingHorizontal: 24,
@@ -105,7 +108,7 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                             width: 36,
                                             height: 4,
                                             borderRadius: 2,
-                                            backgroundColor: "#334155",
+                                            backgroundColor: isDark ? "#334155" : "#e2e8f0",
                                             alignSelf: "center",
                                             marginBottom: 24,
                                         }}
@@ -121,10 +124,10 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                                     color="#22c55e"
                                                 />
                                             </View>
-                                            <Text className="text-white text-lg font-bold text-center">
+                                            <Text className="text-slate-900 dark:text-white text-lg font-bold text-center">
                                                 Check your inbox
                                             </Text>
-                                            <Text className="text-zinc-400 text-sm text-center leading-5">
+                                            <Text className="text-slate-500 dark:text-zinc-400 text-sm text-center leading-5">
                                                 A password reset link has been sent to{" "}
                                                 <Text className="text-primary font-medium">
                                                     {inputEmail.trim()}
@@ -136,7 +139,7 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                                 onPress={close}
                                                 className="bg-primary rounded-2xl py-4 items-center mt-2 w-full"
                                             >
-                                                <Text className="text-white font-bold text-base">
+                                                <Text className="text-slate-900 dark:text-white font-bold text-base">
                                                     Done
                                                 </Text>
                                             </TouchableOpacity>
@@ -144,10 +147,10 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                     ) : (
                                         /* ── Input state ── */
                                         <>
-                                            <Text className="text-white text-xl font-bold mb-1">
+                                            <Text className="text-slate-900 dark:text-white text-xl font-bold mb-1">
                                                 Reset password
                                             </Text>
-                                            <Text className="text-zinc-400 text-sm mb-6 leading-5">
+                                            <Text className="text-slate-500 dark:text-zinc-400 text-sm mb-6 leading-5">
                                                 Enter your account email and we'll send you a reset link.
                                             </Text>
 
@@ -168,10 +171,10 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                             )}
 
                                             {/* Email input */}
-                                            <Text className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1.5 px-1">
+                                            <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1.5 px-1">
                                                 Email
                                             </Text>
-                                            <View className="flex-row items-center bg-slate-700 rounded-2xl px-4 h-12 mb-5">
+                                            <View className="flex-row items-center bg-slate-100 dark:bg-slate-700 rounded-2xl px-4 h-12 mb-5">
                                                 <Text className="text-base mr-3 opacity-60">
                                                     ✉️
                                                 </Text>
@@ -182,12 +185,12 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                                         setError(null);
                                                     }}
                                                     placeholder="janedoe@example.com"
-                                                    placeholderTextColor="#52525b"
+                                                    placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                                                     keyboardType="email-address"
                                                     autoCapitalize="none"
                                                     autoCorrect={false}
                                                     autoFocus
-                                                    className="flex-1 text-white text-sm"
+                                                    className="flex-1 text-slate-900 dark:text-white text-sm"
                                                 />
                                             </View>
 
@@ -208,7 +211,7 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                                         size="small"
                                                     />
                                                 ) : (
-                                                    <Text className="text-white font-bold text-base">
+                                                    <Text className="text-slate-900 dark:text-white font-bold text-base">
                                                         Send reset link
                                                     </Text>
                                                 )}
@@ -220,7 +223,7 @@ export default function ForgotPasswordButton({ email = "" }: Props) {
                                                 onPress={close}
                                                 className="items-center mt-4"
                                             >
-                                                <Text className="text-zinc-500 text-sm">
+                                                <Text className="text-slate-400 dark:text-zinc-500 text-sm">
                                                     Cancel
                                                 </Text>
                                             </TouchableOpacity>

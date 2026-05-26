@@ -6,6 +6,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { SYSTEM_TEMPLATES, SystemTemplate } from "@/lib/templates/systemTemplates";
@@ -25,6 +26,9 @@ function countKey(templateId: string, sectionId: string) {
 }
 
 export default function SectionPickerModal({ visible, baseTemplateId, onClose, onAdd }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
+
     const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
     const [counts, setCounts] = useState<CountMap>({});
 
@@ -83,23 +87,36 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
         onClose();
     };
 
+    const bg = isDark ? "#0f172a" : "#f1f5f9";
+    const cardBg = isDark ? "#1e293b" : "#ffffff";
+    const borderColor = isDark ? "#1e293b" : "#e2e8f0";
+    const textPrimary = isDark ? "#ffffff" : "#0f172a";
+    const textMuted = isDark ? "#52525b" : "#94a3b8";
+    const textHint = isDark ? "#71717a" : "#64748b";
+    const disabledAddBg = isDark ? "#27272a" : "#e2e8f0";
+    const stepperActiveBg = isDark ? "#334155" : "#e2e8f0";
+    const stepperDisabledBg = isDark ? "#1f2937" : "#f1f5f9";
+    const stepperDisabledIcon = isDark ? "#374151" : "#cbd5e1";
+    const stepperActiveIcon = isDark ? "#e2e8f0" : "#334155";
+    const sectionNameInactive = isDark ? "#e2e8f0" : "#1e293b";
+
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-            <View style={{ flex: 1, backgroundColor: "#0f172a" }}>
+            <View style={{ flex: 1, backgroundColor: bg }}>
                 {/* Header */}
                 <View style={{
                     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
                     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-                    borderBottomWidth: 1, borderBottomColor: "#1e293b",
+                    borderBottomWidth: 1, borderBottomColor: borderColor,
                 }}>
                     <TouchableOpacity
                         onPress={handleClose}
-                        style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" }}
+                        style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: cardBg, alignItems: "center", justifyContent: "center" }}
                     >
-                        <Ionicons name="close" size={18} color="#fff" />
+                        <Ionicons name="close" size={18} color={textPrimary} />
                     </TouchableOpacity>
                     <View style={{ alignItems: "center" }}>
-                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Browse sections</Text>
+                        <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 16 }}>Browse sections</Text>
                         {totalSections > 0 && (
                             <Text style={{ color: "#f2a72f", fontSize: 12, marginTop: 2 }}>
                                 {totalSections} section{totalSections !== 1 ? "s" : ""} to add
@@ -110,11 +127,11 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                         onPress={handleAdd}
                         disabled={totalSections === 0}
                         style={{
-                            backgroundColor: totalSections > 0 ? "#f2a72f" : "#27272a",
+                            backgroundColor: totalSections > 0 ? "#f2a72f" : disabledAddBg,
                             paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12,
                         }}
                     >
-                        <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
+                        <Text style={{ color: totalSections > 0 ? "#fff" : textMuted, fontSize: 13, fontWeight: "700" }}>
                             Add {totalSections > 0 ? `(${totalSections})` : ""}
                         </Text>
                     </TouchableOpacity>
@@ -124,7 +141,7 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
                 >
-                    <Text style={{ color: "#71717a", fontSize: 12, marginBottom: 16, lineHeight: 18 }}>
+                    <Text style={{ color: textHint, fontSize: 12, marginBottom: 16, lineHeight: 18 }}>
                         Tap a template to browse its sections. Use + / − to set how many copies of each section to add.
                     </Text>
 
@@ -140,9 +157,9 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                     onPress={() => setExpandedTemplate(isExpanded ? null : tmpl.id)}
                                     style={{
                                         flexDirection: "row", alignItems: "center", gap: 12,
-                                        backgroundColor: "#1e293b", borderRadius: 14, padding: 14,
+                                        backgroundColor: cardBg, borderRadius: 14, padding: 14,
                                         borderWidth: 1.5,
-                                        borderColor: selectedCount > 0 ? tmpl.color + "80" : "transparent",
+                                        borderColor: selectedCount > 0 ? tmpl.color + "80" : borderColor,
                                     }}
                                 >
                                     <View style={{
@@ -153,8 +170,8 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                         <Ionicons name={tmpl.icon as any} size={18} color={tmpl.color} />
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>{tmpl.name}</Text>
-                                        <Text style={{ color: "#52525b", fontSize: 12, marginTop: 2 }}>
+                                        <Text style={{ color: textPrimary, fontWeight: "600", fontSize: 14 }}>{tmpl.name}</Text>
+                                        <Text style={{ color: textMuted, fontSize: 12, marginTop: 2 }}>
                                             {tmpl.sections.length} section{tmpl.sections.length !== 1 ? "s" : ""}
                                             {selectedCount > 0 ? ` · ${selectedCount} queued` : ""}
                                         </Text>
@@ -167,7 +184,7 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                     <Ionicons
                                         name={isExpanded ? "chevron-up" : "chevron-down"}
                                         size={16}
-                                        color="#52525b"
+                                        color={textMuted}
                                     />
                                 </TouchableOpacity>
 
@@ -182,18 +199,18 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                                     key={sec.id}
                                                     style={{
                                                         flexDirection: "row", alignItems: "center", gap: 12,
-                                                        backgroundColor: active ? tmpl.color + "18" : "#1e293b",
+                                                        backgroundColor: active ? tmpl.color + "18" : cardBg,
                                                         borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
                                                         marginLeft: 12,
                                                         borderWidth: 1.5,
-                                                        borderColor: active ? tmpl.color + "60" : "transparent",
+                                                        borderColor: active ? tmpl.color + "60" : borderColor,
                                                     }}
                                                 >
                                                     <View style={{ flex: 1 }}>
-                                                        <Text style={{ color: active ? "#fff" : "#e2e8f0", fontSize: 13, fontWeight: "500" }}>
+                                                        <Text style={{ color: active ? textPrimary : sectionNameInactive, fontSize: 13, fontWeight: "500" }}>
                                                             {sec.name}
                                                         </Text>
-                                                        <Text style={{ color: "#52525b", fontSize: 11, marginTop: 2 }}>
+                                                        <Text style={{ color: textMuted, fontSize: 11, marginTop: 2 }}>
                                                             {sec.fields.length} field{sec.fields.length !== 1 ? "s" : ""}
                                                         </Text>
                                                     </View>
@@ -206,15 +223,15 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                                                             style={{
                                                                 width: 28, height: 28, borderRadius: 8,
-                                                                backgroundColor: count > 0 ? "#334155" : "#1f2937",
+                                                                backgroundColor: count > 0 ? stepperActiveBg : stepperDisabledBg,
                                                                 alignItems: "center", justifyContent: "center",
                                                             }}
                                                         >
-                                                            <Ionicons name="remove" size={14} color={count > 0 ? "#e2e8f0" : "#374151"} />
+                                                            <Ionicons name="remove" size={14} color={count > 0 ? stepperActiveIcon : stepperDisabledIcon} />
                                                         </TouchableOpacity>
 
                                                         <Text style={{
-                                                            color: active ? tmpl.color : "#52525b",
+                                                            color: active ? tmpl.color : textMuted,
                                                             fontWeight: "700", fontSize: 14,
                                                             minWidth: 28, textAlign: "center",
                                                         }}>
@@ -226,7 +243,7 @@ export default function SectionPickerModal({ visible, baseTemplateId, onClose, o
                                                             hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
                                                             style={{
                                                                 width: 28, height: 28, borderRadius: 8,
-                                                                backgroundColor: active ? tmpl.color : "#334155",
+                                                                backgroundColor: active ? tmpl.color : stepperActiveBg,
                                                                 alignItems: "center", justifyContent: "center",
                                                             }}
                                                         >

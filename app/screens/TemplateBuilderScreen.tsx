@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import ImportModal from "@/components/templateBuilder/ImportModal";
@@ -15,6 +15,8 @@ interface Props {
 }
 
 export default function TemplateBuilderScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [step, setStep] = useState<1 | 2>(1);
     const [baseTemplate, setBaseTemplate] = useState<SystemTemplate | null>(null);
     const [importVisible, setImportVisible] = useState(false);
@@ -36,7 +38,7 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <ImportModal
                 visible={importVisible}
                 onClose={() => setImportVisible(false)}
@@ -48,13 +50,13 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={handleBack}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                 >
-                    <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    <Ionicons name="arrow-back" size={18} color={isDark ? "#ffffff" : "#0f172a"} />
                 </TouchableOpacity>
                 <View className="flex-1">
-                    <Text className="text-white text-lg font-bold">Template builder</Text>
-                    <Text className="text-zinc-500 text-xs">
+                    <Text className="text-slate-900 dark:text-white text-lg font-bold">Template builder</Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs">
                         Step {step} of 2 — {step === 1 ? "Choose type" : "Customise sections"}
                     </Text>
                 </View>
@@ -65,7 +67,7 @@ export default function TemplateBuilderScreen({ onNavigate }: Props) {
                             className="h-2 rounded-full"
                             style={{
                                 width: step === s ? 18 : 8,
-                                backgroundColor: step === s ? "#f2a72f" : "#3f3f46",
+                                backgroundColor: step === s ? "#f2a72f" : (isDark ? "#3f3f46" : "#cbd5e1"),
                             }}
                         />
                     ))}

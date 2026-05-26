@@ -26,7 +26,7 @@ export default function SubmitFormButton({
             {loading ? (
                 <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-                <Text className="text-white font-bold text-base">{text}</Text>
+                <Text className="text-slate-900 dark:text-white font-bold text-base">{text}</Text>
             )}
         </TouchableOpacity>
     );

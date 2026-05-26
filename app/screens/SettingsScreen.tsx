@@ -17,11 +17,13 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
 import { signOut } from "@/lib/auth";
 import { sqliteDb } from "@/lib/db/database";
+import { getSavedThemePreference, saveTheme, ThemePreference } from "@/lib/theme";
 import {
     createOrganisation,
     getUserOrganisation,
@@ -48,7 +50,7 @@ const Toggle = ({
 }) => (
     <TouchableOpacity
         onPress={onPress}
-        className={`w-12 h-6 rounded-full ${value ? "bg-primary" : "bg-slate-700"}`}
+        className={`w-12 h-6 rounded-full ${value ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
     >
         <View
             style={{ left: value ? 26 : 4 }}
@@ -62,6 +64,8 @@ export default function SettingsScreen({
     onOpenSidebar,
     hasOrganisation,
 }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const user = auth.currentUser;
 
     const [localStorageUsed, setLocalStorageUsed] = useState<string>("—");
@@ -253,6 +257,18 @@ export default function SettingsScreen({
     const [reportReminderEnabled, setReportReminderEnabled] = useState(true);
     const [templateUpdatesEnabled, setTemplateUpdatesEnabled] = useState(true);
 
+    // Appearance
+    const [themePref, setThemePref] = useState<ThemePreference>("system");
+
+    useEffect(() => {
+        getSavedThemePreference().then(setThemePref);
+    }, []);
+
+    const handleThemeChange = (pref: ThemePreference) => {
+        setThemePref(pref);
+        saveTheme(pref);
+    };
+
     // Storage
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
 
@@ -291,7 +307,7 @@ export default function SettingsScreen({
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <AppHeader
                 onOpenSidebar={onOpenSidebar}
                 onNavigate={onNavigate}
@@ -300,7 +316,7 @@ export default function SettingsScreen({
             />
             {/* Header */}
             <View className="px-5 pt-5 pb-4">
-                <Text className="text-white text-2xl font-bold">Settings</Text>
+                <Text className="text-slate-900 dark:text-white text-2xl font-bold">Settings</Text>
             </View>
 
             <ScrollView
@@ -308,17 +324,17 @@ export default function SettingsScreen({
                 contentContainerStyle={{ paddingBottom: 32 }}
             >
                 {/* Profile card */}
-                <View className="mx-5 bg-slate-900 rounded-2xl p-4 flex-row items-center gap-4">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl p-4 flex-row items-center gap-4">
                     <View className="w-14 h-14 rounded-full bg-primary items-center justify-center">
-                        <Text className="text-white text-lg font-bold">
+                        <Text className="text-slate-900 dark:text-white text-lg font-bold">
                             {initials}
                         </Text>
                     </View>
                     <View className="flex-1">
-                        <Text className="text-white font-semibold text-base">
+                        <Text className="text-slate-900 dark:text-white font-semibold text-base">
                             {user?.displayName ?? "—"}
                         </Text>
-                        <Text className="text-zinc-500 text-sm mt-0.5">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm mt-0.5">
                             {user?.email ?? "—"}
                         </Text>
                     </View>
@@ -326,16 +342,16 @@ export default function SettingsScreen({
                         <Ionicons
                             name="pencil-outline"
                             size={18}
-                            color="#71717a"
+                            color={isDark ? "#71717a" : "#94a3b8"}
                         />
                     </TouchableOpacity>
                 </View>
 
                 {/* Permissions */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
                     Permissions
                 </Text>
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4">
                     {[
                         {
                             label: "Camera",
@@ -362,11 +378,11 @@ export default function SettingsScreen({
                             key={item.label}
                             className={`flex-row items-center justify-between py-4 ${
                                 i < arr.length - 1
-                                    ? "border-b border-zinc-800"
+                                    ? "border-b border-slate-200 dark:border-zinc-800"
                                     : ""
                             }`}
                         >
-                            <Text className="text-white text-sm">
+                            <Text className="text-slate-900 dark:text-white text-sm">
                                 {item.label}
                             </Text>
                             <Toggle value={item.value} onPress={item.onPress} />
@@ -375,10 +391,10 @@ export default function SettingsScreen({
                 </View>
 
                 {/* Notifications */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
                     Notifications
                 </Text>
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4">
                     {[
                         {
                             label: "Report reminders",
@@ -395,11 +411,11 @@ export default function SettingsScreen({
                             key={item.label}
                             className={`flex-row items-center justify-between py-4 ${
                                 i < arr.length - 1
-                                    ? "border-b border-zinc-800"
+                                    ? "border-b border-slate-200 dark:border-zinc-800"
                                     : ""
                             }`}
                         >
-                            <Text className="text-white text-sm">
+                            <Text className="text-slate-900 dark:text-white text-sm">
                                 {item.label}
                             </Text>
                             <Toggle value={item.value} onPress={item.onPress} />
@@ -407,23 +423,44 @@ export default function SettingsScreen({
                     ))}
                 </View>
 
+                {/* Appearance */}
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                    Appearance
+                </Text>
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4 py-4">
+                    <Text className="text-slate-900 dark:text-white text-sm mb-3">Theme</Text>
+                    <View className="flex-row gap-2">
+                        {(["light", "dark", "system"] as ThemePreference[]).map((opt) => (
+                            <TouchableOpacity
+                                key={opt}
+                                onPress={() => handleThemeChange(opt)}
+                                className={`flex-1 py-2 rounded-xl items-center ${themePref === opt ? "bg-primary" : "bg-slate-100 dark:bg-slate-800"}`}
+                            >
+                                <Text className={`text-sm font-medium capitalize ${themePref === opt ? "text-white" : "text-slate-500 dark:text-zinc-400"}`}>
+                                    {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
                 {/* Storage & Data */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
                     Storage &amp; Data
                 </Text>
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
-                    <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                        <Text className="text-white text-sm">Cloud sync</Text>
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4">
+                    <View className="flex-row items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800">
+                        <Text className="text-slate-900 dark:text-white text-sm">Cloud sync</Text>
                         <Toggle
                             value={cloudSyncEnabled}
                             onPress={() => setCloudSyncEnabled((v) => !v)}
                         />
                     </View>
-                    <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                        <Text className="text-white text-sm">
+                    <View className="flex-row items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800">
+                        <Text className="text-slate-900 dark:text-white text-sm">
                             Local storage used
                         </Text>
-                        <Text className="text-zinc-400 text-sm">
+                        <Text className="text-slate-500 dark:text-zinc-400 text-sm">
                             {localStorageUsed}
                         </Text>
                     </View>
@@ -433,7 +470,7 @@ export default function SettingsScreen({
                         onPress={handleExportBackup}
                         className="py-4 flex-row items-center justify-between"
                     >
-                        <Text className="text-white text-sm">
+                        <Text className="text-slate-900 dark:text-white text-sm">
                             Export &amp; backup data
                         </Text>
                         {exporting && (
@@ -447,41 +484,41 @@ export default function SettingsScreen({
                 </View>
 
                 {/* About */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
                     About
                 </Text>
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
-                    <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                        <Text className="text-white text-sm">App version</Text>
-                        <Text className="text-zinc-400 text-sm">1.0.0</Text>
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4">
+                    <View className="flex-row items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800">
+                        <Text className="text-slate-900 dark:text-white text-sm">App version</Text>
+                        <Text className="text-slate-500 dark:text-zinc-400 text-sm">1.0.0</Text>
                     </View>
                     <TouchableOpacity
                         activeOpacity={0.7}
                         className="flex-row items-center justify-between py-4"
                     >
-                        <Text className="text-white text-sm">
+                        <Text className="text-slate-900 dark:text-white text-sm">
                             Terms &amp; privacy policy
                         </Text>
                         <Ionicons
                             name="chevron-forward"
                             size={16}
-                            color="#3f3f46"
+                            color={isDark ? "#3f3f46" : "#cbd5e1"}
                         />
                     </TouchableOpacity>
                 </View>
 
                 {/* Organisation */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-5 mb-2">
                     Organisation
                 </Text>
-                <View className="mx-5 bg-slate-900 rounded-2xl px-4">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl px-4">
                     {currentOrg ? (
                         <>
-                            <View className="flex-row items-center justify-between py-4 border-b border-zinc-800">
-                                <Text className="text-white text-sm">
+                            <View className="flex-row items-center justify-between py-4 border-b border-slate-200 dark:border-zinc-800">
+                                <Text className="text-slate-900 dark:text-white text-sm">
                                     Current org
                                 </Text>
-                                <Text className="text-zinc-400 text-sm">
+                                <Text className="text-slate-500 dark:text-zinc-400 text-sm">
                                     {currentOrg.name}
                                 </Text>
                             </View>
@@ -501,13 +538,13 @@ export default function SettingsScreen({
                             onPress={() => setOrgModalVisible(true)}
                             className="flex-row items-center justify-between py-4"
                         >
-                            <Text className="text-white text-sm">
+                            <Text className="text-slate-900 dark:text-white text-sm">
                                 Create Organisation
                             </Text>
                             <Ionicons
                                 name="chevron-forward"
                                 size={16}
-                                color="#3f3f46"
+                                color={isDark ? "#3f3f46" : "#cbd5e1"}
                             />
                         </TouchableOpacity>
                     )}
@@ -537,16 +574,16 @@ export default function SettingsScreen({
                     animationType="fade"
                 >
                     <View className="flex-1 bg-black/70 justify-center px-6">
-                        <View className="bg-slate-900 rounded-2xl p-5">
-                            <Text className="text-white font-bold text-base mb-4">
+                        <View className="bg-white dark:bg-slate-900 rounded-2xl p-5">
+                            <Text className="text-slate-900 dark:text-white font-bold text-base mb-4">
                                 Create Organisation
                             </Text>
                             <TextInput
                                 placeholder="Organisation name"
-                                placeholderTextColor="#52525b"
+                                placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                                 value={newOrgName}
                                 onChangeText={setNewOrgName}
-                                className="bg-slate-800 text-white px-4 py-3 rounded-xl mb-4"
+                                className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white px-4 py-3 rounded-xl mb-4"
                             />
                             <View className="flex-row gap-3">
                                 <TouchableOpacity
@@ -554,9 +591,9 @@ export default function SettingsScreen({
                                         setOrgModalVisible(false);
                                         setNewOrgName("");
                                     }}
-                                    className="flex-1 py-3 rounded-xl bg-slate-800 items-center"
+                                    className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 items-center"
                                 >
-                                    <Text className="text-zinc-400 font-semibold">
+                                    <Text className="text-slate-500 dark:text-zinc-400 font-semibold">
                                         Cancel
                                     </Text>
                                 </TouchableOpacity>
@@ -570,7 +607,7 @@ export default function SettingsScreen({
                                             : undefined
                                     }
                                 >
-                                    <Text className="text-white font-semibold">
+                                    <Text className="text-slate-900 dark:text-white font-semibold">
                                         {creatingOrg ? "Creating…" : "Create"}
                                     </Text>
                                 </TouchableOpacity>

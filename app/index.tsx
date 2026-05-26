@@ -30,6 +30,7 @@ import {
 } from "@/lib/notificationService";
 import { store } from "@/lib/store";
 import { trackingStore } from "@/lib/trackingStore";
+import { loadSavedTheme } from "@/lib/theme";
 import {
     registerBackgroundTasks,
     unregisterBackgroundTasks,
@@ -230,6 +231,10 @@ function ScreenContent({
 export default function App() {
     const { user, loading } = useAuth();
 
+    useEffect(() => {
+        loadSavedTheme().catch(() => {});
+    }, []);
+
     // current screen
     const [currentScreen, setCurrentScreen] = useState<AppScreen>("home");
 
@@ -379,7 +384,7 @@ export default function App() {
     // loading
     if (loading) {
         return (
-            <View className="flex-1 bg-background items-center justify-center">
+            <View className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center">
                 <ActivityIndicator color="#f2a72f" size="large" />
             </View>
         );

@@ -247,28 +247,28 @@ export default function OrganisationScreen({
 
   if (!user?.uid) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">Please login again</Text>
+      <SafeAreaView className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center">
+        <Text className="text-slate-900 dark:text-white">Please login again</Text>
       </SafeAreaView>
     );
   }
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-white">Loading...</Text>
+      <SafeAreaView className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center">
+        <Text className="text-slate-900 dark:text-white">Loading...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-      <SafeAreaView edges={['bottom']} className="flex-1 bg-background" >
+      <SafeAreaView edges={['bottom']} className="flex-1 bg-background dark:bg-[#1e2529]" >
         <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="organisation" />
 
         <ScrollView className="px-4 pt-6">
           {/* Organisations Header */}
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-2xl font-bold">Organisations</Text>
+            <Text className="text-slate-900 dark:text-white text-2xl font-bold">Organisations</Text>
             <TouchableOpacity onPress={() => setShowCreateModal(true)}>
               <Text className="text-primary">+ Create</Text>
             </TouchableOpacity>
@@ -278,7 +278,7 @@ export default function OrganisationScreen({
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {organisations.map((org) => {
               const isAdmin = org.adminUid === user.uid;
-              const bgColor = selectedOrg?.id === org.id ? "bg-primary" : "bg-slate-900";
+              const bgColor = selectedOrg?.id === org.id ? "bg-primary" : "bg-white dark:bg-slate-900";
               return (
                 <View
                   key={org.id ?? Math.random().toString()}
@@ -286,8 +286,8 @@ export default function OrganisationScreen({
                 >
                   <View className="flex-row justify-between items-start">
                     <TouchableOpacity onPress={() => switchOrg(org)} className="flex-1">
-                      <Text className="text-white font-bold text-base">{org.name ?? "Unknown"}</Text>
-                      <Text className="text-zinc-400 mt-1">{(org.memberUids?.length ?? 0) + " members"}</Text>
+                      <Text className="text-slate-900 dark:text-white font-bold text-base">{org.name ?? "Unknown"}</Text>
+                      <Text className="text-slate-500 dark:text-zinc-400 mt-1">{(org.memberUids?.length ?? 0) + " members"}</Text>
                     </TouchableOpacity>
 
                     {isAdmin && (
@@ -315,22 +315,22 @@ export default function OrganisationScreen({
 
           {/* Members */}
           <View className="mt-6 flex-row justify-between">
-            <Text className="text-zinc-400">Members</Text>
+            <Text className="text-slate-500 dark:text-zinc-400">Members</Text>
             <TouchableOpacity onPress={() => setShowInviteModal(true)}>
               <Text className="text-primary">+ Invite</Text>
             </TouchableOpacity>
           </View>
 
           {members.map((m) => (
-            <View key={m.uid ?? Math.random().toString()} className="bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center">
+            <View key={m.uid ?? Math.random().toString()} className="bg-white dark:bg-slate-900 p-4 rounded-2xl mt-3 flex-row justify-between items-center">
               <View>
-                <Text className="text-white font-semibold">{m.username}</Text>
-                <Text className="text-zinc-400">{m.role}</Text>
+                <Text className="text-slate-900 dark:text-white font-semibold">{m.username}</Text>
+                <Text className="text-slate-500 dark:text-zinc-400">{m.role}</Text>
               </View>
 
               {selectedOrg?.adminUid === user.uid && m.uid !== user.uid && (
                 <TouchableOpacity onPress={() => openMemberMenu(m)}>
-                  <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+                  <Ionicons name="ellipsis-vertical" size={20} color="#94a3b8" />
                 </TouchableOpacity>
               )}
             </View>
@@ -341,18 +341,18 @@ export default function OrganisationScreen({
         {/* Create Organisation Modal */}
         <Modal visible={showCreateModal} transparent animationType="slide">
           <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
-            <View className="bg-zinc-900 p-6 rounded-2xl w-80">
-              <Text className="text-white text-lg font-bold mb-4">Create Organisation</Text>
+            <View className="bg-slate-50 dark:bg-zinc-900 p-6 rounded-2xl w-80">
+              <Text className="text-slate-900 dark:text-white text-lg font-bold mb-4">Create Organisation</Text>
               <TextInput
                 placeholder="Name"
                 placeholderTextColor="#888"
-                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                className="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white p-3 rounded mb-3"
                 value={orgName}
                 onChangeText={setOrgName}
               />
               <View className="flex-row justify-end mt-4">
                 <TouchableOpacity onPress={() => setShowCreateModal(false)} className="mr-3">
-                  <Text className="text-zinc-400">Cancel</Text>
+                  <Text className="text-slate-500 dark:text-zinc-400">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleCreateOrganisation}>
                   <Text className="text-primary font-bold">Create</Text>
@@ -365,19 +365,19 @@ export default function OrganisationScreen({
         {/* Invite Modal */}
         <Modal visible={showInviteModal} transparent animationType="slide">
           <View className="flex-1 bg-black bg-opacity-70 justify-center items-center">
-            <View className="bg-zinc-900 p-6 rounded-2xl w-80">
-              <Text className="text-white text-lg font-bold mb-4">Invite Member</Text>
+            <View className="bg-slate-50 dark:bg-zinc-900 p-6 rounded-2xl w-80">
+              <Text className="text-slate-900 dark:text-white text-lg font-bold mb-4">Invite Member</Text>
               <TextInput
                 placeholder="User Email"
                 placeholderTextColor="#888"
-                className="bg-zinc-800 text-white p-3 rounded mb-3"
+                className="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white p-3 rounded mb-3"
                 value={inviteEmail}
                 onChangeText={setInviteEmail}
               />
 
               <View className="flex-row justify-end mt-4">
                 <TouchableOpacity onPress={() => setShowInviteModal(false)} className="mr-3">
-                  <Text className="text-zinc-400">Cancel</Text>
+                  <Text className="text-slate-500 dark:text-zinc-400">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleInvite}>
                   <Text className="text-primary font-bold">Invite</Text>
@@ -393,16 +393,16 @@ export default function OrganisationScreen({
             className="flex-1 bg-black bg-opacity-50 justify-center items-center"
             onPress={closeMemberMenu}
           >
-            <View className="bg-zinc-900 p-4 rounded-2xl w-64">
-              <Text className="text-white font-bold mb-4">Member Options</Text>
-              <TouchableOpacity onPress={handleMakeAdmin} className="py-2 border-b border-zinc-800">
+            <View className="bg-slate-50 dark:bg-zinc-900 p-4 rounded-2xl w-64">
+              <Text className="text-slate-900 dark:text-white font-bold mb-4">Member Options</Text>
+              <TouchableOpacity onPress={handleMakeAdmin} className="py-2 border-b border-slate-200 dark:border-zinc-800">
                 <Text className="text-primary font-semibold">Make Admin</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleRemoveMember} className="py-2 border-b border-zinc-800">
+              <TouchableOpacity onPress={handleRemoveMember} className="py-2 border-b border-slate-200 dark:border-zinc-800">
                 <Text className="text-red-500 font-semibold">Remove Member</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={closeMemberMenu} className="py-2">
-                <Text className="text-white font-semibold">Cancel</Text>
+                <Text className="text-slate-900 dark:text-white font-semibold">Cancel</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

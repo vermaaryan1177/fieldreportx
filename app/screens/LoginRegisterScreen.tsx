@@ -82,20 +82,20 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
     };
 
     return (
-        <View className="bg-background h-screen">
+        <View className="bg-background dark:bg-[#1e2529] h-screen">
             <View className="h-screen">
                 <ScrollView keyboardShouldPersistTaps="handled">
                     {/* Header */}
                     <View className="items-center pt-16 pb-10 px-6 mt-16">
                         <View className="w-16 h-16 rounded-2xl bg-primary items-center justify-center mb-4 shadow-sm">
-                            <Text className="text-white text-2xl font-black">
+                            <Text className="text-slate-900 dark:text-white text-2xl font-black">
                                 FX
                             </Text>
                         </View>
                         <Text className="text-primary text-3xl font-bold">
                             FieldReportX
                         </Text>
-                        <Text className="text-white text-sm mt-1">
+                        <Text className="text-slate-900 dark:text-white text-sm mt-1">
                             Field reporting, simplified.
                         </Text>
                     </View>
@@ -173,7 +173,7 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                                 setShowLoginPassword((v) => !v)
                                             }
                                         >
-                                            <Text className="text-slate-500 text-xs font-medium">
+                                            <Text className="text-slate-600 dark:text-slate-400 text-xs font-medium">
                                                 {showLoginPassword
                                                     ? "Hide"
                                                     : "Show"}
@@ -234,7 +234,7 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                                 setShowPassword((v) => !v)
                                             }
                                         >
-                                            <Text className="text-zinc-500 text-xs font-medium">
+                                            <Text className="text-slate-400 dark:text-zinc-500 text-xs font-medium">
                                                 {showPassword ? "Hide" : "Show"}
                                             </Text>
                                         </TouchableOpacity>
@@ -259,7 +259,7 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                                 )
                                             }
                                         >
-                                            <Text className="text-zinc-500 text-xs font-medium">
+                                            <Text className="text-slate-400 dark:text-zinc-500 text-xs font-medium">
                                                 {showConfirmPassword
                                                     ? "Hide"
                                                     : "Show"}
@@ -276,7 +276,7 @@ export default function LoginRegisterScreen({ onStartRegister }: Props) {
                                 />
 
                                 {/* Terms */}
-                                <Text className="text-white text-xs text-center px-4 pb-10">
+                                <Text className="text-slate-900 dark:text-white text-xs text-center px-4 pb-10">
                                     By creating an account you agree to our{" "}
                                     <Text className="text-sky-500">
                                         Terms of Service

@@ -9,6 +9,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -63,6 +64,8 @@ function resolveTemplate(): DisplayTemplate | null {
 }
 
 export default function ReportSetupScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const template = resolveTemplate();
     const user = auth.currentUser;
 
@@ -233,21 +236,21 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Top Bar */}
             <View className="flex-row items-center gap-3 px-5 pt-16 pb-4">
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={handleBack}
                     disabled={saving}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                 >
                     {saving
                         ? <ActivityIndicator size="small" color="#f2a72f" />
-                        : <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                        : <Ionicons name="arrow-back" size={18} color={isDark ? "#ffffff" : "#0f172a"} />
                     }
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-bold">Report setup</Text>
+                <Text className="text-slate-900 dark:text-white text-lg font-bold">Report setup</Text>
             </View>
 
             <ScrollView
@@ -271,7 +274,7 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                             <Text className="font-bold text-sm" style={{ color: template.color }}>
                                 {template.name}
                             </Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                 {template.sections.length} sections · {template.category}
                             </Text>
                         </View>
@@ -285,31 +288,31 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={handlePickTemplate}
-                        className="bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center mb-5 border border-dashed border-zinc-700"
+                        className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center mb-5 border border-dashed border-slate-300 dark:border-zinc-700"
                     >
-                        <Ionicons name="add-circle-outline" size={20} color="#52525b" />
-                        <Text className="text-zinc-500 text-sm ml-3">Select a template</Text>
+                        <Ionicons name="add-circle-outline" size={20} color={isDark ? "#52525b" : "#94a3b8"} />
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm ml-3">Select a template</Text>
                     </TouchableOpacity>
                 )}
 
                 {/* Report Title */}
                 <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest">
                         Report title
                     </Text>
                     {reportTitle.trim().length === 0 && (
                         <Text className="text-red-400 text-xs">Required</Text>
                     )}
                 </View>
-                <View className={`bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5 border ${reportTitle.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
+                <View className={`bg-white dark:bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5 border ${reportTitle.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
                     <TextInput
-                        className="text-white text-sm"
+                        className="text-slate-900 dark:text-white text-sm"
                         placeholder={
                             template
                                 ? `e.g. ${template.name} — Site A`
                                 : "e.g. Site inspection — Batch 4"
                         }
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         value={reportTitle}
                         onChangeText={setReportTitle}
                     />
@@ -317,18 +320,18 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
 
                 {/* Description — required */}
                 <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest">
                         Description
                     </Text>
                     {description.trim().length === 0 && (
                         <Text className="text-red-400 text-xs">Required</Text>
                     )}
                 </View>
-                <View className={`bg-slate-900 rounded-2xl px-4 py-3 mb-5 border ${description.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
+                <View className={`bg-white dark:bg-slate-900 rounded-2xl px-4 py-3 mb-5 border ${description.trim().length === 0 ? "border-red-500/30" : "border-transparent"}`}>
                     <TextInput
-                        className="text-white text-sm"
+                        className="text-slate-900 dark:text-white text-sm"
                         placeholder="Add notes or context for this report…"
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         value={description}
                         onChangeText={setDescription}
                         multiline
@@ -364,10 +367,10 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                 </View>
 
                 {/* Associate With */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Associate with
                 </Text>
-                <View className="flex-row bg-slate-900 rounded-2xl p-1 mb-5">
+                <View className="flex-row bg-white dark:bg-slate-900 rounded-2xl p-1 mb-5">
                     {(["individual", "organisation"] as Association[]).map((opt) => (
                         <TouchableOpacity
                             key={opt}
@@ -375,7 +378,7 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                             onPress={() => setAssociation(opt)}
                             className={`flex-1 py-2.5 rounded-xl items-center ${association === opt ? "bg-primary" : ""}`}
                         >
-                            <Text className={`text-sm font-semibold capitalize ${association === opt ? "text-white" : "text-zinc-500"}`}>
+                            <Text className={`text-sm font-semibold capitalize ${association === opt ? "text-white" : "text-slate-400 dark:text-zinc-500"}`}>
                                 {opt === "organisation" ? "Organisation" : "Individual"}
                             </Text>
                         </TouchableOpacity>
@@ -383,26 +386,26 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                 </View>
 
                 {/* Inspector Name */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Inspector name
                 </Text>
-                <View className="bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
+                <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
                     <TextInput
-                        className="text-white text-sm"
+                        className="text-slate-900 dark:text-white text-sm"
                         placeholder="Your name"
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         value={inspectorName}
                         onChangeText={setInspectorName}
                     />
                 </View>
 
                 {/* Report Date */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Report date
                 </Text>
-                <View className="bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-5">
-                    <Text className="text-zinc-400 text-sm flex-1">{reportDate}</Text>
-                    <Ionicons name="calendar-outline" size={18} color="#3f3f46" />
+                <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 h-12 flex-row items-center justify-between mb-5">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm flex-1">{reportDate}</Text>
+                    <Ionicons name="calendar-outline" size={18} color={isDark ? "#3f3f46" : "#cbd5e1"} />
                 </View>
 
                 {/* Auto GPS */}
@@ -411,17 +414,17 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     onPress={() => setAutoGps((v) => !v)}
                     className="flex-row items-center gap-3 mb-8"
                 >
-                    <View className={`w-5 h-5 rounded-md border-2 items-center justify-center ${autoGps ? "bg-primary border-primary" : "bg-transparent border-zinc-600"}`}>
+                    <View className={`w-5 h-5 rounded-md border-2 items-center justify-center ${autoGps ? "bg-primary border-primary" : "bg-transparent border-slate-300 dark:border-zinc-600"}`}>
                         {autoGps && <Ionicons name="checkmark" size={13} color="#ffffff" />}
                     </View>
-                    <Text className="text-white text-sm">Auto-capture GPS location on start</Text>
+                    <Text className="text-slate-900 dark:text-white text-sm">Auto-capture GPS location on start</Text>
                 </TouchableOpacity>
 
                 {/* Validation hint */}
                 {!canProceed && (
-                    <View className="bg-slate-900 rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
-                        <Ionicons name="information-circle-outline" size={16} color="#52525b" />
-                        <Text className="text-zinc-500 text-xs flex-1">
+                    <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
+                        <Ionicons name="information-circle-outline" size={16} color={isDark ? "#52525b" : "#94a3b8"} />
+                        <Text className="text-slate-400 dark:text-zinc-500 text-xs flex-1">
                             Select a template, enter a title and description to begin.
                         </Text>
                     </View>
@@ -432,10 +435,10 @@ export default function ReportSetupScreen({ onNavigate }: Props) {
                     activeOpacity={0.8}
                     onPress={handleBegin}
                     disabled={!canProceed || saving}
-                    className={`rounded-2xl py-4 items-center flex-row justify-center gap-2 ${canProceed ? "bg-primary" : "bg-slate-700"}`}
+                    className={`rounded-2xl py-4 items-center flex-row justify-center gap-2 ${canProceed ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
                 >
                     {saving && <ActivityIndicator size="small" color="#ffffff" />}
-                    <Text className="text-white font-bold text-base">
+                    <Text className="text-slate-900 dark:text-white font-bold text-base">
                         {saving ? "Saving…" : "Begin report"}
                     </Text>
                 </TouchableOpacity>

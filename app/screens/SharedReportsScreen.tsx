@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
@@ -22,6 +22,8 @@ interface Props {
 type Tab = "reports" | "templates";
 
 export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrganisation, currentOrgId }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [tab, setTab] = useState<Tab>("reports");
     const [reports, setReports] = useState<Report[]>([]);
     const [templates, setTemplates] = useState<Template[]>([]);
@@ -56,13 +58,13 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
     const emptyText = tab === "reports" ? "No shared reports yet" : "No shared templates yet";
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="sharedReports" />
 
             <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
                 <View>
-                    <Text className="text-white text-2xl font-bold">Shared</Text>
-                    <Text className="text-zinc-500 text-sm mt-1">Shared with your organisation</Text>
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">Shared</Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-sm mt-1">Shared with your organisation</Text>
                 </View>
                 {orgId && (
                     <TouchableOpacity
@@ -87,7 +89,7 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
             </View>
 
             {/* Tabs */}
-            <View className="flex-row mx-5 mb-3 bg-slate-900 rounded-2xl p-1">
+            <View className="flex-row mx-5 mb-3 bg-white dark:bg-slate-900 rounded-2xl p-1">
                 {(["reports", "templates"] as Tab[]).map((t) => (
                     <TouchableOpacity
                         key={t}
@@ -95,7 +97,7 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                         onPress={() => setTab(t)}
                         className={`flex-1 py-2 rounded-xl items-center ${tab === t ? "bg-primary" : ""}`}
                     >
-                        <Text className={`text-sm font-semibold ${tab === t ? "text-white" : "text-zinc-500"}`}>
+                        <Text className={`text-sm font-semibold ${tab === t ? "text-white" : "text-slate-400 dark:text-zinc-500"}`}>
                             {t === "reports" ? "Reports" : "Templates"}
                         </Text>
                     </TouchableOpacity>
@@ -105,8 +107,8 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
                 {!orgId ? (
                     <View className="items-center mt-16 gap-3">
-                        <Ionicons name="business-outline" size={48} color="#3f3f46" />
-                        <Text className="text-zinc-500 text-sm">No organisation selected</Text>
+                        <Ionicons name="business-outline" size={48} color={isDark ? "#3f3f46" : "#cbd5e1"} />
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">No organisation selected</Text>
                     </View>
                 ) : loading ? (
                     <View className="items-center mt-16">
@@ -115,8 +117,8 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                 ) : tab === "reports" ? (
                     reports.length === 0 ? (
                         <View className="items-center mt-16 gap-3">
-                            <Ionicons name={emptyIcon} size={48} color="#3f3f46" />
-                            <Text className="text-zinc-500 text-sm">{emptyText}</Text>
+                            <Ionicons name={emptyIcon} size={48} color={isDark ? "#3f3f46" : "#cbd5e1"} />
+                            <Text className="text-slate-400 dark:text-zinc-500 text-sm">{emptyText}</Text>
                         </View>
                     ) : (
                         <View className="gap-3">
@@ -131,20 +133,20 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                                             store.setSelectedReport(report);
                                             onNavigate("reportDetail");
                                         }}
-                                        className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
+                                        className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
                                     >
                                         <View style={{ width: 4, alignSelf: "stretch", backgroundColor: color }} />
                                         <View className="w-10 h-10 rounded-xl m-3 items-center justify-center" style={{ backgroundColor: color + "33" }}>
                                             <Ionicons name="document-text" size={18} color={color} />
                                         </View>
                                         <View className="flex-1 py-3 pr-2">
-                                            <Text className="text-white font-semibold text-sm" numberOfLines={1}>{report.title}</Text>
-                                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                            <Text className="text-slate-900 dark:text-white font-semibold text-sm" numberOfLines={1}>{report.title}</Text>
+                                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                                 {report.templateName} · {report.inspectorName} · {timeAgo(report.updatedAt)}
                                             </Text>
                                         </View>
                                         {report.score !== null && (
-                                            <Text className="text-zinc-400 text-xs mr-2">{report.score}%</Text>
+                                            <Text className="text-slate-500 dark:text-zinc-400 text-xs mr-2">{report.score}%</Text>
                                         )}
                                         <View className="mx-3 px-2.5 py-1 rounded-full" style={{ backgroundColor: cfg.bg }}>
                                             <Text className="text-xs font-semibold" style={{ color: cfg.text }}>{cfg.label}</Text>
@@ -157,9 +159,9 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                 ) : (
                     templates.length === 0 ? (
                         <View className="items-center mt-16 gap-3">
-                            <Ionicons name={emptyIcon} size={48} color="#3f3f46" />
-                            <Text className="text-zinc-500 text-sm">{emptyText}</Text>
-                            <Text className="text-zinc-600 text-xs text-center">
+                            <Ionicons name={emptyIcon} size={48} color={isDark ? "#3f3f46" : "#cbd5e1"} />
+                            <Text className="text-slate-400 dark:text-zinc-500 text-sm">{emptyText}</Text>
+                            <Text className="text-slate-400 dark:text-zinc-600 text-xs text-center">
                                 When you submit a report, you can share its template with the org.
                             </Text>
                         </View>
@@ -176,15 +178,15 @@ export default function SharedReportsScreen({ onNavigate, onOpenSidebar, hasOrga
                                             store.setSelectedTemplate(`user_${t.id}`);
                                             onNavigate("reportSetup");
                                         }}
-                                        className="flex-row items-center bg-slate-900 rounded-2xl overflow-hidden"
+                                        className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
                                     >
                                         <View style={{ width: 4, alignSelf: "stretch", backgroundColor: color }} />
                                         <View className="w-10 h-10 rounded-xl m-3 items-center justify-center" style={{ backgroundColor: color + "33" }}>
                                             <Ionicons name="layers" size={18} color={color} />
                                         </View>
                                         <View className="flex-1 py-3 pr-2">
-                                            <Text className="text-white font-semibold text-sm" numberOfLines={1}>{t.name}</Text>
-                                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                            <Text className="text-slate-900 dark:text-white font-semibold text-sm" numberOfLines={1}>{t.name}</Text>
+                                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                                 {t.category} · v{t.version} · {t.sections.length} sections
                                             </Text>
                                         </View>

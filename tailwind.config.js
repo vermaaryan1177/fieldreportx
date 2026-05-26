@@ -5,11 +5,12 @@ module.exports = {
         "./app/**/*.{js,jsx,ts,tsx}",
         "./components/**/*.{js,jsx,ts,tsx}",
     ],
+    darkMode: "media",
     presets: [require("nativewind/preset")],
     theme: {
         extend: {
             colors: {
-                background: "#4f585f",
+                background: "#f1f5f9",
                 primary: "#f2a72f",
                 secondary: "#c2c1be",
                 disabled: "#6a6a69",

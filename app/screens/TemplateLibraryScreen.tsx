@@ -6,6 +6,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 import AppHeader from "@/components/Header";
 import BottomNavBar, { AppScreen } from "@/components/BottomNavBar";
@@ -26,6 +27,8 @@ interface Props {
 }
 
 export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrganisation }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState<string>("All");
     const [userTemplates, setUserTemplates] = useState<Template[]>([]);
@@ -72,15 +75,15 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
     const hasResults = filteredSystem.length > 0 || filteredUser.length > 0;
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Header */}
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" active="templateLibrary" />
             <View className="flex-row items-center justify-between px-5 pt-5 pb-4">
                 <View>
-                    <Text className="text-white text-2xl font-bold">
+                    <Text className="text-slate-900 dark:text-white text-2xl font-bold">
                         Templates
                     </Text>
-                    <Text className="text-zinc-400 text-sm mt-0.5">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-0.5">
                         {SYSTEM_TEMPLATES.length} system
                         {userTemplates.length > 0
                             ? ` · ${userTemplates.length} custom`
@@ -101,12 +104,12 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
 
             {/* Search */}
             <View className="mx-5 mb-4">
-                <View className="flex-row items-center bg-slate-900 rounded-2xl px-4 h-11 gap-2">
-                    <Ionicons name="search-outline" size={18} color="#52525b" />
+                <View className="flex-row items-center bg-white dark:bg-slate-900 rounded-2xl px-4 h-11 gap-2">
+                    <Ionicons name="search-outline" size={18} color={isDark ? "#52525b" : "#94a3b8"} />
                     <TextInput
-                        className="flex-1 text-white text-sm"
+                        className="flex-1 text-slate-900 dark:text-white text-sm"
                         placeholder="Search templates…"
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         value={search}
                         onChangeText={setSearch}
                     />
@@ -118,7 +121,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                             <Ionicons
                                 name="close-circle"
                                 size={18}
-                                color="#52525b"
+                                color={isDark ? "#52525b" : "#94a3b8"}
                             />
                         </TouchableOpacity>
                     )}
@@ -145,7 +148,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                             className={`py-2 rounded-xl items-center border ${
                                 activeCategory === cat
                                     ? "bg-primary border-primary"
-                                    : "bg-slate-900 border-zinc-700"
+                                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-zinc-700"
                             }`}
                             style={{ minWidth: 82 }}
                         >
@@ -153,7 +156,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                 className={`text-sm font-medium ${
                                     activeCategory === cat
                                         ? "text-white"
-                                        : "text-zinc-400"
+                                        : "text-slate-500 dark:text-zinc-400"
                                 }`}
                             >
                                 {cat}
@@ -177,9 +180,9 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                         <Ionicons
                             name="search-outline"
                             size={40}
-                            color="#52525b"
+                            color={isDark ? "#52525b" : "#94a3b8"}
                         />
-                        <Text className="text-zinc-500 text-sm mt-3">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm mt-3">
                             No templates match "{search}"
                         </Text>
                     </View>
@@ -190,7 +193,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                     <View className="mb-5">
                         {(filteredUser.length > 0 ||
                             userTemplates.length > 0) && (
-                            <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
                                 System templates
                             </Text>
                         )}
@@ -200,7 +203,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                     key={template.id}
                                     activeOpacity={0.75}
                                     onPress={() => handleSelectSystem(template)}
-                                    className="bg-slate-900 rounded-2xl p-4"
+                                    className="bg-white dark:bg-slate-900 rounded-2xl p-4"
                                 >
                                     <View className="flex-row items-center mb-3">
                                         <View
@@ -217,7 +220,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                             />
                                         </View>
                                         <View className="flex-1">
-                                            <Text className="text-white font-semibold text-sm">
+                                            <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                                 {template.name}
                                             </Text>
                                             <View className="flex-row items-center gap-2 mt-0.5">
@@ -238,7 +241,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                                         {template.category}
                                                     </Text>
                                                 </View>
-                                                <Text className="text-zinc-600 text-xs">
+                                                <Text className="text-slate-400 dark:text-zinc-600 text-xs">
                                                     {template.sections.length}{" "}
                                                     sections
                                                 </Text>
@@ -247,9 +250,9 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                                         <Ionicons
                                                             name="location"
                                                             size={10}
-                                                            color="#52525b"
+                                                            color={isDark ? "#52525b" : "#94a3b8"}
                                                         />
-                                                        <Text className="text-zinc-600 text-xs">
+                                                        <Text className="text-slate-400 dark:text-zinc-600 text-xs">
                                                             GPS
                                                         </Text>
                                                     </View>
@@ -259,19 +262,19 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                         <Ionicons
                                             name="chevron-forward"
                                             size={16}
-                                            color="#3f3f46"
+                                            color={isDark ? "#3f3f46" : "#cbd5e1"}
                                         />
                                     </View>
-                                    <Text className="text-zinc-400 text-xs leading-relaxed mb-3">
+                                    <Text className="text-slate-500 dark:text-zinc-400 text-xs leading-relaxed mb-3">
                                         {template.description}
                                     </Text>
                                     <View className="flex-row flex-wrap gap-1.5">
                                         {template.features.map((feat) => (
                                             <View
                                                 key={feat}
-                                                className="bg-slate-800 px-2.5 py-1 rounded-full"
+                                                className="bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full"
                                             >
-                                                <Text className="text-zinc-400 text-xs">
+                                                <Text className="text-slate-500 dark:text-zinc-400 text-xs">
                                                     {feat}
                                                 </Text>
                                             </View>
@@ -286,7 +289,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                 {/* ── User templates ─────────────────────────── */}
                 {filteredUser.length > 0 && (
                     <View>
-                        <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
                             My templates
                         </Text>
                         <View className="gap-3">
@@ -295,9 +298,9 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                     key={template.id}
                                     activeOpacity={0.75}
                                     onPress={() => handleSelectUser(template)}
-                                    className="bg-slate-900 rounded-2xl p-4 flex-row items-center"
+                                    className="bg-white dark:bg-slate-900 rounded-2xl p-4 flex-row items-center"
                                 >
-                                    <View className="w-11 h-11 rounded-xl bg-slate-800 items-center justify-center mr-3">
+                                    <View className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center mr-3">
                                         <Ionicons
                                             name="document-outline"
                                             size={20}
@@ -305,16 +308,16 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                         />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-white font-semibold text-sm">
+                                        <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                             {template.name}
                                         </Text>
                                         <View className="flex-row items-center gap-2 mt-0.5">
-                                            <View className="bg-zinc-800 px-2 py-0.5 rounded-full">
-                                                <Text className="text-zinc-400 text-xs">
+                                            <View className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                                                <Text className="text-slate-500 dark:text-zinc-400 text-xs">
                                                     {template.category}
                                                 </Text>
                                             </View>
-                                            <Text className="text-zinc-600 text-xs">
+                                            <Text className="text-slate-400 dark:text-zinc-600 text-xs">
                                                 {template.sections.length}{" "}
                                                 sections
                                             </Text>
@@ -328,7 +331,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                                     <Ionicons
                                         name="chevron-forward"
                                         size={16}
-                                        color="#3f3f46"
+                                        color={isDark ? "#3f3f46" : "#cbd5e1"}
                                     />
                                 </TouchableOpacity>
                             ))}
@@ -341,14 +344,14 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => onNavigate("templateBuilder")}
-                        className="mt-4 border border-dashed border-zinc-700 rounded-2xl py-4 items-center flex-row justify-center gap-2"
+                        className="mt-4 border border-dashed border-slate-300 dark:border-zinc-700 rounded-2xl py-4 items-center flex-row justify-center gap-2"
                     >
                         <Ionicons
                             name="add-circle-outline"
                             size={18}
-                            color="#52525b"
+                            color={isDark ? "#52525b" : "#94a3b8"}
                         />
-                        <Text className="text-zinc-500 text-sm">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">
                             Create a custom template
                         </Text>
                     </TouchableOpacity>

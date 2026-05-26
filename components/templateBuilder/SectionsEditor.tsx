@@ -8,6 +8,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { createTemplate } from "@/lib/db/templates";
@@ -30,6 +31,8 @@ interface Props {
 }
 
 export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [templateName, setTemplateName] = useState(`${baseTemplate.name} (Custom)`);
     const [gpsValidation, setGpsValidation] = useState(baseTemplate.gpsValidation);
     const [saving, setSaving] = useState(false);
@@ -151,8 +154,8 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
             />
             <View className="flex-row items-center justify-between px-5 pt-4 pb-4">
                 <View>
-                    <Text className="text-white text-xl font-bold">Customise sections</Text>
-                    <Text className="text-zinc-400 text-sm mt-0.5">
+                    <Text className="text-slate-900 dark:text-white text-xl font-bold">Customise sections</Text>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-0.5">
                         Based on{" "}
                         <Text style={{ color: baseTemplate.color }} className="font-semibold">
                             {baseTemplate.name}
@@ -172,28 +175,28 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
             >
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-2">
                     Template name
                 </Text>
-                <View className="bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
+                <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 h-12 justify-center mb-5">
                     <TextInput
-                        className="text-white text-sm"
+                        className="text-slate-900 dark:text-white text-sm"
                         value={templateName}
                         onChangeText={setTemplateName}
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         placeholder="Give your template a name"
                     />
                 </View>
 
-                <View className="bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center gap-3 mb-5">
+                <View className="bg-white dark:bg-slate-900 rounded-2xl px-4 py-3.5 flex-row items-center gap-3 mb-5">
                     <View className="flex-1">
-                        <Text className="text-white text-sm font-medium">GPS validation</Text>
-                        <Text className="text-zinc-500 text-xs mt-0.5">Require GPS tags on photo fields</Text>
+                        <Text className="text-slate-900 dark:text-white text-sm font-medium">GPS validation</Text>
+                        <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">Require GPS tags on photo fields</Text>
                     </View>
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => setGpsValidation((v) => !v)}
-                        className={`w-12 h-6 rounded-full ${gpsValidation ? "bg-primary" : "bg-zinc-700"}`}
+                        className={`w-12 h-6 rounded-full ${gpsValidation ? "bg-primary" : "bg-slate-200 dark:bg-zinc-700"}`}
                     >
                         <View
                             style={{ left: gpsValidation ? 26 : 4 }}
@@ -203,7 +206,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 </View>
 
                 <View className="flex-row items-center justify-between mb-3">
-                    <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest">
                         Sections ({sections.length})
                     </Text>
                     <TouchableOpacity activeOpacity={0.7} onPress={addSection}>
@@ -215,24 +218,24 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                     {sections.map((section, index) => (
                         <View
                             key={section.id}
-                            className="bg-slate-900 rounded-2xl px-3 py-2.5 flex-row items-center gap-2"
+                            className="bg-white dark:bg-slate-900 rounded-2xl px-3 py-2.5 flex-row items-center gap-2"
                         >
-                            <View className="w-7 h-7 rounded-lg bg-zinc-800 items-center justify-center shrink-0">
-                                <Text className="text-zinc-400 text-xs font-bold">
+                            <View className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-zinc-800 items-center justify-center shrink-0">
+                                <Text className="text-slate-500 dark:text-zinc-400 text-xs font-bold">
                                     {String(index + 1).padStart(2, "0")}
                                 </Text>
                             </View>
 
                             <TextInput
-                                className="flex-1 text-white text-sm py-1.5"
+                                className="flex-1 text-slate-900 dark:text-white text-sm py-1.5"
                                 value={section.name}
                                 onChangeText={(name) => renameSection(section.id, name)}
-                                placeholderTextColor="#52525b"
+                                placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                                 placeholder="Section name"
                             />
 
-                            <View className="bg-zinc-800 px-2 py-0.5 rounded-full shrink-0">
-                                <Text className="text-zinc-500 text-xs">{section.fields.length}f</Text>
+                            <View className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full shrink-0">
+                                <Text className="text-slate-400 dark:text-zinc-500 text-xs">{section.fields.length}f</Text>
                             </View>
 
                             <TouchableOpacity
@@ -241,7 +244,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                                 disabled={index === 0}
                                 hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                             >
-                                <Ionicons name="chevron-up" size={18} color={index === 0 ? "#3f3f46" : "#71717a"} />
+                                <Ionicons name="chevron-up" size={18} color={index === 0 ? (isDark ? "#3f3f46" : "#cbd5e1") : "#71717a"} />
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -253,7 +256,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                                 <Ionicons
                                     name="chevron-down"
                                     size={18}
-                                    color={index === sections.length - 1 ? "#3f3f46" : "#71717a"}
+                                    color={index === sections.length - 1 ? (isDark ? "#3f3f46" : "#cbd5e1") : "#71717a"}
                                 />
                             </TouchableOpacity>
 
@@ -271,15 +274,15 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={addSection}
-                    className="border border-dashed border-zinc-700 rounded-2xl py-3.5 items-center mb-3"
+                    className="border border-dashed border-slate-300 dark:border-zinc-700 rounded-2xl py-3.5 items-center mb-3"
                 >
-                    <Text className="text-zinc-500 text-sm">+ Add section</Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-sm">+ Add section</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     activeOpacity={0.75}
                     onPress={() => setPickerVisible(true)}
-                    className="border border-dashed border-zinc-700 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-6"
+                    className="border border-dashed border-slate-300 dark:border-zinc-700 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 mb-6"
                 >
                     <Ionicons name="layers-outline" size={15} color="#f2a72f" />
                     <Text className="text-primary text-sm font-semibold">Browse sections from other templates</Text>
@@ -293,7 +296,7 @@ export default function SectionsEditor({ baseTemplate, onSaved }: Props) {
                 >
                     {saving
                         ? <ActivityIndicator color="#fff" />
-                        : <Text className="text-white font-bold text-base">Save to my library</Text>
+                        : <Text className="text-slate-900 dark:text-white font-bold text-base">Save to my library</Text>
                     }
                 </TouchableOpacity>
             </ScrollView>

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { SYSTEM_TEMPLATES, SystemTemplate } from "@/lib/templates/systemTemplates";
 
@@ -10,6 +10,8 @@ interface Props {
 }
 
 export default function TypePicker({ onSelect, onImport }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selected = SYSTEM_TEMPLATES.find((t) => t.id === selectedId);
 
@@ -21,10 +23,10 @@ export default function TypePicker({ onSelect, onImport }: Props) {
     return (
         <View className="flex-1">
             <View className="px-5 pt-4 pb-5">
-                <Text className="text-white text-xl font-bold">
+                <Text className="text-slate-900 dark:text-white text-xl font-bold">
                     Choose a base type
                 </Text>
-                <Text className="text-zinc-400 text-sm mt-1 leading-relaxed">
+                <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-1 leading-relaxed">
                     Pick the template type that best fits your report. You'll
                     customise the sections in the next step.
                 </Text>
@@ -49,7 +51,7 @@ export default function TypePicker({ onSelect, onImport }: Props) {
                                         borderColor: isSelected ? template.color : "transparent",
                                         borderRadius: 16,
                                     }}
-                                    className="bg-slate-900 p-4"
+                                    className="bg-white dark:bg-slate-900 p-4"
                                 >
                                     <View
                                         className="w-10 h-10 rounded-xl items-center justify-center mb-3"
@@ -57,10 +59,10 @@ export default function TypePicker({ onSelect, onImport }: Props) {
                                     >
                                         <Ionicons name={template.icon as any} size={20} color={template.color} />
                                     </View>
-                                    <Text className="text-white font-semibold text-sm">
+                                    <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                         {template.name}
                                     </Text>
-                                    <Text className="text-zinc-500 text-xs mt-1 leading-relaxed" numberOfLines={2}>
+                                    <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-1 leading-relaxed" numberOfLines={2}>
                                         {template.description}
                                     </Text>
                                     <View
@@ -91,23 +93,23 @@ export default function TypePicker({ onSelect, onImport }: Props) {
                         activeOpacity={0.85}
                         disabled={!selected}
                         onPress={() => selected && onSelect(selected)}
-                        className={`rounded-2xl py-4 items-center ${selected ? "bg-primary" : "bg-slate-700"}`}
+                        className={`rounded-2xl py-4 items-center ${selected ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
                     >
-                        <Text className="text-white font-bold text-base">
+                        <Text className="text-slate-900 dark:text-white font-bold text-base">
                             {selected ? `Continue with ${selected.name}` : "Select a type to continue"}
                         </Text>
                     </TouchableOpacity>
 
                     <View className="flex-row items-center gap-3">
-                        <View className="flex-1 h-px bg-zinc-800" />
-                        <Text className="text-zinc-600 text-xs">or</Text>
-                        <View className="flex-1 h-px bg-zinc-800" />
+                        <View className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
+                        <Text className="text-slate-400 dark:text-zinc-600 text-xs">or</Text>
+                        <View className="flex-1 h-px bg-slate-200 dark:bg-zinc-800" />
                     </View>
 
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={onImport}
-                        className="border border-zinc-700 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                        className="border border-slate-300 dark:border-zinc-700 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
                     >
                         <Ionicons name="code-download-outline" size={16} color="#f2a72f" />
                         <Text className="text-primary font-semibold text-sm">Import from JSON / YAML</Text>

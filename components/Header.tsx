@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
 import { NotificationDB } from "@/lib/db/notifications";
@@ -35,6 +35,8 @@ export default function AppHeader({
     profileInitials,
     active,
 }: HeaderProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const user = auth.currentUser;
     const lastNav = useRef(0);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -60,21 +62,21 @@ export default function AppHeader({
     };
 
     return (
-        <View className="flex-row items-center justify-between px-5 pt-12 pb-5 bg-slate-900">
+        <View className="flex-row items-center justify-between px-5 pt-12 pb-5 bg-white dark:bg-slate-900">
             {/* LEFT: Sidebar */}
             <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={onOpenSidebar}
-                className="w-10 h-10 rounded-full bg-slate-800 items-center justify-center"
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
             >
-                <Ionicons name="menu" size={22} color="#ffffff" />
+                <Ionicons name="menu" size={22} color={isDark ? "#ffffff" : "#0f172a"} />
             </TouchableOpacity>
 
             {/* RIGHT: Actions */}
             <View className="flex-row items-center gap-3">
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                     style={{ overflow: "visible" }}
                     onPress={() => safeNavigate("notification")}
                 >
@@ -86,7 +88,7 @@ export default function AppHeader({
                             backgroundColor: "#ef4444",
                             alignItems: "center", justifyContent: "center",
                             paddingHorizontal: 3,
-                            borderWidth: 1.5, borderColor: "#0f172a",
+                            borderWidth: 1.5, borderColor: isDark ? "#0f172a" : "#ffffff",
                         }}>
                             <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800", lineHeight: 11 }}>
                                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -100,7 +102,7 @@ export default function AppHeader({
                     onPress={() => safeNavigate("settings")}
                     className="w-10 h-10 rounded-full bg-primary items-center justify-center"
                 >
-                    <Text className="text-white font-bold text-sm">
+                    <Text className="text-slate-900 dark:text-white font-bold text-sm">
                         {initials}
                     </Text>
                 </TouchableOpacity>

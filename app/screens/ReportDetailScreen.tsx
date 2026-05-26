@@ -3,7 +3,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View, useColorScheme } from "react-native";
 import { Path, Svg } from "react-native-svg";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -64,7 +64,7 @@ function SignatureDisplay({ paths }: { paths: string }) {
     if (!pathList.length) return null;
     const viewBox = sigViewBox(paths);
     return (
-        <View className="bg-slate-800 rounded-2xl overflow-hidden border border-zinc-700" style={{ height: 120 }}>
+        <View className="bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-300 dark:border-zinc-700" style={{ height: 120 }}>
             <Svg width="100%" height="100%" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
                 {pathList.map((d, i) => (
                     <Path key={i} d={d} stroke="#f2a72f" strokeWidth={2.5} fill="none"
@@ -299,6 +299,8 @@ ${sigHtml}
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportDetailScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const report = store.selectedReport;
     const [template, setTemplate] = useState<Template | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
@@ -378,9 +380,9 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
 
     if (!report) {
         return (
-            <View className="flex-1 bg-background items-center justify-center gap-3">
-                <Ionicons name="document-outline" size={40} color="#3f3f46" />
-                <Text className="text-zinc-500 text-sm">Report not found</Text>
+            <View className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center gap-3">
+                <Ionicons name="document-outline" size={40} color={isDark ? "#3f3f46" : "#cbd5e1"} />
+                <Text className="text-slate-400 dark:text-zinc-500 text-sm">Report not found</Text>
                 <TouchableOpacity onPress={() => onNavigate("reports")} className="mt-2">
                     <Text className="text-primary text-sm font-semibold">Back to Reports</Text>
                 </TouchableOpacity>
@@ -400,18 +402,18 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
 
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Header */}
             <View className="flex-row items-center justify-between px-5 pt-16 pb-4">
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => onNavigate("reports")}
-                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                        className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                     >
-                        <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                        <Ionicons name="arrow-back" size={18} color={isDark ? "#ffffff" : "#0f172a"} />
                     </TouchableOpacity>
-                    <Text className="text-white text-lg font-bold" numberOfLines={1} style={{ maxWidth: 220 }}>
+                    <Text className="text-slate-900 dark:text-white text-lg font-bold" numberOfLines={1} style={{ maxWidth: 220 }}>
                         {report.title}
                     </Text>
                 </View>
@@ -425,13 +427,13 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
 
                 {/* ── Meta card ─────────────────────────────────────────── */}
-                <View className="mx-5 bg-slate-900 rounded-2xl p-4 gap-3">
+                <View className="mx-5 bg-white dark:bg-slate-900 rounded-2xl p-4 gap-3">
                     <View className="flex-row items-start justify-between">
                         <View className="flex-1 pr-3">
-                            <Text className="text-white text-base font-bold" numberOfLines={2}>
+                            <Text className="text-slate-900 dark:text-white text-base font-bold" numberOfLines={2}>
                                 {report.title}
                             </Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                 {report.templateName} · {fmtDate(report.createdAt)}
                             </Text>
                         </View>
@@ -453,9 +455,9 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                         report.checksum ? { label: "Checksum", value: report.checksum } : null,
                         report.deviceHash ? { label: "Device hash", value: report.deviceHash } : null,
                     ].filter(Boolean).map((row) => (
-                        <View key={row!.label} className="flex-row items-start justify-between border-t border-zinc-800 pt-2 gap-4">
-                            <Text className="text-zinc-500 text-xs shrink-0">{row!.label}</Text>
-                            <Text className="text-white text-xs font-medium text-right flex-1" numberOfLines={2}>{row!.value}</Text>
+                        <View key={row!.label} className="flex-row items-start justify-between border-t border-slate-200 dark:border-zinc-800 pt-2 gap-4">
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs shrink-0">{row!.label}</Text>
+                            <Text className="text-slate-900 dark:text-white text-xs font-medium text-right flex-1" numberOfLines={2}>{row!.value}</Text>
                         </View>
                     ))}
                 </View>
@@ -467,15 +469,15 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                         { value: String(report.photos.length),                      label: "Photos"   },
                         { value: report.score != null ? `${report.score}%` : "—",  label: "Score"    },
                     ].map((s) => (
-                        <View key={s.label} className="flex-1 bg-slate-900 rounded-2xl py-3 items-center">
-                            <Text className="text-white text-xl font-bold">{s.value}</Text>
-                            <Text className="text-zinc-500 text-xs mt-0.5">{s.label}</Text>
+                        <View key={s.label} className="flex-1 bg-white dark:bg-slate-900 rounded-2xl py-3 items-center">
+                            <Text className="text-slate-900 dark:text-white text-xl font-bold">{s.value}</Text>
+                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">{s.label}</Text>
                         </View>
                     ))}
                 </View>
 
                 {/* ── Sections ──────────────────────────────────────────── */}
-                <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-4 mb-2">
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-widest mx-5 mt-4 mb-2">
                     Sections
                 </Text>
 
@@ -508,18 +510,18 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                                 key={sec.id}
                                 activeOpacity={0.7}
                                 onPress={() => setExpanded(isExpanded ? null : sec.id)}
-                                className="bg-slate-900 rounded-2xl px-4 pt-3.5 pb-3.5"
+                                className="bg-white dark:bg-slate-900 rounded-2xl px-4 pt-3.5 pb-3.5"
                             >
                                 <View className="flex-row items-center">
                                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: cfg.bg, alignItems: "center", justifyContent: "center", marginRight: 12 }}>
                                         <Ionicons name={cfg.icon} size={14} color={cfg.color} />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className={`text-sm font-semibold ${isInactive ? "text-zinc-500" : "text-white"}`}>
+                                        <Text className={`text-sm font-semibold ${isInactive ? "text-slate-400 dark:text-zinc-500" : "text-slate-900 dark:text-white"}`}>
                                             {sec.name}
                                         </Text>
                                         {!isInactive && (
-                                            <Text className="text-zinc-500 text-xs mt-0.5">
+                                            <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                                                 {textFields.length} field{textFields.length !== 1 ? "s" : ""}
                                                 {allPhotoUris.length > 0 ? ` · ${allPhotoUris.length} photo${allPhotoUris.length !== 1 ? "s" : ""}` : ""}
                                                 {" · "}<Text style={{ color: cfg.color }}>{sec.status === "completed" ? "Completed" : sec.status === "partial" ? "Partial" : "In Progress"}</Text>
@@ -529,13 +531,13 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                                     <Ionicons
                                         name={isExpanded ? "chevron-up" : "chevron-down"}
                                         size={16}
-                                        color="#52525b"
+                                        color={isDark ? "#52525b" : "#94a3b8"}
                                     />
                                 </View>
 
                                 {/* Expanded content */}
                                 {isExpanded && !isInactive && (
-                                    <View className="mt-3 pt-3 border-t border-zinc-800 gap-2.5">
+                                    <View className="mt-3 pt-3 border-t border-slate-200 dark:border-zinc-800 gap-2.5">
                                         {/* Field rows */}
                                         {textFields.map(([fid, val]) => {
                                             const meta = fieldMap[fid] ?? { label: fid, type: "text" as FieldType };
@@ -543,10 +545,10 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                                             if (!display) return null;
                                             return (
                                                 <View key={fid} className="flex-row gap-3 items-start">
-                                                    <Text className="text-zinc-500 text-xs w-28 shrink-0 pt-0.5 leading-relaxed" numberOfLines={2}>
+                                                    <Text className="text-slate-400 dark:text-zinc-500 text-xs w-28 shrink-0 pt-0.5 leading-relaxed" numberOfLines={2}>
                                                         {meta.label}
                                                     </Text>
-                                                    <Text className="text-zinc-200 text-xs flex-1 leading-relaxed">
+                                                    <Text className="text-slate-700 dark:text-zinc-200 text-xs flex-1 leading-relaxed">
                                                         {display}
                                                     </Text>
                                                 </View>
@@ -568,7 +570,7 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                                         )}
 
                                         {textFields.length === 0 && allPhotoUris.length === 0 && (
-                                            <Text className="text-zinc-600 text-xs italic">No data recorded</Text>
+                                            <Text className="text-slate-400 dark:text-zinc-600 text-xs italic">No data recorded</Text>
                                         )}
                                     </View>
                                 )}
@@ -579,12 +581,12 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
 
                 {/* ── Route card ────────────────────────────────────────── */}
                 {report.routeData && (
-                    <View className="mx-5 mt-3 bg-slate-900 rounded-2xl p-4 gap-3">
+                    <View className="mx-5 mt-3 bg-white dark:bg-slate-900 rounded-2xl p-4 gap-3">
                         <View className="flex-row items-center gap-3">
                             <View className="w-10 h-10 rounded-xl bg-primary/20 items-center justify-center">
                                 <Ionicons name="map" size={20} color="#f2a72f" />
                             </View>
-                            <Text className="text-white font-semibold text-sm">Route Summary</Text>
+                            <Text className="text-slate-900 dark:text-white font-semibold text-sm">Route Summary</Text>
                         </View>
                         {[
                             { label: "Distance",  value: `${report.routeData.distanceKm} km` },
@@ -592,9 +594,9 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                             { label: "Waypoints", value: String(report.routeData.waypoints.length) },
                             { label: "Stops",     value: String(report.routeData.markers) },
                         ].map((row, i, arr) => (
-                            <View key={row.label} className={`flex-row justify-between ${i < arr.length - 1 ? "border-b border-zinc-800 pb-2" : ""}`}>
-                                <Text className="text-zinc-500 text-xs">{row.label}</Text>
-                                <Text className="text-white text-xs font-medium">{row.value}</Text>
+                            <View key={row.label} className={`flex-row justify-between ${i < arr.length - 1 ? "border-b border-slate-200 dark:border-zinc-800 pb-2" : ""}`}>
+                                <Text className="text-slate-400 dark:text-zinc-500 text-xs">{row.label}</Text>
+                                <Text className="text-slate-900 dark:text-white text-xs font-medium">{row.value}</Text>
                             </View>
                         ))}
                     </View>
@@ -602,10 +604,10 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
 
                 {/* ── Signature ─────────────────────────────────────────── */}
                 {signaturePaths && (
-                    <View className="mx-5 mt-3 bg-slate-900 rounded-2xl p-4 gap-3">
+                    <View className="mx-5 mt-3 bg-white dark:bg-slate-900 rounded-2xl p-4 gap-3">
                         <View className="flex-row items-center gap-2 mb-1">
                             <Ionicons name="create-outline" size={16} color="#22c55e" />
-                            <Text className="text-white font-semibold text-sm">Signature</Text>
+                            <Text className="text-slate-900 dark:text-white font-semibold text-sm">Signature</Text>
                         </View>
                         <SignatureDisplay paths={signaturePaths} />
                     </View>
@@ -613,7 +615,7 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
             </ScrollView>
 
             {/* ── Bottom actions ────────────────────────────────────────── */}
-            <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-zinc-800 px-5 pb-10 pt-3 gap-2">
+            <View className="absolute bottom-0 left-0 right-0 bg-background dark:bg-[#1e2529] border-t border-slate-200 dark:border-zinc-800 px-5 pb-10 pt-3 gap-2">
                 {reportStatus === "archived" ? (
                     /* ── Archived state: unarchive only ── */
                     <TouchableOpacity
@@ -649,14 +651,14 @@ export default function ReportDetailScreen({ onNavigate }: Props) {
                             activeOpacity={0.8}
                             onPress={handleExport}
                             disabled={exporting}
-                            className="bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                            className="bg-slate-100 dark:bg-slate-800 rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
                             style={exporting ? { opacity: 0.6 } : undefined}
                         >
                             {exporting
-                                ? <ActivityIndicator size="small" color="#ffffff" />
-                                : <Ionicons name="share-outline" size={16} color="#ffffff" />
+                                ? <ActivityIndicator size="small" color={isDark ? "#ffffff" : "#0f172a"} />
+                                : <Ionicons name="share-outline" size={16} color={isDark ? "#ffffff" : "#0f172a"} />
                             }
-                            <Text className="text-white font-semibold text-sm">
+                            <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                                 {exporting ? "Exporting…" : "Export PDF"}
                             </Text>
                         </TouchableOpacity>

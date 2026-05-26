@@ -1,4 +1,4 @@
-import { Text, TextInput, View } from "react-native";
+import { Text, TextInput, View, useColorScheme } from "react-native";
 
 interface InputFieldProps {
     label: string;
@@ -23,19 +23,21 @@ export default function InputField({
     secureTextEntry = false,
     autoCapitalize,
 }: InputFieldProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     return (
         <View>
-            <Text className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1.5 px-1">
+            <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1.5 px-1">
                 {label}
             </Text>
-            <View className="flex-row items-center bg-slate-400 rounded-2xl px-4 h-12">
+            <View className="flex-row items-center bg-white dark:bg-slate-700 rounded-2xl px-4 h-12">
                 {icon && (
                     <Text className="text-base mr-3 opacity-60">{icon}</Text>
                 )}
                 <TextInput
-                    className="flex-1 text-white text-sm"
+                    className="flex-1 text-slate-900 dark:text-white text-sm"
                     placeholder={placeholder}
-                    placeholderTextColor="#52525b"
+                    placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                     value={value}
                     onChangeText={onChangeText}
                     keyboardType={keyboardType}

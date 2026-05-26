@@ -19,6 +19,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useColorScheme,
 } from "react-native";
 
 import { AppScreen } from "@/components/BottomNavBar";
@@ -179,6 +180,8 @@ function FieldRow({
     setOpenSelect,
     onSignatureRequest,
 }: FieldRowProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const isSelectOpen = openSelect === field.id;
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -429,7 +432,7 @@ function FieldRow({
         <View className="mb-4">
             {/* Label */}
             <View className="flex-row items-center mb-1.5 gap-1">
-                <Text className="text-zinc-400 text-xs font-medium">
+                <Text className="text-slate-500 dark:text-zinc-400 text-xs font-medium">
                     {field.label}
                 </Text>
                 {field.required && (
@@ -443,10 +446,10 @@ function FieldRow({
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => setLocationPickerOpen(true)}
-                        className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                        className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     >
                         <Text
-                            className={`text-sm flex-1 mr-2 ${value ? "text-white" : "text-zinc-600"}`}
+                            className={`text-sm flex-1 mr-2 ${value ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-zinc-600"}`}
                             numberOfLines={1}
                         >
                             {value ? String(value) : "Select on map…"}
@@ -454,7 +457,7 @@ function FieldRow({
                         <Ionicons
                             name="map-outline"
                             size={16}
-                            color="#52525b"
+                            color={isDark ? "#52525b" : "#94a3b8"}
                         />
                     </TouchableOpacity>
 
@@ -491,17 +494,17 @@ function FieldRow({
                             }
                             setShowDatePicker(true);
                         }}
-                        className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                        className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     >
                         <Text
-                            className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+                            className={`text-sm ${value ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-zinc-600"}`}
                         >
                             {value ? String(value) : "Select date & time…"}
                         </Text>
                         <Ionicons
                             name="time-outline"
                             size={16}
-                            color="#52525b"
+                            color={isDark ? "#52525b" : "#94a3b8"}
                         />
                     </TouchableOpacity>
 
@@ -517,7 +520,7 @@ function FieldRow({
                             >
                                 <View
                                     style={{
-                                        backgroundColor: "#1e293b",
+                                        backgroundColor: isDark ? "#1e293b" : "#ffffff",
                                         borderTopLeftRadius: 20,
                                         borderTopRightRadius: 20,
                                         paddingBottom: 32,
@@ -530,7 +533,7 @@ function FieldRow({
                                             paddingHorizontal: 20,
                                             paddingVertical: 14,
                                             borderBottomWidth: 1,
-                                            borderBottomColor: "#27272a",
+                                            borderBottomColor: isDark ? "#27272a" : "#e2e8f0",
                                         }}
                                     >
                                         <TouchableOpacity
@@ -540,7 +543,7 @@ function FieldRow({
                                         >
                                             <Text
                                                 style={{
-                                                    color: "#71717a",
+                                                    color: isDark ? "#71717a" : "#64748b",
                                                     fontSize: 15,
                                                 }}
                                             >
@@ -549,7 +552,7 @@ function FieldRow({
                                         </TouchableOpacity>
                                         <Text
                                             style={{
-                                                color: "#ffffff",
+                                                color: isDark ? "#ffffff" : "#0f172a",
                                                 fontWeight: "bold",
                                                 fontSize: 15,
                                             }}
@@ -654,17 +657,17 @@ function FieldRow({
                                     );
                                 setShowDatePicker(true);
                             }}
-                            className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                            className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                         >
                             <Text
-                                className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+                                className={`text-sm ${value ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-zinc-600"}`}
                             >
                                 {value ? String(value) : "Select date…"}
                             </Text>
                             <Ionicons
                                 name="calendar-outline"
                                 size={16}
-                                color="#52525b"
+                                color={isDark ? "#52525b" : "#94a3b8"}
                             />
                         </TouchableOpacity>
 
@@ -680,7 +683,7 @@ function FieldRow({
                             >
                                 <View
                                     style={{
-                                        backgroundColor: "#1e293b",
+                                        backgroundColor: isDark ? "#1e293b" : "#ffffff",
                                         borderTopLeftRadius: 20,
                                         borderTopRightRadius: 20,
                                         paddingBottom: 32,
@@ -693,7 +696,7 @@ function FieldRow({
                                             paddingHorizontal: 20,
                                             paddingVertical: 14,
                                             borderBottomWidth: 1,
-                                            borderBottomColor: "#27272a",
+                                            borderBottomColor: isDark ? "#27272a" : "#e2e8f0",
                                         }}
                                     >
                                         <TouchableOpacity
@@ -703,7 +706,7 @@ function FieldRow({
                                         >
                                             <Text
                                                 style={{
-                                                    color: "#71717a",
+                                                    color: isDark ? "#71717a" : "#64748b",
                                                     fontSize: 15,
                                                 }}
                                             >
@@ -712,7 +715,7 @@ function FieldRow({
                                         </TouchableOpacity>
                                         <Text
                                             style={{
-                                                color: "#ffffff",
+                                                color: isDark ? "#ffffff" : "#0f172a",
                                                 fontWeight: "bold",
                                                 fontSize: 15,
                                             }}
@@ -753,12 +756,12 @@ function FieldRow({
                 !isDateTimeField(field.label) &&
                 !isDateField(field.label) &&
                 !isMultiline(field.label) && (
-                    <View className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
+                    <View className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center">
                         <TextInput
-                            className="text-white text-sm flex-1"
+                            className="text-slate-900 dark:text-white text-sm flex-1"
                             value={String(value ?? "")}
                             onChangeText={onChange}
-                            placeholderTextColor="#52525b"
+                            placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                             placeholder="Type here…"
                             numberOfLines={1}
                             textAlignVertical="center"
@@ -786,7 +789,7 @@ function FieldRow({
                                 <Ionicons
                                     name="mic-outline"
                                     size={20}
-                                    color="#52525b"
+                                    color={isDark ? "#52525b" : "#94a3b8"}
                                 />
                             )}
                         </TouchableOpacity>
@@ -799,12 +802,12 @@ function FieldRow({
                 !isDateTimeField(field.label) &&
                 !isDateField(field.label) &&
                 isMultiline(field.label) && (
-                    <View className="bg-slate-800 rounded-xl px-3 py-3">
+                    <View className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-3">
                         <TextInput
-                            className="text-white text-sm"
+                            className="text-slate-900 dark:text-white text-sm"
                             value={String(value ?? "")}
                             onChangeText={onChange}
-                            placeholderTextColor="#52525b"
+                            placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                             placeholder="Type here…"
                             multiline
                             numberOfLines={4}
@@ -818,7 +821,7 @@ function FieldRow({
                                 marginTop: 8,
                                 paddingTop: 8,
                                 borderTopWidth: 1,
-                                borderTopColor: "#27272a",
+                                borderTopColor: isDark ? "#27272a" : "#e2e8f0",
                             }}
                         >
                             <TouchableOpacity
@@ -833,14 +836,14 @@ function FieldRow({
                                     flexDirection: "row",
                                     alignItems: "center",
                                     gap: 6,
-                                    backgroundColor: "#1e293b",
+                                    backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
                                     paddingHorizontal: 12,
                                     paddingVertical: 6,
                                     borderRadius: 10,
                                     borderWidth: 1,
                                     borderColor: recording
                                         ? "#ef444440"
-                                        : "#3f3f46",
+                                        : isDark ? "#3f3f46" : "#cbd5e1",
                                 }}
                             >
                                 {isTranscribing ? (
@@ -900,15 +903,15 @@ function FieldRow({
             {/* NUMBER — read-only auto-fill (RMS / Peak / Avg from accelerometer) */}
             {field.type === "number" && isAutoFillNumber(field.label) && (
                 <View
-                    className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                    className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     style={{ opacity: 0.7 }}
                 >
                     <Text
                         style={{
                             color:
                                 value !== undefined && value !== ""
-                                    ? "#fff"
-                                    : "#3f3f46",
+                                    ? (isDark ? "#fff" : "#0f172a")
+                                    : (isDark ? "#3f3f46" : "#cbd5e1"),
                             fontSize: 14,
                         }}
                     >
@@ -916,15 +919,15 @@ function FieldRow({
                             ? String(value)
                             : "—"}
                     </Text>
-                    <Ionicons name="flash-outline" size={13} color="#3f3f46" />
+                    <Ionicons name="flash-outline" size={13} color={isDark ? "#3f3f46" : "#cbd5e1"} />
                 </View>
             )}
 
             {/* NUMBER — editable */}
             {field.type === "number" && !isAutoFillNumber(field.label) && (
-                <View className="bg-slate-800 rounded-xl px-3 h-11 justify-center">
+                <View className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 justify-center">
                     <TextInput
-                        className="text-white text-sm"
+                        className="text-slate-900 dark:text-white text-sm"
                         value={
                             value !== undefined && value !== ""
                                 ? String(value)
@@ -939,7 +942,7 @@ function FieldRow({
                             if (!isNaN(n)) onChange(n);
                         }}
                         keyboardType="numeric"
-                        placeholderTextColor="#52525b"
+                        placeholderTextColor={isDark ? "#52525b" : "#94a3b8"}
                         placeholder="0"
                     />
                 </View>
@@ -950,20 +953,20 @@ function FieldRow({
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => onChange(!(value === true))}
-                    className="flex-row items-center gap-3 bg-slate-800 rounded-xl px-3 h-11"
+                    className="flex-row items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11"
                 >
                     <View
                         className={`w-5 h-5 rounded-md border-2 items-center justify-center ${
                             value === true
                                 ? "bg-primary border-primary"
-                                : "border-zinc-600"
+                                : "border-slate-300 dark:border-zinc-600"
                         }`}
                     >
                         {value === true && (
                             <Ionicons name="checkmark" size={13} color="#fff" />
                         )}
                     </View>
-                    <Text className="text-zinc-400 text-sm">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-sm">
                         {value === true ? "Yes" : "No"}
                     </Text>
                 </TouchableOpacity>
@@ -977,21 +980,21 @@ function FieldRow({
                         onPress={() =>
                             setOpenSelect(isSelectOpen ? null : field.id)
                         }
-                        className="bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
+                        className="bg-slate-100 dark:bg-slate-800 rounded-xl px-3 h-11 flex-row items-center justify-between"
                     >
                         <Text
-                            className={`text-sm ${value ? "text-white" : "text-zinc-600"}`}
+                            className={`text-sm ${value ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-zinc-600"}`}
                         >
                             {String(value ?? "Select…")}
                         </Text>
                         <Ionicons
                             name={isSelectOpen ? "chevron-up" : "chevron-down"}
                             size={15}
-                            color="#52525b"
+                            color={isDark ? "#52525b" : "#94a3b8"}
                         />
                     </TouchableOpacity>
                     {isSelectOpen && (
-                        <View className="bg-slate-800 rounded-xl overflow-hidden mt-1 border border-zinc-700">
+                        <View className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden mt-1 border border-slate-300 dark:border-zinc-700">
                             {field.options?.map((opt, i) => (
                                 <TouchableOpacity
                                     key={opt}
@@ -1002,7 +1005,7 @@ function FieldRow({
                                     }}
                                     className={`px-4 py-3 flex-row items-center justify-between ${
                                         i < (field.options?.length ?? 0) - 1
-                                            ? "border-b border-zinc-700"
+                                            ? "border-b border-slate-300 dark:border-zinc-700"
                                             : ""
                                     }`}
                                 >
@@ -1010,7 +1013,7 @@ function FieldRow({
                                         className={`text-sm ${
                                             value === opt
                                                 ? "text-primary font-semibold"
-                                                : "text-white"
+                                                : "text-slate-900 dark:text-white"
                                         }`}
                                     >
                                         {opt}
@@ -1194,8 +1197,8 @@ function FieldRow({
                             borderRadius: 10,
                             borderWidth: 1,
                             borderStyle: "dashed",
-                            borderColor: "#3f3f46",
-                            backgroundColor: "#1e293b",
+                            borderColor: isDark ? "#3f3f46" : "#cbd5e1",
+                            backgroundColor: isDark ? "#1e293b" : "#f8fafc",
                             alignItems: "center",
                             justifyContent: "center",
                             gap: 4,
@@ -1287,16 +1290,16 @@ function FieldRow({
                     className={`rounded-xl h-11 flex-row items-center justify-center gap-2 border ${
                         value
                             ? "bg-primary/10 border-primary/30"
-                            : "bg-slate-800 border-zinc-700"
+                            : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-zinc-700"
                     }`}
                 >
                     <Ionicons
                         name={value ? "checkmark-circle" : "pencil-outline"}
                         size={18}
-                        color={value ? "#f2a72f" : "#71717a"}
+                        color={value ? "#f2a72f" : (isDark ? "#71717a" : "#94a3b8")}
                     />
                     <Text
-                        className={`text-sm font-medium ${value ? "text-primary" : "text-zinc-500"}`}
+                        className={`text-sm font-medium ${value ? "text-primary" : "text-slate-400 dark:text-zinc-500"}`}
                     >
                         {value ? "Signed — tap to redo" : "Add signature"}
                     </Text>
@@ -1401,25 +1404,25 @@ function SectionEditor({
     return (
         // Outer View holds both the form and the signature modal as siblings,
         // so the modal is never inside KeyboardAvoidingView and can't be shifted by it.
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 style={{ flex: 1 }}
             >
                 {/* Header */}
-                <View className="flex-row items-center gap-3 px-5 pt-14 pb-4 border-b border-zinc-800">
+                <View className="flex-row items-center gap-3 px-5 pt-14 pb-4 border-b border-slate-200 dark:border-zinc-800">
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={onClose}
-                        className="w-9 h-9 rounded-full bg-slate-800 items-center justify-center"
+                        className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center"
                     >
-                        <Ionicons name="close" size={18} color="#ffffff" />
+                        <Ionicons name="close" size={18} color="#94a3b8" />
                     </TouchableOpacity>
                     <View className="flex-1">
-                        <Text className="text-white font-bold text-base">
+                        <Text className="text-slate-900 dark:text-white font-bold text-base">
                             {section.name}
                         </Text>
-                        <Text className="text-zinc-500 text-xs mt-0.5">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-0.5">
                             {section.fields.length} field
                             {section.fields.length !== 1 ? "s" : ""}
                             {section.fields.some((f) => f.required) &&
@@ -1429,9 +1432,9 @@ function SectionEditor({
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => onSave(values)}
-                        className={`px-4 py-2 rounded-xl ${requiredFilled ? "bg-primary" : "bg-slate-700"}`}
+                        className={`px-4 py-2 rounded-xl ${requiredFilled ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
                     >
-                        <Text className="text-white font-semibold text-sm">
+                        <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                             Done
                         </Text>
                     </TouchableOpacity>
@@ -1484,6 +1487,8 @@ function SectionEditor({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ReportEditorScreen({ onNavigate }: Props) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
     const template = store.selectedTemplateId?.startsWith("user_")
         ? (store.selectedUserTemplate ?? undefined)
         : SYSTEM_TEMPLATES.find((t) => t.id === store.selectedTemplateId);
@@ -1514,20 +1519,20 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
 
     if (!template) {
         return (
-            <View className="flex-1 bg-background items-center justify-center px-8">
+            <View className="flex-1 bg-background dark:bg-[#1e2529] items-center justify-center px-8">
                 <Ionicons
                     name="alert-circle-outline"
                     size={40}
-                    color="#52525b"
+                    color="#94a3b8"
                 />
-                <Text className="text-zinc-400 text-sm mt-3 text-center">
+                <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-3 text-center">
                     No template selected. Go back and choose one.
                 </Text>
                 <TouchableOpacity
                     onPress={() => onNavigate("templateLibrary")}
                     className="mt-5 bg-primary px-6 py-3 rounded-xl"
                 >
-                    <Text className="text-white font-semibold text-sm">
+                    <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                         Pick a template
                     </Text>
                 </TouchableOpacity>
@@ -1612,24 +1617,24 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Top Bar */}
             <View className="flex-row items-center gap-2 px-5 pt-16 pb-3">
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={handleBack}
-                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-800"
+                    className="w-9 h-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800"
                 >
-                    <Ionicons name="arrow-back" size={18} color="#ffffff" />
+                    <Ionicons name="arrow-back" size={18} color="#94a3b8" />
                 </TouchableOpacity>
                 <View className="flex-1">
                     <Text
-                        className="text-white text-base font-bold"
+                        className="text-slate-900 dark:text-white text-base font-bold"
                         numberOfLines={1}
                     >
                         {setup?.title ?? template.name}
                     </Text>
-                    <Text className="text-zinc-500 text-xs" numberOfLines={1}>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-xs" numberOfLines={1}>
                         {template.name}
                         {setup?.inspectorName
                             ? ` · ${setup.inspectorName}`
@@ -1645,11 +1650,11 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
 
             {/* Progress */}
             <View className="px-5 pb-4">
-                <Text className="text-zinc-400 text-xs mb-2">
+                <Text className="text-slate-500 dark:text-zinc-400 text-xs mb-2">
                     {completed} of {total} section
                     {total !== 1 ? "s" : ""} complete
                 </Text>
-                <View className="h-1.5 bg-zinc-800 rounded-full">
+                <View className="h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full">
                     <View
                         className="h-1.5 bg-primary rounded-full"
                         style={{ width: `${progress * 100}%` }}
@@ -1692,7 +1697,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                                 borderWidth: 1,
                                                 borderColor: "#eab30833",
                                             }
-                                          : { backgroundColor: "#0f172a" }
+                                          : { backgroundColor: isDark ? "#0f172a" : "#ffffff" }
                                 }
                             >
                                 {isCompleted ? (
@@ -1739,8 +1744,8 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                     <Text
                                         className={`text-sm font-semibold ${
                                             status === "notstarted"
-                                                ? "text-zinc-500"
-                                                : "text-white"
+                                                ? "text-slate-400 dark:text-zinc-500"
+                                                : "text-slate-900 dark:text-white"
                                         }`}
                                     >
                                         {section.name}
@@ -1755,7 +1760,7 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                                   ? "#eab308"
                                                   : isInProgress
                                                     ? "#f2a72f"
-                                                    : "#52525b",
+                                                    : "#94a3b8",
                                         }}
                                     >
                                         {statusDetail(status)}
@@ -1771,12 +1776,12 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
                                     size={16}
                                     color={
                                         isCompleted
-                                            ? "#3f3f46"
+                                            ? "#cbd5e1"
                                             : isPartial
                                               ? "#eab308"
                                               : isInProgress
                                                 ? "#f2a72f"
-                                                : "#3f3f46"
+                                                : "#cbd5e1"
                                     }
                                 />
                             </TouchableOpacity>
@@ -1786,12 +1791,12 @@ export default function ReportEditorScreen({ onNavigate }: Props) {
             </ScrollView>
 
             {/* Footer */}
-            <View className="flex-row gap-3 px-5 pb-10 pt-3 bg-background border-t border-zinc-800">
+            <View className="flex-row gap-3 px-5 pb-10 pt-3 bg-background dark:bg-[#1e2529] border-t border-slate-200 dark:border-zinc-800">
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    className="flex-1 bg-slate-900 border border-zinc-700 rounded-2xl py-4 items-center"
+                    className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-zinc-700 rounded-2xl py-4 items-center"
                 >
-                    <Text className="text-white font-semibold text-sm">
+                    <Text className="text-slate-900 dark:text-white font-semibold text-sm">
                         Save draft
                     </Text>
                 </TouchableOpacity>

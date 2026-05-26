@@ -32,7 +32,7 @@ function NotificationCard({
     return (
         <View
             className={`mb-3 rounded-2xl border p-4 ${
-                item?.unread ? "border-zinc-600 bg-zinc-800" : "border-zinc-800 bg-zinc-900"
+                item?.unread ? "border-slate-300 dark:border-zinc-600 bg-slate-100 dark:bg-zinc-800" : "border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900"
             }`}
         >
             <TouchableOpacity
@@ -46,7 +46,7 @@ function NotificationCard({
                     )}
 
                     <View
-                        className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-zinc-700"
+                        className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-slate-200 dark:bg-zinc-700"
                         style={{ marginLeft: item?.unread ? 0 : 14 }}
                     >
                         <Ionicons
@@ -57,18 +57,18 @@ function NotificationCard({
                     </View>
 
                     <View className="flex-1">
-                        <Text className="text-white font-semibold text-sm">{item?.title ?? "Notification"}</Text>
+                        <Text className="text-slate-900 dark:text-white font-semibold text-sm">{item?.title ?? "Notification"}</Text>
                         {item?.description ? (
-                            <Text className="text-zinc-400 text-xs mt-0.5">{item.description}</Text>
+                            <Text className="text-slate-500 dark:text-zinc-400 text-xs mt-0.5">{item.description}</Text>
                         ) : null}
                         {item?.time ? (
-                            <Text className="text-zinc-600 text-xs mt-1">{item.time}</Text>
+                            <Text className="text-slate-400 dark:text-zinc-600 text-xs mt-1">{item.time}</Text>
                         ) : null}
                     </View>
                 </View>
 
                 {!isInvite && (
-                    <Ionicons name="chevron-forward" size={14} color="#52525b" />
+                    <Ionicons name="chevron-forward" size={14} color="#94a3b8" />
                 )}
             </TouchableOpacity>
 
@@ -77,9 +77,9 @@ function NotificationCard({
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => onDecline!(item)}
-                        className="flex-1 py-2 rounded-xl bg-slate-700 items-center"
+                        className="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 items-center"
                     >
-                        <Text className="text-zinc-300 text-sm font-semibold">Decline</Text>
+                        <Text className="text-slate-700 dark:text-zinc-300 text-sm font-semibold">Decline</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         activeOpacity={0.7}
@@ -136,21 +136,21 @@ export default function NotificationsScreen({
     };
 
     return (
-        <View className="flex-1 bg-background">
+        <View className="flex-1 bg-background dark:bg-[#1e2529]">
             <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} active="notification" />
 
             {/* Title row */}
             <View className="flex-row items-center justify-between px-5 pt-5 pb-4">
-                <Text className="text-2xl font-bold text-white">Notifications</Text>
+                <Text className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</Text>
                 {activeTab === "Unread" && unread.length > 0 && (
                     <TouchableOpacity activeOpacity={0.7} onPress={markAllRead}>
-                        <Text className="text-zinc-500 text-sm">Mark all read</Text>
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">Mark all read</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
             {/* Tabs */}
-            <View className="flex-row bg-slate-900 mx-5 rounded-2xl p-1 mb-4">
+            <View className="flex-row bg-white dark:bg-slate-900 mx-5 rounded-2xl p-1 mb-4">
                 {(["Unread", "Read"] as Tab[]).map((tab) => {
                     const count = tab === "Unread" ? unread.length : read.length;
                     const isActive = activeTab === tab;
@@ -161,17 +161,17 @@ export default function NotificationsScreen({
                             onPress={() => setActiveTab(tab)}
                             className={`flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl ${isActive ? "bg-primary" : ""}`}
                         >
-                            <Text className={`text-sm font-semibold ${isActive ? "text-white" : "text-zinc-500"}`}>
+                            <Text className={`text-sm font-semibold ${isActive ? "text-white" : "text-slate-400 dark:text-zinc-500"}`}>
                                 {tab}
                             </Text>
                             {count > 0 && (
                                 <View
                                     className="rounded-full px-1.5 py-0.5"
-                                    style={{ backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "#3f3f46" }}
+                                    style={{ backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "#cbd5e1" }}
                                 >
                                     <Text
                                         className="text-xs font-bold"
-                                        style={{ color: isActive ? "#fff" : "#a1a1aa" }}
+                                        style={{ color: isActive ? "#fff" : "#64748b" }}
                                     >
                                         {count}
                                     </Text>
@@ -192,9 +192,9 @@ export default function NotificationsScreen({
                         <Ionicons
                             name={activeTab === "Unread" ? "checkmark-circle-outline" : "notifications-off-outline"}
                             size={44}
-                            color="#3f3f46"
+                            color="#cbd5e1"
                         />
-                        <Text className="text-zinc-500 text-sm">
+                        <Text className="text-slate-400 dark:text-zinc-500 text-sm">
                             {activeTab === "Unread" ? "You're all caught up" : "No read notifications"}
                         </Text>
                     </View>
