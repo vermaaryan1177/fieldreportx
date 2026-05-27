@@ -385,6 +385,7 @@ export default function Sidebar({
 
                 <TouchableOpacity
                     className="mt-3 flex-row items-center"
+                    testID="signout-button"
                     onPress={handleSignOut}
                     disabled={signingOut}
                 >

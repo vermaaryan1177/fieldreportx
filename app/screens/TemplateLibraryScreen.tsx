@@ -47,6 +47,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
         store.setSelectedUserTemplate(null);
         onNavigate("reportSetup");
     };
+    
 
     const handleSelectUser = (template: Template) => {
         store.setSelectedTemplate(`user_${template.id}`);
@@ -77,7 +78,7 @@ export default function TemplateLibraryScreen({ onNavigate, onOpenSidebar,hasOrg
     return (
         <View className="flex-1 bg-background dark:bg-[#1e2529]">
             {/* Header */}
-            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="AK" active="templateLibrary" />
+            <AppHeader onOpenSidebar={onOpenSidebar} onNavigate={onNavigate} profileInitials="A" active="templateLibrary" />
             <View className="flex-row items-center justify-between px-5 pt-5 pb-4">
                 <View>
                     <Text className="text-slate-900 dark:text-white text-2xl font-bold">

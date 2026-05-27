@@ -311,7 +311,7 @@ export default function SettingsScreen({
             <AppHeader
                 onOpenSidebar={onOpenSidebar}
                 onNavigate={onNavigate}
-                profileInitials="AK"
+                profileInitials={initials}
                 active="settings"
             />
             {/* Header */}
